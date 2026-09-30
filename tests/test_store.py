@@ -24,6 +24,9 @@ class PortalStoreTests(unittest.TestCase):
         by_id = {item["id"]: item for item in catalog}
         self.assertEqual({"psr", "ada"}, set(by_id))
         self.assertEqual(["psr-maths"], [s["id"] for s in by_id["psr"]["subjects"]])
+        psr_maths = by_id["psr"]["subjects"][0]
+        self.assertEqual("external", psr_maths["mode"])
+        self.assertEqual("https://maths.lagrandeclasse.fr/teacher", psr_maths["external_url"])
         self.assertEqual({"ada-francais", "ada-maths"}, {s["id"] for s in by_id["ada"]["subjects"]})
 
     def test_user_token_is_not_stored_plaintext_and_authenticates(self):
