@@ -12,6 +12,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=65532:65532 server.py index.html ./
+COPY --chown=65532:65532 portal ./portal
 COPY --chown=65532:65532 assets ./assets
 
 RUN mkdir -p /app/data && chown 65532:65532 /app/data
