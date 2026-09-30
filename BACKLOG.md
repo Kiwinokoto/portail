@@ -44,6 +44,10 @@ Do not add a visible CAP/Bac Pro family level for now.
 
 ## P2 — maths convergence
 
+- [x] Define the shared five-workspace teacher model: Séances → Parcours → Corrigés → Suivi en direct → Rapports.
+- [ ] Harmonise the Portail and Maths LGC teacher UI on those five workspaces and expose explicit availability/status.
+- [ ] Attach Maths sessions to the authenticated portal teacher identity so sessions survive browser/device changes without relying on locally stored management secrets.
+- [ ] Build Reports in layers: group synthesis first, learner detail second, cross-group comparison only when enough comparable data exists.
 - [x] Add portal-issued one-time SSO handoff for Maths LGC using PKCE; no shared teacher token crosses subdomains.
 - [ ] Keep `maths_lgc` production untouched during portal bootstrap.
 - [x] Model PSR Mathematics as an external teacher-facing subject; portal actions route to Maths LGC `/teacher`, never the student landing page.
@@ -64,7 +68,7 @@ This project must stay easy to dismantle or adapt:
 
 Production remains live on `portail.lagrandeclasse.fr`.
 
-The next convergence step is implemented on this branch: authenticated portal teachers can authorize a Maths LGC handoff through a 90-second, single-use code bound to a PKCE challenge. The portal never exposes its teacher token or the Maths legacy master token. The only accepted V1 SSO target is Maths LGC and the callback destination is fixed server-side.
+The SSO handoff is now in production. This branch starts the next convergence layer: one shared teacher information architecture across Portail and Maths LGC, followed by durable ownership of Maths sessions by the authenticated portal teacher identity. The portal never exposes its teacher token or the Maths legacy master token. The only accepted V1 SSO target is Maths LGC and the callback destination is fixed server-side.
 
 If the portal session has expired, the authorization route redirects to the ordinary portal login and safely resumes the pending SSO flow after login.
 
