@@ -20,7 +20,7 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] Merge the tested foundation branch into `main` (PR #1, `9c9ab71`).
 - [x] Merge ADA French positioning V1 into `main` (PR #2, `45951f9`).
 - [ ] Register `Kiwinokoto/portail` in AgentCtl when the admin broker is available, before shared/automated mutation becomes possible.
-- [ ] Configure deployment secrets and deploy `portail.lagrandeclasse.fr` through the LGC Traefik network.
+- [x] Configure deployment secrets and deploy `portail.lagrandeclasse.fr` through the LGC Traefik network (PR #7, workflow run #1 successful).
 
 ## P1 — first real teaching vertical
 
@@ -59,12 +59,20 @@ This project must stay easy to dismantle or adapt:
 
 ## Current handoff — 30 September 2026
 
-All tested functional work through PR #6 is merged into `main` at `5ec54d2`.
+Production deployment is now live from `main` at `bb3d1e1` (PR #7). GitHub Actions run #1 completed successfully end-to-end:
 
-Deployment preparation is now isolated on `dev/deploy-vps-v1`. It adds a GitHub Actions → VPS rsync deployment flow matching the proven `maths_lgc` pattern, targeting `/opt/portail` and the existing `traefik_network`. This avoids storing GitHub credentials on the VPS.
+- deployment secrets validated;
+- SSH and pinned host key accepted;
+- VPS/Docker/Traefik preflight passed;
+- application synced to `/opt/portail`;
+- runtime `.env` written;
+- `portail_lgc` built and started;
+- Docker healthcheck passed;
+- local Traefik route passed;
+- public HTTPS `https://portail.lagrandeclasse.fr/healthz` returned successfully.
 
-Before merging the deployment PR, configure repository Actions secrets `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` and `PORTAIL_APP_SECRET`, and ensure DNS `portail.lagrandeclasse.fr` points to `173.212.214.227`. The first admin is then created manually inside the running container so its one-time token never appears in CI logs.
+The application is therefore deployed and reachable. The remaining bootstrap step is manual creation of the first admin inside the running container so the one-time admin token appears only in the trusted SSH terminal.
 
-The owner explicitly confirmed there is no local clone, no unpushed work and no remaining previous-agent activity, and explicitly authorised this deployment work despite AgentCtl/RDC being unavailable today. AgentCtl registration remains pending and must still be completed when RDC/admin broker access returns.
+The owner explicitly confirmed there is no local clone, no unpushed work and no remaining previous-agent activity, and authorised deployment work despite AgentCtl/RDC being unavailable today. AgentCtl registration remains pending and should be completed when RDC/admin broker access returns.
 
 `maths_lgc` remains untouched.
