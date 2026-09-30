@@ -805,6 +805,176 @@ function clearLivePolling() {
   state.liveLearners = [];
 }
 
+async function toggleSessionCorrections(sessionId, unlocked) {
+  if (unlocked && !confirm('Ouvrir les corrigés pour les élèves de cette séance ?')) return;
+  try {
+    await api(`/api/sessions/${encodeURIComponent(sessionId)}/corrections`, {
+      method:'POST',
+      body:JSON.stringify({ unlocked }),
+    });
+    await loadSessions();
+  } catch (error) {
+    window.alert(`Impossible de modifier les corrigés : ${error.message}`);
+  }
+}
+
+const ADA_ITEM_LABELS = {
+  'oral-comprehension': 'Compréhension orale',
+  'own-name': 'Reconnaissance du prénom',
+  'first-letter': 'Première lettre du prénom',
+  'positioning-v1': 'Positionnement terminé',
+};
+
+function adaItemLabel(itemId) {
+  return ADA_ITEM_LABELS[itemId] || itemId || 'Activité';
+}
+
+function learnerItem(learner, itemId) {
+  return (learner.items && learner.items[itemId]) || { attempts:0, correct_answers:0, completed:false };
+}
+
+function stageReportLabel(learner, itemId) {
+  const item = learnerItem(learner, itemId);
+  if (item.completed) return 'Terminé';
+  if (item.attempts) return 'En cours';
+  return '—';
+}
+
+function buildAdaReport(activity) {
+  const learners = activity.learners || [];
+  const finished = learners.filter((learner) => learnerItem(learner, 'positioning-v1').completed).length;
+  const attempts = learners.reduce((sum, learner) => sum + Number(learner.attempts || 0), 0);
+  const correct = learners.reduce((sum, learner) => sum + Number(learner.correct_answers || 0), 0);
+  return {
+    ...activity, learners,
+    rosterCount: learners.length,
+    startedCount: Number(activity.started_count || 0),
+    finishedCount: finished,
+    attempts, correct,
+  };
+}
+
+function reportMetric(label, value) {
+  return `<div class="report-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`;
+}
+
+async function openReports() {
+  if (!state.subject || state.subject.mode !== 'internal') return;
+  $('reports-title').textContent = `${state.formation.label} · ${state.subject.label}`;
+  $('reports-context').textContent = 'Synthèse des séances auxquelles tu as accès.';
+  $('reports-status').textContent = 'Préparation des rapports…';
+  $('report-session-grid').innerHTML = '';
+  show('report-detail', false);
+  show('report-comparison', false);
+  state.reportSessionId = null;
+  $('reports-dialog').showModal();
+
+  const sessions = state.sessions.filter((session) => session.subject_id === state.subject.id);
+  if (!sessions.length) {
+    $('reports-status').textContent = 'Crée une première séance pour produire un rapport.';
+    return;
+  }
+  const settled = await Promise.allSettled(
+    sessions.map((session) => api(`/api/sessions/${encodeURIComponent(session.id)}/activity`))
+  );
+  const reports = settled
+    .filter((result) => result.status === 'fulfilled')
+    .map((result) => buildAdaReport(result.value));
+
+  if (!reports.length) {
+    $('reports-status').textContent = 'Aucun rapport n’a pu être chargé pour le moment.';
+    return;
+  }
+
+  $('reports-status').textContent = `${reports.length} séance${reports.length > 1 ? 's' : ''} disponible${reports.length > 1 ? 's' : ''}.`;
+  $('report-session-grid').innerHTML = reports.map((report) => `
+    <article class="report-session-card">
+      <div class="report-session-head">
+        <div>
+          <strong>${esc(report.session.group_label)}</strong>
+          <small>Séance ${report.session.session_number}${report.session.title ? ` · ${esc(report.session.title)}` : ''}</small>
+        </div>
+        <button class="btn secondary" type="button" data-report-session="${esc(report.session.id)}">Détail</button>
+      </div>
+      <div class="report-metrics">
+        ${reportMetric('Liste', String(report.rosterCount))}
+        ${reportMetric('Commencé', `${report.startedCount}/${report.rosterCount}`)}
+        ${reportMetric('Terminé', `${report.finishedCount}/${report.rosterCount}`)}
+        ${reportMetric('Réponses justes', report.attempts ? `${report.correct}/${report.attempts}` : '—')}
+      </div>
+    </article>`).join('');
+
+  $('report-session-grid').querySelectorAll('[data-report-session]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const report = reports.find((item) => item.session.id === button.dataset.reportSession);
+      if (report) renderAdaReportDetail(report);
+    });
+  });
+  renderAdaReportComparison(reports);
+}
+
+function renderAdaReportDetail(report) {
+  state.reportSessionId = report.session.id;
+  $('report-detail-title').textContent = report.session.group_label;
+  $('report-detail-meta').textContent = `Séance ${report.session.session_number}${report.session.title ? ` · ${report.session.title}` : ''}`;
+  $('report-detail-metrics').innerHTML = [
+    reportMetric('Liste', String(report.rosterCount)),
+    reportMetric('Commencé', `${report.startedCount}/${report.rosterCount}`),
+    reportMetric('Positionnement terminé', `${report.finishedCount}/${report.rosterCount}`),
+    reportMetric('Réponses justes', report.attempts ? `${report.correct}/${report.attempts}` : '—'),
+  ].join('');
+
+  const items = (report.items || []).filter((item) => ['oral-comprehension','own-name','first-letter','positioning-v1'].includes(item.item_id));
+  $('report-item-summary').innerHTML = items.map((item) => `
+    <div class="report-item-row">
+      <strong>${esc(adaItemLabel(item.item_id))}</strong>
+      <span>${item.completed_count}/${report.rosterCount} terminé</span>
+      <span>${item.attempts ? `${item.correct_answers}/${item.attempts} justes` : 'pas de réponse'}</span>
+      <span>${item.item_id === 'first-letter' ? 'lettre nommée, pas décodage' : ''}</span>
+    </div>`).join('');
+
+  $('report-learner-rows').innerHTML = report.learners.map((learner) => `
+    <tr>
+      <td>${esc(learner.first_name)}${learner.last_name ? ` ${esc(learner.last_name)}` : ''}</td>
+      <td>${esc(stageReportLabel(learner, 'oral-comprehension'))}</td>
+      <td>${esc(stageReportLabel(learner, 'own-name'))}</td>
+      <td>${esc(stageReportLabel(learner, 'first-letter'))}</td>
+      <td>${learnerItem(learner, 'positioning-v1').completed ? 'Oui' : '—'}</td>
+      <td>${learner.attempts ? `${learner.correct_answers}/${learner.attempts}` : '—'}</td>
+    </tr>`).join('');
+  show('report-detail', true);
+  $('report-detail').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function renderAdaReportComparison(reports) {
+  const groups = new Map();
+  reports.forEach((report) => {
+    const key = `${report.session.session_number}|${normalized(report.session.title)}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(report);
+  });
+  const comparable = [...groups.values()].filter((group) => group.length >= 2);
+  if (!comparable.length) {
+    show('report-comparison', false);
+    return;
+  }
+  $('report-comparison-content').innerHTML = comparable.map((group) => `
+    <div class="report-comparison-wrap">
+      <table class="report-comparison-table">
+        <thead><tr><th>Groupe</th><th>Liste</th><th>Commencé</th><th>Terminé</th><th>Réponses justes</th></tr></thead>
+        <tbody>
+          ${group.map((report) => `<tr>
+            <td>${esc(report.session.group_label)}</td>
+            <td>${report.rosterCount}</td>
+            <td>${report.startedCount}/${report.rosterCount}</td>
+            <td>${report.finishedCount}/${report.rosterCount}</td>
+            <td>${report.attempts ? `${report.correct}/${report.attempts}` : '—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`).join('');
+  show('report-comparison', true);
+}
 async function loadUsers() {
   const { users } = await api('/api/admin/users');
   $('users-list').innerHTML = users.map((u) => `
@@ -873,6 +1043,13 @@ $('reports-subject').addEventListener('click', () => {
 $('refresh-sessions').addEventListener('click', loadSessions);
 $('live-dialog').addEventListener('close', clearLivePolling);
 $('add-roster').addEventListener('click', addRosterLearners);
+$('roster-edit-save').addEventListener('click', saveRosterEdit);
+$('report-open-live').addEventListener('click', () => {
+  const sessionId = state.reportSessionId;
+  if (!sessionId) return;
+  $('reports-dialog').close();
+  openLiveView(sessionId);
+});
 $('session-form').addEventListener('submit', async (event) => {
   event.preventDefault(); $('session-status').textContent = '';
   try {
