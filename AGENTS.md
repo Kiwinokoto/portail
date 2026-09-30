@@ -42,6 +42,8 @@ The portal does **not** aim to recreate Moodle. Do not add timetables, messaging
 Long term, identities/groups move to Moodle, pathway orchestration to Roads, ordinary course content to Moodle/Factory, while genuinely interactive activities may remain web modules.
 
 ## Security
+- Cross-app teacher SSO uses a short-lived, one-time authorization code bound to a PKCE challenge. Never put the portal teacher token or the Maths legacy teacher token in a URL, browser-storage handoff, or cross-subdomain cookie.
+- Maths LGC is the only allowed SSO target in V1; callback destination is fixed server-side, so there is no open redirect.
 - Never store plaintext teacher tokens in SQLite; store SHA-256 only because tokens are high-entropy generated secrets, not passwords.
 - Browser authentication uses opaque server-side sessions and HttpOnly cookies.
 - Student access uses signed session links, not student accounts in V1.

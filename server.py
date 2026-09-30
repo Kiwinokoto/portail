@@ -9,7 +9,7 @@ from datetime import datetime
 from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from portal.core import (
     APP_SECRET, HOST, MAX_BODY, PORT, PROJECT_ROOT, PUBLIC_URL, SESSION_COOKIE,
@@ -37,6 +37,13 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Set-Cookie", cookie)
         self.end_headers()
         self.wfile.write(data)
+
+    def _redirect(self, location: str, *, status: int = HTTPStatus.SEE_OTHER) -> None:
+        self.send_response(status)
+        self.send_header("Location", location)
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def _read_json(self) -> dict:
         length = int(self.headers.get("Content-Length", "0") or 0)
@@ -99,6 +106,35 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if path == "/healthz":
                 return self._json(HTTPStatus.OK, {"ok": True})
+            if path == "/api/sso/authorize":
+                query = parse_qs(parsed.query)
+                target = (query.get("target") or [""])[0]
+                challenge = (query.get("challenge") or [""])[0]
+                state = (query.get("state") or [""])[0]
+                if target != "maths":
+                    return self._json(HTTPStatus.BAD_REQUEST, {"error": "Cible SSO invalide."})
+                if not state or len(state) > 128 or any(ch not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-" for ch in state):
+                    return self._json(HTTPStatus.BAD_REQUEST, {"error": "État SSO invalide."})
+
+                user = self._user()
+                if not user:
+                    continuation = parsed.path + ("?" + parsed.query if parsed.query else "")
+                    return self._redirect("/?" + urlencode({"continue": continuation}))
+
+                has_maths = any(
+                    subject["id"] == "psr-maths"
+                    for formation in STORE.catalog_for(user)
+                    for subject in formation["subjects"]
+                )
+                if not has_maths:
+                    return self._json(HTTPStatus.FORBIDDEN, {"error": "Accès Maths LGC non autorisé."})
+
+                code = STORE.create_sso_code(user["id"], target=target, challenge=challenge)
+                callback = "https://maths.lagrandeclasse.fr/api/sso/callback?" + urlencode({
+                    "code": code,
+                    "state": state,
+                })
+                return self._redirect(callback)
             if path == "/api/me":
                 user = self._user()
                 return self._json(HTTPStatus.OK, {"user": user})
@@ -158,6 +194,21 @@ class Handler(BaseHTTPRequestHandler):
         try:
             self._check_origin()
             payload = self._read_json()
+            if path == "/api/sso/redeem":
+                user = STORE.redeem_sso_code(
+                    str(payload.get("code") or ""),
+                    target=str(payload.get("target") or ""),
+                    verifier=str(payload.get("verifier") or ""),
+                )
+                if not user:
+                    return self._json(HTTPStatus.UNAUTHORIZED, {"error": "Code SSO invalide ou expiré."})
+                return self._json(HTTPStatus.OK, {
+                    "user": {
+                        "id": user["id"],
+                        "display_name": user["display_name"],
+                        "role": user["role"],
+                    }
+                })
             if path == "/api/auth/login":
                 user = STORE.authenticate_token(str(payload.get("token") or "").strip())
                 if not user:

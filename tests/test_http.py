@@ -180,6 +180,15 @@ class PortalHttpTests(unittest.TestCase):
         self.assertNotIn("token", saved)
         self.assertNotIn("token_hash", saved)
 
+    def test_sso_redeem_rejects_unknown_code(self):
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            self.request(
+                "/api/sso/redeem",
+                method="POST",
+                payload={"target": "maths", "code": "unknown", "verifier": "unknown"},
+            )
+        self.assertEqual(401, ctx.exception.code)
+
     def test_unauthenticated_catalog_is_rejected(self):
         with self.assertRaises(urllib.error.HTTPError) as ctx:
             self.request("/api/catalog")

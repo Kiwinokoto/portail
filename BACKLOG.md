@@ -44,6 +44,7 @@ Do not add a visible CAP/Bac Pro family level for now.
 
 ## P2 — maths convergence
 
+- [x] Add portal-issued one-time SSO handoff for Maths LGC using PKCE; no shared teacher token crosses subdomains.
 - [ ] Keep `maths_lgc` production untouched during portal bootstrap.
 - [x] Model PSR Mathematics as an external teacher-facing subject; portal actions route to Maths LGC `/teacher`, never the student landing page.
 - [ ] Extract/reuse generic session and teacher ideas without copying maths-specific hard-coded stages.
@@ -61,12 +62,12 @@ This project must stay easy to dismantle or adapt:
 
 ## Current handoff — 30 September 2026
 
-Production is live on `portail.lagrandeclasse.fr`.
+Production remains live on `portail.lagrandeclasse.fr`.
 
-Current routing correction: PSR → Mathématiques is an external **teacher** module, so its canonical portal URL is now `https://maths.lagrandeclasse.fr/teacher`, not the student root. Existing production catalogue rows are corrected during store initialisation as well as fresh installs. For this external subject the four portal action cards route to the matching Maths LGC teacher surfaces (create/follow, inspect, corrections) instead of appearing disabled.
+The next convergence step is implemented on this branch: authenticated portal teachers can authorize a Maths LGC handoff through a 90-second, single-use code bound to a PKCE challenge. The portal never exposes its teacher token or the Maths legacy master token. The only accepted V1 SSO target is Maths LGC and the callback destination is fixed server-side.
 
-This pass also strengthens hover/focus contrast slightly while retaining the sober violet/indigo dashboard.
+If the portal session has expired, the authorization route redirects to the ordinary portal login and safely resumes the pending SSO flow after login.
 
-No portal authentication is yet shared across subdomains: Maths LGC still owns its own teacher authentication/session model. The important fix here is that a portal teacher can no longer be routed to the student landing page.
+Maths still keeps its legacy teacher token as a fallback during rollout; removing that fallback is a later hardening step after classroom validation.
 
 AgentCtl registration remains pending while RDC/admin broker access is unavailable today. The owner confirmed there is no other active agent or unpushed local work.

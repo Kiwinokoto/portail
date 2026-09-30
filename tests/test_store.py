@@ -42,6 +42,27 @@ class PortalStoreTests(unittest.TestCase):
         maths = next(subject for subject in psr["subjects"] if subject["id"] == "psr-maths")
         self.assertEqual("https://maths.lagrandeclasse.fr/teacher", maths["external_url"])
 
+    def test_sso_code_is_pkce_bound_and_single_use(self):
+        import base64
+        import hashlib
+
+        user, _ = self.store.create_user("Kevin SSO", "teacher")
+        verifier = "v" * 48
+        challenge = base64.urlsafe_b64encode(
+            hashlib.sha256(verifier.encode("utf-8")).digest()
+        ).rstrip(b"=").decode("ascii")
+        code = self.store.create_sso_code(user["id"], target="maths", challenge=challenge)
+
+        self.assertIsNone(
+            self.store.redeem_sso_code(code, target="maths", verifier="wrong-verifier")
+        )
+        redeemed = self.store.redeem_sso_code(code, target="maths", verifier=verifier)
+        self.assertEqual(user["id"], redeemed["id"])
+        self.assertEqual("Kevin SSO", redeemed["display_name"])
+        self.assertIsNone(
+            self.store.redeem_sso_code(code, target="maths", verifier=verifier)
+        )
+
     def test_user_token_is_not_stored_plaintext_and_authenticates(self):
         user, token = self.store.create_user("Fadhila", "teacher")
         self.assertEqual(user["display_name"], "Fadhila")
