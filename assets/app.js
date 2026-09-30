@@ -466,22 +466,47 @@ function revealOnNarrowScreen(id) {
   window.requestAnimationFrame(() => element.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
+function externalTeacherUrl(tab = '') {
+  if (!state.subject?.external_url) return '';
+  const url = new URL(state.subject.external_url, window.location.origin);
+  if (tab) url.searchParams.set('tab', tab);
+  return url.toString();
+}
+
+function openExternalTeacher(tab = '') {
+  const url = externalTeacherUrl(tab);
+  if (!url) return;
+  window.open(url, '_blank', 'noopener');
+}
+
 function updateWorkspaceActions() {
   if (!state.subject) return;
   const internal = state.subject.mode === 'internal';
+  const external = state.subject.mode === 'external';
+  const planned = state.subject.mode === 'planned';
   const hasSessions = state.sessions.some((session) => session.subject_id === state.subject.id);
 
-  $('show-create-session').disabled = !internal;
-  $('show-live-sessions').disabled = !internal || !hasSessions;
+  $('show-create-session').disabled = planned;
+  $('explore-subject').disabled = !external;
+  $('corrections-subject').disabled = !external;
+  $('show-live-sessions').disabled = planned || (internal && !hasSessions);
 
-  $('show-create-session').querySelector('span').textContent = state.subject.mode === 'external'
-    ? 'Les séances restent pour l’instant gérées par le site existant.'
-    : state.subject.mode === 'planned'
+  $('show-create-session').querySelector('span').textContent = external
+    ? 'Créer et piloter les séances directement dans Maths LGC.'
+    : planned
       ? 'Le parcours doit d’abord être construit.'
       : 'Préparer un groupe, un lien élève et un QR.';
 
-  $('show-live-sessions').querySelector('span').textContent = !internal
-    ? 'Disponible quand ce parcours sera géré dans le portail.'
+  $('explore-subject').querySelector('span').textContent = external
+    ? 'Ouvrir la prévisualisation professeur libre dans Maths LGC.'
+    : 'Prévisualisation professeur libre — prochaine passe.';
+
+  $('corrections-subject').querySelector('span').textContent = external
+    ? 'Ouvrir la gestion des corrigés dans Maths LGC.'
+    : 'Verrouillés par défaut par séance — prochaine passe.';
+
+  $('show-live-sessions').querySelector('span').textContent = external
+    ? 'Ouvrir le tableau Maths LGC pour reprendre une séance et suivre les élèves.'
     : hasSessions
       ? 'Préparer la liste des élèves et suivre leurs premiers essais.'
       : 'Crée d’abord une séance pour préparer la liste des élèves.';
@@ -516,9 +541,12 @@ function selectSubject(id) {
   $('workspace-title').textContent = `${state.formation.label} · ${state.subject.label}`;
   $('workspace-description').textContent = state.subject.description;
   if (state.subject.external_url) {
-    $('external-course').href = state.subject.external_url;
+    $('external-course').href = externalTeacherUrl();
+    $('external-course').textContent = 'Ouvrir Maths LGC · professeur';
     show('external-course', true);
-  } else show('external-course', false);
+  } else {
+    show('external-course', false);
+  }
 
   show('subject-workspace', true);
   show('session-form', false);
@@ -697,8 +725,16 @@ $('login-button').addEventListener('click', async () => {
 });
 $('login-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('login-button').click(); });
 $('logout').addEventListener('click', async () => { await api('/api/auth/logout', { method:'POST', body:'{}' }); state.user = null; showLogin(); });
-$('show-create-session').addEventListener('click', () => show('session-form', true));
-$('show-live-sessions').addEventListener('click', () => $('recent-sessions-panel').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+$('show-create-session').addEventListener('click', () => {
+  if (state.subject?.mode === 'external') return openExternalTeacher('create');
+  show('session-form', true);
+});
+$('explore-subject').addEventListener('click', () => openExternalTeacher('inspect'));
+$('corrections-subject').addEventListener('click', () => openExternalTeacher('corrections'));
+$('show-live-sessions').addEventListener('click', () => {
+  if (state.subject?.mode === 'external') return openExternalTeacher('create');
+  $('recent-sessions-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
 $('refresh-sessions').addEventListener('click', loadSessions);
 $('live-dialog').addEventListener('close', clearLivePolling);
 $('add-roster').addEventListener('click', addRosterLearners);
