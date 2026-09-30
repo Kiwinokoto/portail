@@ -37,7 +37,7 @@ No account system in V1. A class-session URL is a signed bearer link distributed
 The initial local catalogue is intentionally tiny:
 - `psr` → `psr-maths` (`external`, current `maths.lagrandeclasse.fr`)
 - `ada` → `ada-francais` (`internal`)
-- `ada` → `ada-maths` (`planned`)
+- `ada` → `ada-maths` (`internal`, foundation numeracy V1)
 
 Later, catalogue ownership can move to Moodle/Roads without changing the teacher-facing Formation → Subject mental model.
 
@@ -78,7 +78,7 @@ Roster corrections are reversible where possible: names may be corrected after a
 
 ## Live follow-up
 
-V1 target is 3–5 second polling. For classroom-sized groups this is operationally simpler than WebSockets and still feels live. If server-to-browser push becomes useful, SSE is the preferred next step before a bidirectional WebSocket layer.
+V1 target is 3–5 second polling. The browser pauses polling while its tab is hidden and resumes with an immediate refresh when visible again. For classroom-sized groups this is operationally simpler than WebSockets and still feels live. If server-to-browser push becomes useful, SSE is the preferred next step before a bidirectional WebSocket layer.
 
 ## Moodle convergence
 
