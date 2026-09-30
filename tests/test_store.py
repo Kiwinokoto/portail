@@ -111,6 +111,8 @@ class PortalStoreTests(unittest.TestCase):
         )
         activity = self.store.session_activity(created["id"], teacher["id"])
         summary = activity["learners"][0]
+        self.assertTrue(summary["started"])
+        self.assertEqual(1, activity["started_count"])
         self.assertEqual("Amina", summary["first_name"])
         self.assertEqual(2, summary["attempts"])
         self.assertEqual(1, summary["correct_answers"])
@@ -134,6 +136,66 @@ class PortalStoreTests(unittest.TestCase):
                 second["id"], learner_id=learner["id"], event_type="answer",
                 item_id="own-name", payload={"correct": True},
             )
+
+    def test_teacher_preloads_roster_and_public_view_minimises_names(self):
+        teacher, _ = self.store.create_user("Kevin", "teacher")
+        other, _ = self.store.create_user("Waren", "teacher")
+        created = self.store.create_class_session(
+            teacher_id=teacher["id"], formation_id="ada", subject_id="ada-francais",
+            session_number=1, title="", group_label="ADA 1"
+        )
+        result = self.store.add_roster_learners(
+            created["id"],
+            teacher["id"],
+            [
+                {"first_name": "Amina", "last_name": "Diallo"},
+                {"first_name": "Moussa", "last_name": "Traoré"},
+                {"first_name": "amina", "last_name": "diallo"},
+            ],
+        )
+        self.assertEqual(2, result["created"])
+        self.assertEqual(1, result["skipped"])
+        self.assertEqual(["Amina", "Moussa"], [row["first_name"] for row in result["learners"]])
+        public = self.store.public_roster(created["id"])
+        self.assertEqual(
+            {"id", "first_name", "last_initial"},
+            set(public[0]),
+        )
+        self.assertEqual("D.", public[0]["last_initial"])
+        self.assertNotIn("last_name", public[0])
+        activity = self.store.session_activity(created["id"], teacher["id"])
+        self.assertEqual(0, activity["started_count"])
+        self.assertTrue(all(not learner["started"] for learner in activity["learners"]))
+        with self.assertRaises(ValueError):
+            self.store.list_roster(created["id"], other["id"])
+
+    def test_preloaded_learner_becomes_started_after_selection_event(self):
+        teacher, _ = self.store.create_user("Kevin", "teacher")
+        created = self.store.create_class_session(
+            teacher_id=teacher["id"], formation_id="ada", subject_id="ada-francais",
+            session_number=1, title="", group_label="ADA 1"
+        )
+        roster = self.store.add_roster_learners(
+            created["id"],
+            teacher["id"],
+            [{"first_name": "Amina", "last_name": "Diallo"}],
+        )["learners"]
+        selected = self.store.register_learner(
+            created["id"],
+            first_name="",
+            learner_id=roster[0]["id"],
+        )
+        self.store.record_activity_event(
+            created["id"],
+            learner_id=selected["id"],
+            event_type="activity_started",
+            item_id="positioning-v1",
+            payload={"entry": "roster"},
+        )
+        activity = self.store.session_activity(created["id"], teacher["id"])
+        self.assertEqual(1, activity["started_count"])
+        self.assertTrue(activity["learners"][0]["started"])
+        self.assertIsNotNone(activity["learners"][0]["started_at"])
 
 
 if __name__ == "__main__":

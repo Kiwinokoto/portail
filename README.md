@@ -23,8 +23,10 @@ The portal intentionally does not recreate Moodle. It focuses on teacher session
 2. The server creates a secure browser session; the teacher name/role come from the account, not from a form field.
 3. Choose a formation, then a subject.
 4. Create a class session with a group and optional title.
-5. Share the signed learner URL or QR code.
-6. Reopen the same sessions from any device after authenticating again.
+5. For ADA French, open **Élèves / suivi** and preload the roster (one learner per line, optional `Prénom; Nom`).
+6. Share the signed learner URL or QR code.
+7. Learners select their prepared identity; they do not type their name.
+8. Reopen the same sessions from any device after authenticating again.
 
 Administrators can create/deactivate colleagues and rotate their access token. Generated teacher tokens are displayed once and stored only as SHA-256 hashes server-side.
 
@@ -55,7 +57,8 @@ Open:
 
 ```bash
 python -m unittest discover -s tests -v
-python -m compileall -q server.py tests
+python -m compileall -q server.py portal tests
+node --check assets/app.js
 ```
 
 ## Deployment direction

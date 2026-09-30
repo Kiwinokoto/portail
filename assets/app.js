@@ -7,6 +7,7 @@ const state = {
   sessions: [],
   joinToken: null,
   joinSession: null,
+  roster: [],
   learner: null,
   liveTimer: null,
   liveSessionId: null,
@@ -26,6 +27,10 @@ async function api(path, options = {}) {
 function show(id, yes = true) { $(id).classList.toggle('hidden', !yes); }
 function esc(value) { return String(value ?? '').replace(/[&<>'"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 function normalized(value) { return String(value || '').trim().toLocaleLowerCase('fr-FR'); }
+function rosterLabel(learner) {
+  const suffix = learner.last_initial || (learner.last_name ? `${Array.from(learner.last_name)[0]?.toLocaleUpperCase('fr-FR') || ''}.` : '');
+  return [learner.first_name, suffix].filter(Boolean).join(' ');
+}
 
 async function boot() {
   const join = new URLSearchParams(window.location.search).get('join');
@@ -70,7 +75,14 @@ function clearStoredLearner(sessionId) {
   catch { /* no-op */ }
 }
 
+async function fetchJoinRoster() {
+  const { learners } = await api(`/api/join/roster?token=${encodeURIComponent(state.joinToken)}`);
+  state.roster = learners;
+  return learners;
+}
+
 async function startAdaFrench(session) {
+  await fetchJoinRoster();
   const saved = storedLearner(session.id);
   if (saved?.id) {
     try {
@@ -79,12 +91,14 @@ async function startAdaFrench(session) {
         body: JSON.stringify({ token: state.joinToken, learner_id: saved.id }),
       });
       state.learner = learner;
+      await trackEvent('activity_started', 'positioning-v1', { entry: 'resume' });
       return renderOwnNameActivity();
     } catch {
       clearStoredLearner(session.id);
     }
   }
-  renderLearnerEntry();
+  if (state.roster.length) renderRosterSelection();
+  else renderRosterMissing();
 }
 
 function speakFrench(text) {
@@ -134,44 +148,93 @@ function audioButton(label, text, itemId = '') {
   return button;
 }
 
-function renderLearnerEntry() {
+function renderRosterMissing() {
   $('student-session-message').innerHTML = `
     <div class="learner-stage">
-      <h3>Bienvenue</h3>
-      <p class="learner-prompt">Ton prénom</p>
-      <div id="entry-audio"></div>
-      <input id="learner-first-name" class="input learner-input" maxlength="60" autocomplete="given-name" aria-label="Ton prénom" />
-      <button id="learner-start" class="btn primary">Continuer</button>
-      <p class="learner-help">Si besoin, le professeur peut aider à écrire le prénom cette première fois.</p>
-      <p id="learner-entry-status" class="status"></p>
+      <p class="eyebrow">Avant de commencer</p>
+      <h3>La liste des prénoms n’est pas encore prête.</h3>
+      <div id="roster-missing-audio"></div>
+      <p class="learner-help">Demande au professeur de préparer la liste, puis actualise ici.</p>
+      <button id="roster-refresh" class="btn primary">Actualiser la liste</button>
+      <p id="roster-refresh-status" class="status"></p>
     </div>`;
-  $('entry-audio').appendChild(audioButton('Écouter', 'Écris ton prénom. Si tu veux, demande au professeur de t’aider.'));
-  $('learner-start').addEventListener('click', registerLearnerFromEntry);
-  $('learner-first-name').addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') registerLearnerFromEntry();
-  });
-  $('learner-first-name').focus();
+  $('roster-missing-audio').appendChild(audioButton(
+    'Écouter',
+    'La liste des prénoms n’est pas encore prête. Demande au professeur, puis appuie sur Actualiser.'
+  ));
+  $('roster-refresh').addEventListener('click', refreshRosterSelection);
+  speakFrench('La liste des prénoms n’est pas encore prête. Demande au professeur.');
 }
 
-async function registerLearnerFromEntry() {
-  const firstName = $('learner-first-name').value.trim();
-  $('learner-entry-status').textContent = '';
-  if (!firstName) {
-    $('learner-entry-status').textContent = 'Entre ton prénom pour continuer.';
-    speakFrench('Entre ton prénom pour continuer.');
-    return;
+async function refreshRosterSelection() {
+  $('roster-refresh-status').textContent = 'Actualisation…';
+  try {
+    const learners = await fetchJoinRoster();
+    if (learners.length) renderRosterSelection();
+    else $('roster-refresh-status').textContent = 'La liste n’est pas encore prête.';
+  } catch (error) {
+    $('roster-refresh-status').textContent = error.message;
   }
+}
+
+function renderRosterSelection() {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      <p class="eyebrow">Avant de commencer</p>
+      <h3>Choisis ton prénom.</h3>
+      <div id="roster-instruction-audio"></div>
+      <p class="learner-help">Tu peux écouter un prénom avec le bouton 🔊. Si deux personnes ont le même prénom, regarde l’initiale du nom.</p>
+      <div id="roster-choice-grid" class="roster-choice-grid"></div>
+      <p id="roster-choice-status" class="status" aria-live="assertive"></p>
+    </div>`;
+  $('roster-instruction-audio').appendChild(audioButton(
+    'Écouter',
+    'Choisis ton prénom. Tu peux appuyer sur le haut-parleur pour écouter chaque prénom.'
+  ));
+  const grid = $('roster-choice-grid');
+  state.roster.forEach((learner) => {
+    const card = document.createElement('article');
+    card.className = 'learner-choice-card';
+
+    const name = document.createElement('strong');
+    name.className = 'learner-choice-name';
+    name.textContent = rosterLabel(learner);
+
+    const actions = document.createElement('div');
+    actions.className = 'learner-choice-actions';
+
+    const listen = audioButton('Écouter', learner.first_name);
+    listen.classList.add('compact-audio');
+    listen.addEventListener('click', (event) => event.stopPropagation());
+
+    const choose = document.createElement('button');
+    choose.type = 'button';
+    choose.className = 'btn primary';
+    choose.textContent = 'C’est moi';
+    choose.addEventListener('click', () => chooseRosterLearner(learner.id));
+
+    actions.append(listen, choose);
+    card.append(name, actions);
+    grid.appendChild(card);
+  });
+  speakFrench('Choisis ton prénom. Tu peux écouter les prénoms.');
+}
+
+async function chooseRosterLearner(learnerId) {
+  $('roster-choice-status').textContent = '';
+  $('roster-choice-grid').querySelectorAll('button').forEach((button) => { button.disabled = true; });
   try {
     const { learner } = await api('/api/join/learners', {
       method: 'POST',
-      body: JSON.stringify({ token: state.joinToken, first_name: firstName }),
+      body: JSON.stringify({ token: state.joinToken, learner_id: learnerId }),
     });
     state.learner = learner;
     saveLearner(learner);
-    await trackEvent('activity_started', 'positioning-v1', {});
+    await trackEvent('activity_started', 'positioning-v1', { entry: 'roster' });
     renderOwnNameActivity();
   } catch (error) {
-    $('learner-entry-status').textContent = error.message;
+    $('roster-choice-status').textContent = error.message;
+    $('roster-choice-grid').querySelectorAll('button').forEach((button) => { button.disabled = false; });
   }
 }
 
@@ -187,7 +250,11 @@ function shuffledChoices(answer, pool, count = 4) {
 
 function renderOwnNameActivity() {
   const firstName = state.learner.first_name;
-  const choices = shuffledChoices(firstName, ['Mariam', 'Moussa', 'Amina', 'Sofiane', 'Fatou', 'Karim']);
+  const rosterNames = state.roster.map((learner) => learner.first_name);
+  const choices = shuffledChoices(
+    firstName,
+    [...rosterNames, 'Mariam', 'Moussa', 'Amina', 'Sofiane', 'Fatou', 'Karim'],
+  );
   $('student-session-message').innerHTML = `
     <div class="learner-stage">
       <p class="eyebrow">1 · Mon prénom</p>
@@ -366,7 +433,7 @@ async function loadSessions() {
         <small>${esc(s.group_label)} · créée ${new Date(s.created_at).toLocaleString('fr-FR')}</small>
       </div>
       <div class="session-actions">
-        ${s.subject_id === 'ada-francais' ? `<button class="btn primary" data-live="${esc(s.id)}">Suivi</button>` : ''}
+        ${s.subject_id === 'ada-francais' ? `<button class="btn primary" data-live="${esc(s.id)}">Élèves / suivi</button>` : ''}
         <button class="btn ghost" data-copy="${esc(s.join_url)}">Copier le lien élève</button>
         <a class="btn secondary" href="/api/sessions/${encodeURIComponent(s.id)}/qr.svg" target="_blank">QR</a>
       </div>
@@ -391,6 +458,8 @@ async function openLiveView(sessionId) {
   $('live-context').textContent = session ? `${session.group_label}${session.title ? ` · ${session.title}` : ''}` : '';
   $('live-learners').innerHTML = '';
   $('live-status').textContent = 'Chargement…';
+  $('roster-input').value = '';
+  $('roster-status').textContent = '';
   $('live-dialog').showModal();
   await refreshLiveView();
   state.liveTimer = window.setInterval(refreshLiveView, 4000);
@@ -399,18 +468,67 @@ async function openLiveView(sessionId) {
 async function refreshLiveView() {
   if (!state.liveSessionId || !$('live-dialog').open) return;
   try {
-    const { learners } = await api(`/api/sessions/${encodeURIComponent(state.liveSessionId)}/activity`);
-    $('live-status').textContent = learners.length ? `${learners.length} élève${learners.length > 1 ? 's' : ''} connecté${learners.length > 1 ? 's' : ''}` : 'En attente des élèves…';
+    const { learners, started_count: startedCount } = await api(`/api/sessions/${encodeURIComponent(state.liveSessionId)}/activity`);
+    if (!learners.length) {
+      $('live-status').textContent = 'Ajoute la liste des élèves pour préparer la séance.';
+      $('live-learners').innerHTML = '<p class="muted">Aucun élève dans la liste pour le moment.</p>';
+      return;
+    }
+    $('live-status').textContent = `${startedCount} sur ${learners.length} ont commencé`;
     $('live-learners').innerHTML = learners.map((learner) => `
       <article class="live-row">
         <div>
           <strong>${esc(learner.first_name)}${learner.last_name ? ` ${esc(learner.last_name)}` : ''}</strong>
-          <small>${learner.last_activity_at ? `Dernière activité ${new Date(learner.last_activity_at).toLocaleTimeString('fr-FR')}` : 'Connecté, pas encore de réponse'}</small>
+          <small>${learner.started
+            ? `Dernière activité ${new Date(learner.last_activity_at).toLocaleTimeString('fr-FR')}`
+            : 'Pas encore commencé'}</small>
         </div>
-        <div class="progress-badge">${learner.completed_items}/3 étapes · ${learner.correct_answers}/${learner.attempts} réponses justes</div>
+        <div class="progress-badge ${learner.started ? '' : 'waiting'}">
+          ${learner.started ? `${learner.completed_items}/3 étapes · ${learner.correct_answers}/${learner.attempts} réponses justes` : 'En attente'}
+        </div>
       </article>`).join('');
   } catch (error) {
     $('live-status').textContent = error.message;
+  }
+}
+
+function parseRosterInput(value) {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const parts = line.split(/[;\t]/).map((part) => part.trim());
+      return {
+        first_name: parts.shift() || '',
+        last_name: parts.filter(Boolean).join(' '),
+      };
+    })
+    .filter((learner) => learner.first_name);
+}
+
+async function addRosterLearners() {
+  const learners = parseRosterInput($('roster-input').value);
+  $('roster-status').textContent = '';
+  if (!learners.length) {
+    $('roster-status').textContent = 'Ajoute au moins un prénom.';
+    return;
+  }
+  $('add-roster').disabled = true;
+  try {
+    const result = await api(`/api/sessions/${encodeURIComponent(state.liveSessionId)}/learners`, {
+      method: 'POST',
+      body: JSON.stringify({ learners }),
+    });
+    const createdLabel = `${result.created} ajouté${result.created > 1 ? 's' : ''}`;
+    const skippedLabel = result.skipped ? ` · ${result.skipped} déjà présent${result.skipped > 1 ? 's' : ''}` : '';
+    $('roster-status').textContent = createdLabel + skippedLabel;
+    if (result.created) $('roster-input').value = '';
+    await refreshLiveView();
+  } catch (error) {
+    $('roster-status').textContent = error.message;
+  } finally {
+    $('add-roster').disabled = false;
   }
 }
 
@@ -466,6 +584,7 @@ $('show-create-session').addEventListener('click', () => show('session-form', tr
 $('show-live-sessions').addEventListener('click', () => $('recent-sessions-panel').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 $('refresh-sessions').addEventListener('click', loadSessions);
 $('live-dialog').addEventListener('close', clearLivePolling);
+$('add-roster').addEventListener('click', addRosterLearners);
 $('session-form').addEventListener('submit', async (event) => {
   event.preventDefault(); $('session-status').textContent = '';
   try {
@@ -473,7 +592,10 @@ $('session-form').addEventListener('submit', async (event) => {
       formation_id: state.formation.id, subject_id: state.subject.id,
       session_number: Number($('session-number').value), title:$('session-title').value, group_label:$('session-group').value,
     })});
-    $('session-status').textContent = 'Séance créée ✓'; $('session-title').value = ''; $('session-group').value = '';
+    $('session-status').textContent = state.subject.id === 'ada-francais'
+      ? 'Séance créée ✓ · ajoute maintenant la liste des élèves dans “Élèves / suivi”.'
+      : 'Séance créée ✓';
+    $('session-title').value = ''; $('session-group').value = '';
     await loadSessions();
   } catch (error) { $('session-status').textContent = error.message; }
 });

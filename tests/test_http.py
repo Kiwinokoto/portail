@@ -5,6 +5,7 @@ import tempfile
 import threading
 import unittest
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from http.server import ThreadingHTTPServer
@@ -41,7 +42,7 @@ class PortalHttpTests(unittest.TestCase):
         jar = http.cookiejar.CookieJar()
         self.client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
 
-    def request(self, path, *, method="GET", payload=None):
+    def request(self, path, *, method="GET", payload=None, opener=None):
         data = None if payload is None else json.dumps(payload).encode()
         req = urllib.request.Request(
             self.base + path,
@@ -49,7 +50,7 @@ class PortalHttpTests(unittest.TestCase):
             method=method,
             headers={"Content-Type": "application/json", "Origin": self.base},
         )
-        with self.client.open(req, timeout=3) as response:
+        with (opener or self.client).open(req, timeout=3) as response:
             return response.status, json.loads(response.read())
 
     def login(self):
@@ -86,36 +87,82 @@ class PortalHttpTests(unittest.TestCase):
         session = self.create_ada_session()
         token = session["join_url"].split("?join=", 1)[1]
         anonymous = urllib.request.build_opener()
-        req = urllib.request.Request(self.base + "/api/join?token=" + token)
-        with anonymous.open(req, timeout=3) as response:
-            joined = json.loads(response.read())
+        status, joined = self.request(
+            "/api/join?token=" + urllib.parse.quote(token),
+            opener=anonymous,
+        )
+        self.assertEqual(200, status)
         self.assertEqual("ADA", joined["session"]["formation_label"])
         self.assertEqual("Français", joined["session"]["subject_label"])
 
-    def test_public_learner_events_feed_teacher_live_view(self):
+    def test_teacher_preloads_roster_and_public_selection_feeds_live_view(self):
         session = self.create_ada_session()
-        token = session["join_url"].split("?join=", 1)[1]
-        status, joined = self.request(
-            "/api/join/learners", method="POST",
-            payload={"token": token, "first_name": "Amina"},
-        )
-        self.assertEqual(201, status)
-        learner_id = joined["learner"]["id"]
-        status, _ = self.request(
-            "/api/join/events", method="POST",
+        status, roster = self.request(
+            f"/api/sessions/{session['id']}/learners",
+            method="POST",
             payload={
-                "token": token,
-                "learner_id": learner_id,
-                "event_type": "answer",
-                "item_id": "own-name",
-                "payload": {"correct": True, "choice": "Amina"},
+                "learners": [
+                    {"first_name": "Amina", "last_name": "Diallo"},
+                    {"first_name": "Moussa", "last_name": "Traoré"},
+                ]
             },
         )
         self.assertEqual(201, status)
+        self.assertEqual(2, roster["created"])
+
+        token = session["join_url"].split("?join=", 1)[1]
+        anonymous = urllib.request.build_opener()
+        status, public = self.request(
+            "/api/join/roster?token=" + urllib.parse.quote(token),
+            opener=anonymous,
+        )
+        self.assertEqual(200, status)
+        self.assertEqual(2, len(public["learners"]))
+        self.assertEqual("D.", public["learners"][0]["last_initial"])
+        self.assertNotIn("last_name", public["learners"][0])
+
+        selected_id = public["learners"][0]["id"]
+        status, joined = self.request(
+            "/api/join/learners",
+            method="POST",
+            payload={"token": token, "learner_id": selected_id},
+            opener=anonymous,
+        )
+        self.assertEqual(201, status)
+        self.assertEqual("Amina", joined["learner"]["first_name"])
+
+        status, _ = self.request(
+            "/api/join/events",
+            method="POST",
+            payload={
+                "token": token,
+                "learner_id": selected_id,
+                "event_type": "activity_started",
+                "item_id": "positioning-v1",
+                "payload": {"entry": "roster"},
+            },
+            opener=anonymous,
+        )
+        self.assertEqual(201, status)
+
         status, activity = self.request(f"/api/sessions/{session['id']}/activity")
         self.assertEqual(200, status)
-        self.assertEqual("Amina", activity["learners"][0]["first_name"])
-        self.assertEqual(1, activity["learners"][0]["correct_answers"])
+        self.assertEqual(1, activity["started_count"])
+        amina = next(learner for learner in activity["learners"] if learner["first_name"] == "Amina")
+        self.assertTrue(amina["started"])
+
+    def test_public_cannot_create_unlisted_learner_by_typing_name(self):
+        session = self.create_ada_session()
+        token = session["join_url"].split("?join=", 1)[1]
+        anonymous = urllib.request.build_opener()
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            self.request(
+                "/api/join/learners",
+                method="POST",
+                payload={"token": token, "first_name": "Amina"},
+                opener=anonymous,
+            )
+        self.assertEqual(400, ctx.exception.code)
 
     def test_admin_can_create_teacher_but_token_is_one_time_response(self):
         self.login()

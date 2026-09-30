@@ -16,12 +16,13 @@ Skills should be treated independently. A learner may understand spoken French w
 
 The first vertical is deliberately small:
 
-1. learner opens the signed class-session link / QR;
-2. learner identity is attached to the class session;
-3. browser speech synthesis says the learner's first name;
-4. learner recognises the written form of their own first name among adult first-name distractors;
-5. learner matches the first **letter name** of their first name;
-6. attempts and completions are visible to the teacher through 4-second polling.
+1. teacher creates the class session and preloads the learner roster;
+2. learner opens the signed class-session link / QR;
+3. learner selects their prepared identity instead of typing their name;
+4. browser speech synthesis says the learner's first name;
+5. learner recognises the written form of their own first name among adult first-name distractors;
+6. learner matches the first **letter name** of their first name;
+7. attempts and completions are visible to the teacher through 4-second polling.
 
 The second task is only a letter-name recognition probe. It must **not** be interpreted as evidence that the learner has mastered the initial phoneme or grapheme↔phoneme correspondence.
 
@@ -29,13 +30,29 @@ The second task is only a letter-name recognition probe. It must **not** be inte
 
 V1 uses the browser Web Speech / `speechSynthesis` API with `fr-FR` rather than shipping audio assets. Text remains visible as a fallback. Before classroom use, test the actual target browser/device voices and volume; voice availability is platform-dependent.
 
-## Learner identity limitation
+## Learner identity / roster
 
-The current first visit asks for the learner's first name to be typed once. This is intentionally temporary and the UI tells the learner that the teacher can help.
+The teacher prepares the roster from **Élèves / suivi**. Input accepts one learner per line:
 
-Proper fix: teacher-side roster/preload or a visual/name-selection handoff so the learner can enter the activity without typing or reading an instruction first. Avoid speech-recognition as the only path because browser support, accents, noise and privacy make it unreliable for this audience.
+```text
+Amina; Diallo
+Moussa; Traoré
+Sofia
+```
 
-The browser stores only the opaque learner id in `localStorage` to resume the same learner after refresh; the first name remains server-side. Server-side activity remains scoped to the signed class-session link.
+A tab separator is also accepted for spreadsheet copy/paste.
+
+The signed learner link exposes only the opaque learner id, first name and optional last-name initial for the session roster. Full last names stay server-side and are visible in the authenticated teacher view. The learner therefore never needs to type their own name.
+
+The browser stores only the opaque learner id in `localStorage` to resume the same learner after refresh. Server-side activity remains scoped to the signed class-session link.
+
+No database migration is needed for this pass: the roster reuses the existing `learners` table and whether someone has actually started is derived from `activity_events`.
+
+### Known roster limitations
+
+- roster entries are append-only in the current UI; typo/edit/remove should be added before broader rollout;
+- exact duplicate `Prénom + Nom` rows are ignored, so identical full names need a distinguishing second given name or other teacher-entered discriminator for now;
+- the same prepared learner can still be selected on more than one device; events would then aggregate under that learner. Add a claim/device safeguard only if classroom testing shows it is needed.
 
 ## Event model
 
@@ -46,6 +63,10 @@ Allowed public learner events are intentionally narrow:
 - `activity_completed`
 
 The server validates that the learner belongs to the signed class session and caps event payloads at 4 KiB. The teacher summary exposes counts useful for live support, not a durable gradebook.
+
+## Privacy boundary
+
+The class join URL is a bearer link. Anyone holding it can see the first names and last-name initials prepared for that class session. Do not put unnecessary personal information in the roster. This is intentionally narrower than exposing full names and should eventually be replaced by Moodle identity/group integration.
 
 ## Next useful probes
 

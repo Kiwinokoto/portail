@@ -11,6 +11,7 @@ _ALLOWED_EVENT_TYPES = {
     "answer",
     "activity_completed",
 }
+_MAX_ROSTER_BATCH = 100
 
 
 class LearningMixin:
@@ -22,14 +23,13 @@ class LearningMixin:
         last_name: str = "",
         learner_id: str = "",
     ) -> dict:
-        """Create a learner for a signed class session or resume the same browser learner."""
+        """Create a learner for a signed class session or resume/select an existing learner."""
         session = self.get_class_session(class_session_id)
         if not session["active"]:
             raise ValueError("Cette séance est fermée.")
 
         if learner_id:
-            learner = self.get_learner(learner_id, class_session_id=class_session_id)
-            return learner
+            return self.get_learner(learner_id, class_session_id=class_session_id)
 
         first_name = clean_text(first_name, label="Prénom", max_len=60)
         last_name = clean_text(last_name, label="Nom", max_len=80, required=False)
@@ -59,6 +59,93 @@ class LearningMixin:
         if not row:
             raise ValueError("Élève introuvable pour cette séance.")
         return dict(row)
+
+    def list_roster(self, class_session_id: str, teacher_id: int) -> list[dict]:
+        self.get_class_session(class_session_id, teacher_id=teacher_id)
+        with self.connect() as db:
+            rows = db.execute(
+                """SELECT id,first_name,last_name
+                FROM learners WHERE class_session_id=?
+                ORDER BY first_name COLLATE NOCASE,last_name COLLATE NOCASE,id""",
+                (class_session_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def public_roster(self, class_session_id: str) -> list[dict]:
+        session = self.get_class_session(class_session_id)
+        if not session["active"]:
+            raise ValueError("Cette séance est fermée.")
+        with self.connect() as db:
+            rows = db.execute(
+                """SELECT id,first_name,last_name
+                FROM learners WHERE class_session_id=?
+                ORDER BY first_name COLLATE NOCASE,last_name COLLATE NOCASE,id""",
+                (class_session_id,),
+            ).fetchall()
+        return [
+            {
+                "id": row["id"],
+                "first_name": row["first_name"],
+                "last_initial": f"{row['last_name'][0].upper()}." if row["last_name"] else "",
+            }
+            for row in rows
+        ]
+
+    def add_roster_learners(
+        self,
+        class_session_id: str,
+        teacher_id: int,
+        learners: list[dict],
+    ) -> dict:
+        self.get_class_session(class_session_id, teacher_id=teacher_id)
+        if not isinstance(learners, list) or not learners:
+            raise ValueError("Ajoute au moins un élève.")
+        if len(learners) > _MAX_ROSTER_BATCH:
+            raise ValueError(f"Maximum {_MAX_ROSTER_BATCH} élèves par ajout.")
+
+        cleaned: list[tuple[str, str]] = []
+        seen_in_request: set[tuple[str, str]] = set()
+        for item in learners:
+            if not isinstance(item, dict):
+                raise ValueError("Liste d'élèves invalide.")
+            first_name = clean_text(item.get("first_name"), label="Prénom", max_len=60)
+            last_name = clean_text(item.get("last_name"), label="Nom", max_len=80, required=False)
+            key = (first_name.casefold(), last_name.casefold())
+            if key in seen_in_request:
+                continue
+            seen_in_request.add(key)
+            cleaned.append((first_name, last_name))
+
+        with self.connect() as db:
+            existing_rows = db.execute(
+                "SELECT first_name,last_name FROM learners WHERE class_session_id=?",
+                (class_session_id,),
+            ).fetchall()
+            existing = {
+                (row["first_name"].casefold(), row["last_name"].casefold())
+                for row in existing_rows
+            }
+            now = iso()
+            created = 0
+            skipped = 0
+            for first_name, last_name in cleaned:
+                key = (first_name.casefold(), last_name.casefold())
+                if key in existing:
+                    skipped += 1
+                    continue
+                db.execute(
+                    """INSERT INTO learners(
+                        id,class_session_id,first_name,last_name,created_at,updated_at
+                    ) VALUES(?,?,?,?,?,?)""",
+                    (secrets.token_urlsafe(12), class_session_id, first_name, last_name, now, now),
+                )
+                existing.add(key)
+                created += 1
+        return {
+            "learners": self.list_roster(class_session_id, teacher_id),
+            "created": created,
+            "skipped": skipped + (len(learners) - len(cleaned)),
+        }
 
     def record_activity_event(
         self,
@@ -100,7 +187,8 @@ class LearningMixin:
         with self.connect() as db:
             learner_rows = db.execute(
                 """SELECT id,first_name,last_name,created_at,updated_at
-                FROM learners WHERE class_session_id=? ORDER BY created_at,id""",
+                FROM learners WHERE class_session_id=?
+                ORDER BY first_name COLLATE NOCASE,last_name COLLATE NOCASE,id""",
                 (class_session_id,),
             ).fetchall()
             event_rows = db.execute(
@@ -114,7 +202,9 @@ class LearningMixin:
                 "id": row["id"],
                 "first_name": row["first_name"],
                 "last_name": row["last_name"],
-                "joined_at": row["created_at"],
+                "listed_at": row["created_at"],
+                "started": False,
+                "started_at": None,
                 "last_activity_at": None,
                 "attempts": 0,
                 "correct_answers": 0,
@@ -128,6 +218,9 @@ class LearningMixin:
             summary = summaries.get(learner_id)
             if not summary:
                 continue
+            if not summary["started"]:
+                summary["started"] = True
+                summary["started_at"] = row["created_at"]
             summary["last_activity_at"] = row["created_at"]
             if row["event_type"] == "answer":
                 summary["attempts"] += 1
@@ -141,4 +234,9 @@ class LearningMixin:
                 completed[learner_id].add(row["item_id"])
         for learner_id, items in completed.items():
             summaries[learner_id]["completed_items"] = len(items)
-        return {"session": session, "learners": list(summaries.values())}
+        learners = list(summaries.values())
+        return {
+            "session": session,
+            "learners": learners,
+            "started_count": sum(1 for learner in learners if learner["started"]),
+        }
