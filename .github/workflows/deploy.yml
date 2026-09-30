@@ -76,6 +76,50 @@ jobs:
             install -d -o 65532 -g 65532 -m 0750 '${PROJECT_DIR}/data'
           "
 
+      - name: Backup persistent data
+        run: |
+          set -euo pipefail
+          ssh "${DEPLOY_USER}@${DEPLOY_HOST}" "PROJECT_DIR='${PROJECT_DIR}' bash -s" <<'EOF'
+          set -euo pipefail
+
+          db="$PROJECT_DIR/data/portal.sqlite3"
+          backup_root="$PROJECT_DIR/data/backups"
+          stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          install -d -o 65532 -g 65532 -m 0750 "$backup_root"
+
+          if [ -f "$db" ]; then
+            if ! docker ps --format '{{.Names}}' | grep -qx portail_lgc; then
+              echo "Portail data exists but the running container is unavailable; refusing deployment without a consistent SQLite backup." >&2
+              exit 1
+            fi
+
+            docker exec -i               -e BACKUP_PATH="/app/data/backups/portal-$stamp.sqlite3"               portail_lgc python - <<'PY'
+          import os
+          import sqlite3
+
+          source = sqlite3.connect("/app/data/portal.sqlite3", timeout=10)
+          target = sqlite3.connect(os.environ["BACKUP_PATH"])
+          try:
+              source.backup(target)
+          finally:
+              target.close()
+              source.close()
+          PY
+            echo "Created Portail SQLite backup: portal-$stamp.sqlite3"
+          else
+            echo "No Portail SQLite database yet; nothing to back up."
+          fi
+
+          mapfile -t backups < <(
+            find "$backup_root" -maxdepth 1 -type f -name 'portal-*.sqlite3' -printf '%T@ %p\n' |
+              sort -nr |
+              cut -d' ' -f2-
+          )
+          for ((i=20; i<${#backups[@]}; i++)); do
+            rm -f -- "${backups[$i]}"
+          done
+          EOF
+
       - name: Sync application
         run: |
           set -euo pipefail
