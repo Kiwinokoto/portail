@@ -14,6 +14,8 @@ const state = {
   liveLearners: [],
   reportSessionId: null,
   previewMode: false,
+  positioningItemId: '',
+  learnerStart: null,
 };
 
 async function api(path, options = {}) {
@@ -40,20 +42,39 @@ function ssoContinuation() {
   return value.startsWith('/api/sso/authorize?') ? value : '';
 }
 
-function isAdaTeacherPreviewRequest() {
+function teacherPreviewSubject() {
   const params = new URLSearchParams(window.location.search);
-  return params.get('preview') === 'teacher' && params.get('subject') === 'ada-francais';
+  const subjectId = params.get('subject') || '';
+  if (params.get('preview') !== 'teacher') return '';
+  return ['ada-francais', 'ada-maths'].includes(subjectId) ? subjectId : '';
 }
 
-function showAdaTeacherPreview() {
+function configureLearnerPath(session) {
+  if (session.subject_id === 'ada-francais') {
+    state.positioningItemId = 'positioning-v1';
+    state.learnerStart = () => renderOralComprehensionActivity(0);
+    return true;
+  }
+  if (session.subject_id === 'ada-maths') {
+    state.positioningItemId = 'numeracy-v1';
+    state.learnerStart = renderNumeracyQuantityActivity;
+    return true;
+  }
+  state.positioningItemId = '';
+  state.learnerStart = null;
+  return false;
+}
+
+function showAdaTeacherPreview(subjectId) {
+  const isMaths = subjectId === 'ada-maths';
   state.previewMode = true;
   state.joinToken = null;
   state.joinSession = {
     id: 'teacher-preview',
     formation_id: 'ada',
     formation_label: 'ADA',
-    subject_id: 'ada-francais',
-    subject_label: 'Français',
+    subject_id: subjectId,
+    subject_label: isMaths ? 'Mathématiques' : 'Français',
     session_number: 1,
     title: 'Aperçu du positionnement',
     group_label: 'Aperçu professeur',
@@ -69,15 +90,16 @@ function showAdaTeacherPreview() {
     { id:'preview-moussa', first_name:'Moussa', last_initial:'T.' },
     { id:'preview-sofia', first_name:'Sofia', last_initial:'' },
   ];
+  configureLearnerPath(state.joinSession);
 
   show('student-view', true);
   show('login-view', false);
   show('teacher-view', false);
   show('logout', false);
   show('teacher-preview-banner', true);
-  $('student-session-title').textContent = 'ADA · Français — aperçu professeur';
+  $('student-session-title').textContent = `ADA · ${state.joinSession.subject_label} — aperçu professeur`;
   $('student-session-context').textContent = 'Navigation libre · aucune donnée élève enregistrée';
-  renderOralComprehensionActivity(0);
+  state.learnerStart();
 }
 
 async function boot() {
@@ -92,7 +114,8 @@ async function boot() {
     window.location.assign(continuation);
     return;
   }
-  if (isAdaTeacherPreviewRequest()) return showAdaTeacherPreview();
+  const previewSubject = teacherPreviewSubject();
+  if (previewSubject) return showAdaTeacherPreview(previewSubject);
   await showTeacher();
 }
 
@@ -106,8 +129,8 @@ async function showStudentJoin(token) {
     state.joinSession = session;
     $('student-session-title').textContent = `${session.formation_label} · ${session.subject_label}`;
     $('student-session-context').textContent = `Séance ${session.session_number}${session.title ? ` · ${session.title}` : ''} · ${session.group_label}`;
-    if (session.subject_id === 'ada-francais') {
-      await startAdaFrench(session);
+    if (configureLearnerPath(session)) {
+      await startPreparedLearnerPath(session);
     } else {
       $('student-session-message').innerHTML = '<p class="learner-prompt">Le parcours de cette matière sera branché ici.</p>';
     }
@@ -138,7 +161,7 @@ async function fetchJoinRoster() {
   return learners;
 }
 
-async function startAdaFrench(session) {
+async function startPreparedLearnerPath(session) {
   await fetchJoinRoster();
   const saved = storedLearner(session.id);
   if (saved?.id) {
@@ -148,8 +171,8 @@ async function startAdaFrench(session) {
         body: JSON.stringify({ token: state.joinToken, learner_id: saved.id }),
       });
       state.learner = learner;
-      await trackEvent('activity_started', 'positioning-v1', { entry: 'resume' });
-      return renderOralComprehensionActivity(0);
+      await trackEvent('activity_started', state.positioningItemId, { entry: 'resume' });
+      return state.learnerStart?.();
     } catch {
       clearStoredLearner(session.id);
     }
@@ -287,8 +310,8 @@ async function chooseRosterLearner(learnerId) {
     });
     state.learner = learner;
     saveLearner(learner);
-    await trackEvent('activity_started', 'positioning-v1', { entry: 'roster' });
-    renderOralComprehensionActivity(0);
+    await trackEvent('activity_started', state.positioningItemId, { entry: 'roster' });
+    state.learnerStart?.();
   } catch (error) {
     $('roster-choice-status').textContent = error.message;
     $('roster-choice-grid').querySelectorAll('button').forEach((button) => { button.disabled = false; });
@@ -1318,7 +1341,8 @@ $('login-button').addEventListener('click', async () => {
       window.location.assign(continuation);
       return;
     }
-    if (isAdaTeacherPreviewRequest()) showAdaTeacherPreview();
+    const previewSubject = teacherPreviewSubject();
+    if (previewSubject) showAdaTeacherPreview(previewSubject);
     else await showTeacher();
   } catch (error) { $('login-status').textContent = error.message; }
 });
