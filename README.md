@@ -80,6 +80,8 @@ Required repository Actions secrets:
 
 The workflow preserves `/opt/portail/data` and `.env`, builds only the portal image, starts/updates only `portail_lgc`, waits for the Docker healthcheck, verifies the Traefik route locally, then verifies the public HTTPS endpoint.
 
+Before each deployment, if the production database already exists, the workflow creates a consistent SQLite snapshot with Python's `sqlite3.backup()` under `/opt/portail/data/backups/`. It keeps the **20 most recent** snapshots. If data exists but the current container is unexpectedly unavailable, deployment stops rather than proceeding without a consistent backup.
+
 Before the first deployment, DNS for `portail.lagrandeclasse.fr` must point to the LGC VPS.
 
 After the first successful deployment, create the first administrator manually so the one-time token is printed only in the trusted SSH terminal, never in Actions logs:
