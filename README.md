@@ -13,7 +13,7 @@ Formation
 Initial catalogue:
 - **PSR** → Mathematics (existing legacy course at `maths.lagrandeclasse.fr`)
 - **ADA** → French / literacy
-- **ADA** → Mathematics / numeracy (planned)
+- **ADA** → Mathematics / numeracy (internal foundation V1)
 
 The portal intentionally does not recreate Moodle. It focuses on teacher sessions, interactive learning content and lightweight learner follow-up.
 
@@ -23,7 +23,7 @@ The portal intentionally does not recreate Moodle. It focuses on teacher session
 2. The server creates a secure browser session; the teacher name/role come from the account, not from a form field.
 3. Choose a formation, then a subject.
 4. Create a class session with a group and optional title.
-5. For ADA French, open **Élèves / suivi** and preload the roster (one learner per line, optional `Prénom; Nom`).
+5. For ADA French or ADA Mathematics, open **Suivi en direct** and preload the roster (one learner per line, optional `Prénom; Nom`).
 6. Share the signed learner URL or QR code.
 7. Learners select their prepared identity; they do not type their name.
 8. Reopen the same sessions from any device after authenticating again.
@@ -52,6 +52,10 @@ Open:
 - `PORTAIL_PUBLIC_URL` — default `http://localhost:8080`
 - `PORTAIL_APP_SECRET` — required for production; signs learner links
 - `PORTAIL_SESSION_TTL_DAYS` — default `30`
+
+## Field validation
+
+Automated tests do not replace classroom/device checks. The current manual checklist lives in `docs/field-validation-checklist.md`. In particular, cross-device recovery of Maths sessions is implemented and covered automatically but has **not yet been manually validated by Kevin on two distinct browsers/devices**.
 
 ## Tests
 
