@@ -11,6 +11,8 @@ const state = {
   learner: null,
   liveTimer: null,
   liveSessionId: null,
+  liveLearners: [],
+  reportSessionId: null,
 };
 
 async function api(path, options = {}) {
@@ -517,7 +519,7 @@ function updateWorkspaceActions() {
     setWorkspaceAction('explore-subject', { disabled:true, description:'Inspection disponible une fois le parcours construit.', status:'à construire', upcoming:true });
     setWorkspaceAction('corrections-subject', { disabled:true, description:'Pilotage disponible une fois les activités construites.', status:'à construire', upcoming:true });
     setWorkspaceAction('show-live-sessions', { disabled:true, description:'Le suivi démarrera avec les premières activités.', status:'à construire', upcoming:true });
-    setWorkspaceAction('reports-subject', { disabled:false, description:'Synthèses groupe, individuelles et comparaisons.', status:'à venir', upcoming:true });
+    setWorkspaceAction('reports-subject', { disabled:true, description:'Les rapports démarreront avec les premières activités.', status:'à construire', upcoming:true });
     return;
   }
 
@@ -532,26 +534,22 @@ function updateWorkspaceActions() {
     upcoming: internal
   });
   setWorkspaceAction('corrections-subject', {
-    disabled: internal,
-    description: external ? 'Verrouiller ou ouvrir les corrigés au moment choisi.' : 'Le contrôle des corrigés par séance est en préparation.',
-    status: external ? 'disponible' : 'en cours',
-    upcoming: internal
+    disabled: internal && !hasSessions,
+    description: external ? 'Verrouiller ou ouvrir les corrigés au moment choisi.' : (hasSessions ? 'Verrouiller ou ouvrir les corrigés séance par séance.' : 'Crée d’abord une séance pour piloter les corrigés.'),
+    status: external || hasSessions ? 'disponible' : 'après création',
+    upcoming: internal && !hasSessions
   });
   setWorkspaceAction('show-live-sessions', {
     disabled: internal && !hasSessions,
-    description: external
-      ? 'Voir les présences, l’avancement, les résultats et le rythme indicatif.'
-      : hasSessions
-        ? 'Voir qui a commencé et suivre les premières activités.'
-        : 'Crée d’abord une séance pour démarrer le suivi.',
+    description: external ? 'Voir les présences, l’avancement, les résultats et le rythme indicatif.' : (hasSessions ? 'Voir qui a commencé et suivre les premières activités.' : 'Crée d’abord une séance pour démarrer le suivi.'),
     status: external || hasSessions ? 'disponible' : 'après création',
     upcoming: internal && !hasSessions
   });
   setWorkspaceAction('reports-subject', {
-    disabled:false,
-    description:'Synthèse du groupe, détail individuel et comparaison entre groupes.',
-    status:'à venir',
-    upcoming:true
+    disabled: internal && !hasSessions,
+    description: 'Synthèse du groupe, détail individuel et comparaison descriptive.',
+    status: external || hasSessions ? 'V1' : 'après création',
+    upcoming: internal && !hasSessions
   });
 }
 
@@ -622,7 +620,8 @@ async function loadSessions() {
         <small>${esc(s.group_label)} · créée ${new Date(s.created_at).toLocaleString('fr-FR')}</small>
       </div>
       <div class="session-actions">
-        ${s.subject_id === 'ada-francais' ? `<button class="btn primary" data-live="${esc(s.id)}">Élèves / suivi</button>` : ''}
+        ${s.subject_id === 'ada-francais' ? `<button class="btn primary" data-live="${esc(s.id)}">Suivi en direct</button>
+        <button class="btn secondary" data-corrections="${esc(s.id)}" data-unlocked="${s.corrections_unlocked ? '1' : '0'}">Corrigés : ${s.corrections_unlocked ? 'ouverts' : 'verrouillés'}</button>` : ''}
         <button class="btn ghost" data-copy="${esc(s.join_url)}">Copier le lien élève</button>
         <a class="btn secondary" href="/api/sessions/${encodeURIComponent(s.id)}/qr.svg" target="_blank">QR</a>
       </div>
@@ -637,6 +636,9 @@ async function loadSessions() {
   $('sessions-list').querySelectorAll('[data-live]').forEach((button) => {
     button.addEventListener('click', () => openLiveView(button.dataset.live));
   });
+  $('sessions-list').querySelectorAll('[data-corrections]').forEach((button) => {
+    button.addEventListener('click', () => toggleSessionCorrections(button.dataset.corrections, button.dataset.unlocked !== '1'));
+  });
 }
 
 async function openLiveView(sessionId) {
@@ -646,6 +648,7 @@ async function openLiveView(sessionId) {
   $('live-title').textContent = session ? `${session.formation_label} · ${session.subject_label} · Séance ${session.session_number}` : 'Séance';
   $('live-context').textContent = session ? `${session.group_label}${session.title ? ` · ${session.title}` : ''}` : '';
   $('live-learners').innerHTML = '';
+  $('roster-manage-list').innerHTML = '';
   $('live-status').textContent = 'Chargement…';
   $('roster-input').value = '';
   $('roster-status').textContent = '';
@@ -658,6 +661,8 @@ async function refreshLiveView() {
   if (!state.liveSessionId || !$('live-dialog').open) return;
   try {
     const { learners, started_count: startedCount } = await api(`/api/sessions/${encodeURIComponent(state.liveSessionId)}/activity`);
+    state.liveLearners = learners;
+    renderRosterManage(learners);
     if (!learners.length) {
       $('live-status').textContent = 'Ajoute la liste des élèves pour préparer la séance.';
       $('live-learners').innerHTML = '<p class="muted">Aucun élève dans la liste pour le moment.</p>';
@@ -678,6 +683,78 @@ async function refreshLiveView() {
       </article>`).join('');
   } catch (error) {
     $('live-status').textContent = error.message;
+  }
+}
+
+function renderRosterManage(learners) {
+  const box = $('roster-manage-list');
+  if (!learners.length) {
+    box.innerHTML = '<p class="muted">La liste est vide.</p>';
+    return;
+  }
+  box.innerHTML = learners.map((learner) => `
+    <article class="roster-manage-row">
+      <div>
+        <strong>${esc(learner.first_name)}${learner.last_name ? ` ${esc(learner.last_name)}` : ''}</strong>
+        <small>${learner.started ? 'A déjà commencé · suppression bloquée' : 'Pas encore commencé'}</small>
+      </div>
+      <div class="roster-manage-actions">
+        <button class="btn ghost" type="button" data-roster-edit="${esc(learner.id)}">Modifier</button>
+        <button class="btn ghost danger" type="button" data-roster-remove="${esc(learner.id)}" ${learner.started ? 'disabled title="Le travail de cet élève est déjà commencé."' : ''}>Retirer</button>
+      </div>
+    </article>`).join('');
+  box.querySelectorAll('[data-roster-edit]').forEach((button) => {
+    button.addEventListener('click', () => openRosterEdit(button.dataset.rosterEdit));
+  });
+  box.querySelectorAll('[data-roster-remove]').forEach((button) => {
+    button.addEventListener('click', () => removeRosterLearner(button.dataset.rosterRemove));
+  });
+}
+
+function openRosterEdit(learnerId) {
+  const learner = state.liveLearners.find((item) => item.id === learnerId);
+  if (!learner) return;
+  $('roster-edit-id').value = learner.id;
+  $('roster-edit-first-name').value = learner.first_name;
+  $('roster-edit-last-name').value = learner.last_name || '';
+  $('roster-edit-status').textContent = '';
+  $('roster-edit-dialog').showModal();
+}
+
+async function saveRosterEdit() {
+  const learnerId = $('roster-edit-id').value;
+  $('roster-edit-status').textContent = '';
+  $('roster-edit-save').disabled = true;
+  try {
+    await api(`/api/sessions/${encodeURIComponent(state.liveSessionId)}/learners/update`, {
+      method:'POST',
+      body:JSON.stringify({
+        learner_id: learnerId,
+        first_name: $('roster-edit-first-name').value,
+        last_name: $('roster-edit-last-name').value,
+      }),
+    });
+    $('roster-edit-dialog').close();
+    await refreshLiveView();
+  } catch (error) {
+    $('roster-edit-status').textContent = error.message;
+  } finally {
+    $('roster-edit-save').disabled = false;
+  }
+}
+
+async function removeRosterLearner(learnerId) {
+  const learner = state.liveLearners.find((item) => item.id === learnerId);
+  if (!learner || learner.started) return;
+  if (!confirm(`Retirer ${learner.first_name}${learner.last_name ? ` ${learner.last_name}` : ''} de cette séance ?`)) return;
+  try {
+    await api(`/api/sessions/${encodeURIComponent(state.liveSessionId)}/learners/remove`, {
+      method:'POST',
+      body:JSON.stringify({ learner_id: learnerId }),
+    });
+    await refreshLiveView();
+  } catch (error) {
+    $('roster-status').textContent = error.message;
   }
 }
 
@@ -725,8 +802,179 @@ function clearLivePolling() {
   if (state.liveTimer) window.clearInterval(state.liveTimer);
   state.liveTimer = null;
   state.liveSessionId = null;
+  state.liveLearners = [];
 }
 
+async function toggleSessionCorrections(sessionId, unlocked) {
+  if (unlocked && !confirm('Ouvrir les corrigés pour les élèves de cette séance ?')) return;
+  try {
+    await api(`/api/sessions/${encodeURIComponent(sessionId)}/corrections`, {
+      method:'POST',
+      body:JSON.stringify({ unlocked }),
+    });
+    await loadSessions();
+  } catch (error) {
+    window.alert(`Impossible de modifier les corrigés : ${error.message}`);
+  }
+}
+
+const ADA_ITEM_LABELS = {
+  'oral-comprehension': 'Compréhension orale',
+  'own-name': 'Reconnaissance du prénom',
+  'first-letter': 'Première lettre du prénom',
+  'positioning-v1': 'Positionnement terminé',
+};
+
+function adaItemLabel(itemId) {
+  return ADA_ITEM_LABELS[itemId] || itemId || 'Activité';
+}
+
+function learnerItem(learner, itemId) {
+  return (learner.items && learner.items[itemId]) || { attempts:0, correct_answers:0, completed:false };
+}
+
+function stageReportLabel(learner, itemId) {
+  const item = learnerItem(learner, itemId);
+  if (item.completed) return 'Terminé';
+  if (item.attempts) return 'En cours';
+  return '—';
+}
+
+function buildAdaReport(activity) {
+  const learners = activity.learners || [];
+  const finished = learners.filter((learner) => learnerItem(learner, 'positioning-v1').completed).length;
+  const attempts = learners.reduce((sum, learner) => sum + Number(learner.attempts || 0), 0);
+  const correct = learners.reduce((sum, learner) => sum + Number(learner.correct_answers || 0), 0);
+  return {
+    ...activity, learners,
+    rosterCount: learners.length,
+    startedCount: Number(activity.started_count || 0),
+    finishedCount: finished,
+    attempts, correct,
+  };
+}
+
+function reportMetric(label, value) {
+  return `<div class="report-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`;
+}
+
+async function openReports() {
+  if (!state.subject || state.subject.mode !== 'internal') return;
+  $('reports-title').textContent = `${state.formation.label} · ${state.subject.label}`;
+  $('reports-context').textContent = 'Synthèse des séances auxquelles tu as accès.';
+  $('reports-status').textContent = 'Préparation des rapports…';
+  $('report-session-grid').innerHTML = '';
+  show('report-detail', false);
+  show('report-comparison', false);
+  state.reportSessionId = null;
+  $('reports-dialog').showModal();
+
+  const sessions = state.sessions.filter((session) => session.subject_id === state.subject.id);
+  if (!sessions.length) {
+    $('reports-status').textContent = 'Crée une première séance pour produire un rapport.';
+    return;
+  }
+  const settled = await Promise.allSettled(
+    sessions.map((session) => api(`/api/sessions/${encodeURIComponent(session.id)}/activity`))
+  );
+  const reports = settled
+    .filter((result) => result.status === 'fulfilled')
+    .map((result) => buildAdaReport(result.value));
+
+  if (!reports.length) {
+    $('reports-status').textContent = 'Aucun rapport n’a pu être chargé pour le moment.';
+    return;
+  }
+
+  $('reports-status').textContent = `${reports.length} séance${reports.length > 1 ? 's' : ''} disponible${reports.length > 1 ? 's' : ''}.`;
+  $('report-session-grid').innerHTML = reports.map((report) => `
+    <article class="report-session-card">
+      <div class="report-session-head">
+        <div>
+          <strong>${esc(report.session.group_label)}</strong>
+          <small>Séance ${report.session.session_number}${report.session.title ? ` · ${esc(report.session.title)}` : ''}</small>
+        </div>
+        <button class="btn secondary" type="button" data-report-session="${esc(report.session.id)}">Détail</button>
+      </div>
+      <div class="report-metrics">
+        ${reportMetric('Liste', String(report.rosterCount))}
+        ${reportMetric('Commencé', `${report.startedCount}/${report.rosterCount}`)}
+        ${reportMetric('Terminé', `${report.finishedCount}/${report.rosterCount}`)}
+        ${reportMetric('Réponses justes', report.attempts ? `${report.correct}/${report.attempts}` : '—')}
+      </div>
+    </article>`).join('');
+
+  $('report-session-grid').querySelectorAll('[data-report-session]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const report = reports.find((item) => item.session.id === button.dataset.reportSession);
+      if (report) renderAdaReportDetail(report);
+    });
+  });
+  renderAdaReportComparison(reports);
+}
+
+function renderAdaReportDetail(report) {
+  state.reportSessionId = report.session.id;
+  $('report-detail-title').textContent = report.session.group_label;
+  $('report-detail-meta').textContent = `Séance ${report.session.session_number}${report.session.title ? ` · ${report.session.title}` : ''}`;
+  $('report-detail-metrics').innerHTML = [
+    reportMetric('Liste', String(report.rosterCount)),
+    reportMetric('Commencé', `${report.startedCount}/${report.rosterCount}`),
+    reportMetric('Positionnement terminé', `${report.finishedCount}/${report.rosterCount}`),
+    reportMetric('Réponses justes', report.attempts ? `${report.correct}/${report.attempts}` : '—'),
+  ].join('');
+
+  const items = (report.items || []).filter((item) => ['oral-comprehension','own-name','first-letter','positioning-v1'].includes(item.item_id));
+  $('report-item-summary').innerHTML = items.map((item) => `
+    <div class="report-item-row">
+      <strong>${esc(adaItemLabel(item.item_id))}</strong>
+      <span>${item.completed_count}/${report.rosterCount} terminé</span>
+      <span>${item.attempts ? `${item.correct_answers}/${item.attempts} justes` : 'pas de réponse'}</span>
+      <span>${item.item_id === 'first-letter' ? 'lettre nommée, pas décodage' : ''}</span>
+    </div>`).join('');
+
+  $('report-learner-rows').innerHTML = report.learners.map((learner) => `
+    <tr>
+      <td>${esc(learner.first_name)}${learner.last_name ? ` ${esc(learner.last_name)}` : ''}</td>
+      <td>${esc(stageReportLabel(learner, 'oral-comprehension'))}</td>
+      <td>${esc(stageReportLabel(learner, 'own-name'))}</td>
+      <td>${esc(stageReportLabel(learner, 'first-letter'))}</td>
+      <td>${learnerItem(learner, 'positioning-v1').completed ? 'Oui' : '—'}</td>
+      <td>${learner.attempts ? `${learner.correct_answers}/${learner.attempts}` : '—'}</td>
+    </tr>`).join('');
+  show('report-detail', true);
+  $('report-detail').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function renderAdaReportComparison(reports) {
+  const groups = new Map();
+  reports.forEach((report) => {
+    const key = `${report.session.session_number}|${normalized(report.session.title)}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(report);
+  });
+  const comparable = [...groups.values()].filter((group) => group.length >= 2);
+  if (!comparable.length) {
+    show('report-comparison', false);
+    return;
+  }
+  $('report-comparison-content').innerHTML = comparable.map((group) => `
+    <div class="report-comparison-wrap">
+      <table class="report-comparison-table">
+        <thead><tr><th>Groupe</th><th>Liste</th><th>Commencé</th><th>Terminé</th><th>Réponses justes</th></tr></thead>
+        <tbody>
+          ${group.map((report) => `<tr>
+            <td>${esc(report.session.group_label)}</td>
+            <td>${report.rosterCount}</td>
+            <td>${report.startedCount}/${report.rosterCount}</td>
+            <td>${report.finishedCount}/${report.rosterCount}</td>
+            <td>${report.attempts ? `${report.correct}/${report.attempts}` : '—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`).join('');
+  show('report-comparison', true);
+}
 async function loadUsers() {
   const { users } = await api('/api/admin/users');
   $('users-list').innerHTML = users.map((u) => `
@@ -780,18 +1028,28 @@ $('show-create-session').addEventListener('click', () => {
   show('session-form', true);
 });
 $('explore-subject').addEventListener('click', () => openExternalTeacher('inspect'));
-$('corrections-subject').addEventListener('click', () => openExternalTeacher('corrections'));
+$('corrections-subject').addEventListener('click', () => {
+  if (state.subject?.mode === 'external') return openExternalTeacher('corrections');
+  $('recent-sessions-panel').scrollIntoView({ behavior:'smooth', block:'start' });
+});
 $('show-live-sessions').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('live');
   $('recent-sessions-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 $('reports-subject').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('reports');
-  window.alert('Les rapports pédagogiques arrivent dans une prochaine passe : synthèse du groupe, détail individuel et comparaisons entre groupes.');
+  openReports();
 });
 $('refresh-sessions').addEventListener('click', loadSessions);
 $('live-dialog').addEventListener('close', clearLivePolling);
 $('add-roster').addEventListener('click', addRosterLearners);
+$('roster-edit-save').addEventListener('click', saveRosterEdit);
+$('report-open-live').addEventListener('click', () => {
+  const sessionId = state.reportSessionId;
+  if (!sessionId) return;
+  $('reports-dialog').close();
+  openLiveView(sessionId);
+});
 $('session-form').addEventListener('submit', async (event) => {
   event.preventDefault(); $('session-status').textContent = '';
   try {

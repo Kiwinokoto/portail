@@ -64,6 +64,12 @@ A class session belongs to exactly one teacher, formation and subject. It carrie
 
 For native Portail sessions, teacher ownership is direct. For PSR Maths, new sessions created under Portail SSO persist the stable `owner_portal_user_id` supplied by the SSO identity, so the same teacher can recover them on another device after authenticating again. Historical Maths sessions that predate ownership metadata remain accessible through their per-session management secret; no destructive migration is required.
 
+## Reports and teacher controls
+
+Internal subjects expose teacher-owned reports from the same activity data used by live follow-up. ADA French Reports V1 intentionally stays descriptive: roster/start/completion counts, item-level attempts/completions and learner detail. Cross-group comparison is only shown for sessions with the same session number/title and must never be presented as a ranking.
+
+Roster corrections are reversible where possible: names may be corrected after activity starts, but removing a learner is refused once activity events exist so recorded work is not silently destroyed. Corrections remain locked by default and are toggled per class session by the owning teacher.
+
 ## Live follow-up
 
 V1 target is 3–5 second polling. For classroom-sized groups this is operationally simpler than WebSockets and still feels live. If server-to-browser push becomes useful, SSE is the preferred next step before a bidirectional WebSocket layer.

@@ -153,6 +153,52 @@ class PortalHttpTests(unittest.TestCase):
         amina = next(learner for learner in activity["learners"] if learner["first_name"] == "Amina")
         self.assertTrue(amina["started"])
 
+    def test_teacher_can_correct_roster_but_cannot_remove_started_learner(self):
+        session = self.create_ada_session()
+        status, roster = self.request(
+            f"/api/sessions/{session['id']}/learners",
+            method="POST",
+            payload={"learners": [{"first_name": "Amina", "last_name": "Dallo"}]},
+        )
+        self.assertEqual(201, status)
+        learner_id = roster["learners"][0]["id"]
+
+        status, updated = self.request(
+            f"/api/sessions/{session['id']}/learners/update",
+            method="POST",
+            payload={
+                "learner_id": learner_id,
+                "first_name": "Amina",
+                "last_name": "Diallo",
+            },
+        )
+        self.assertEqual(200, status)
+        self.assertEqual("Diallo", updated["learner"]["last_name"])
+
+        token = session["join_url"].split("?join=", 1)[1]
+        anonymous = urllib.request.build_opener()
+        status, _ = self.request(
+            "/api/join/events",
+            method="POST",
+            payload={
+                "token": token,
+                "learner_id": learner_id,
+                "event_type": "activity_started",
+                "item_id": "positioning-v1",
+                "payload": {"entry": "roster"},
+            },
+            opener=anonymous,
+        )
+        self.assertEqual(201, status)
+
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            self.request(
+                f"/api/sessions/{session['id']}/learners/remove",
+                method="POST",
+                payload={"learner_id": learner_id},
+            )
+        self.assertEqual(400, ctx.exception.code)
+
     def test_public_cannot_create_unlisted_learner_by_typing_name(self):
         session = self.create_ada_session()
         token = session["join_url"].split("?join=", 1)[1]

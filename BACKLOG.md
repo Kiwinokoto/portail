@@ -30,7 +30,7 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] Teacher live view using 4 s polling.
 - [x] Remove first-entry typing: teacher-preloaded roster + learner selection with spoken-name support.
 - [x] Minimise public roster identity to first name + optional last-name initial.
-- [ ] Add safe roster edit/remove for corrections; current UI only appends and ignores exact duplicates.
+- [x] Add safe roster edit/remove for corrections; names can be fixed at any time, and removal is refused once activity exists so learner work is not destroyed.
 - [ ] Decide whether multi-device selection of the same prepared learner needs a claim/device safeguard after classroom testing.
 - [x] Add first oral-comprehension probe without reading: spoken everyday nouns → pictorial choices.
 - [x] Sequence positioning oral-first: identity → oral → own name → first letter → finish.
@@ -39,15 +39,15 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [ ] Extend positioning further: visual discrimination, sound/letter matching, useful-word reading and writing gestures.
 - [ ] Separate letter-name recognition from true phoneme↔grapheme assessment; do not infer decoding ability from the current first-letter task.
 - [ ] Teacher preview bypasses learner locks.
-- [ ] Corrections remain locked by default per class session and need a usable teacher control.
-- [ ] Add per-item progress detail only where it helps the teacher act; avoid turning the portal into a full LMS gradebook.
+- [x] Corrections remain locked by default per class session and now have a usable per-session teacher toggle.
+- [x] Add focused per-item progress detail to ADA Reports V1 (oral comprehension, own-name recognition, first-letter task, completion) without turning the portal into a gradebook.
 
 ## P2 — maths convergence
 
 - [x] Define the shared five-workspace teacher model: Séances → Parcours → Corrigés → Suivi en direct → Rapports.
 - [x] Harmonise the Portail and Maths LGC teacher UI on those five workspaces and expose explicit availability/status.
 - [x] Attach new Maths sessions to the authenticated portal teacher identity so sessions survive browser/device changes without relying on locally stored management secrets. Legacy sessions keep their existing management-secret fallback.
-- [ ] Build Reports in layers: group synthesis first, learner detail second, cross-group comparison only when enough comparable data exists.
+- [x] Build Reports V1 in both teacher surfaces: group synthesis, learner detail, and descriptive cross-group comparison only for comparable sessions.
 - [x] Add portal-issued one-time SSO handoff for Maths LGC using PKCE; no shared teacher token crosses subdomains.
 - [ ] Keep `maths_lgc` production untouched during portal bootstrap.
 - [x] Model PSR Mathematics as an external teacher-facing subject; portal actions route to Maths LGC `/teacher`, never the student landing page.
@@ -70,8 +70,8 @@ Production is live on `portail.lagrandeclasse.fr` and `maths.lagrandeclasse.fr`.
 
 Teacher navigation is now harmonised around five shared workspaces: **Séances → Parcours → Corrigés → Suivi en direct → Rapports**. Portail exposes the same vocabulary for internal and external subjects; PSR Maths deep-links each action to the matching Maths workspace. Rapports is intentionally visible but still marked « à venir ».
 
-The Portail→Maths SSO is in production. New Maths sessions created under SSO are now bound to the stable Portail teacher identity and can be listed/reopened after reconnecting on another browser or device. They no longer depend on a locally stored management token for normal ownership. Legacy Maths sessions remain compatible with their existing per-session management secret.
+The Portail→Maths SSO is in production. New Maths sessions created under SSO are bound to the stable Portail teacher identity and are designed to be listed/reopened after reconnecting on another browser or device. Automated tests cover the ownership boundary, but Kevin has not yet been able to perform the manual two-machine/two-browser validation, so this remains **implemented but not field-validated**. Legacy Maths sessions remain compatible with their existing per-session management secret.
 
-Maths live follow-up polls every 4 seconds while visible. The next product-level work is **Rapports** (group synthesis first, individual detail second, cross-group comparison only when the data is comparable) and continued ADA French positioning/teacher controls.
+Maths live follow-up polls every 4 seconds while visible. Reports V1 now exists for Maths and ADA French. ADA teacher controls now include safe roster correction/removal, per-session correction locking and per-item report detail. Next work should focus on teacher preview for ADA and extending the literacy positioning beyond the current oral/name/first-letter probes.
 
 AgentCtl registration remains pending while RDC/admin broker access is unavailable today. The owner confirmed there is no other active agent or unpushed local work.

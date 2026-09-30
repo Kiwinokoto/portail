@@ -268,6 +268,26 @@ class Handler(BaseHTTPRequestHandler):
                     payload.get("learners"),
                 )
                 return self._json(HTTPStatus.CREATED, result)
+            if path.startswith("/api/sessions/") and path.endswith("/learners/update"):
+                user = self._require_user()
+                session_id = path.split("/")[3]
+                learner = STORE.update_roster_learner(
+                    session_id,
+                    user["id"],
+                    clean_text(payload.get("learner_id"), label="Élève", max_len=64),
+                    first_name=payload.get("first_name") or "",
+                    last_name=payload.get("last_name") or "",
+                )
+                return self._json(HTTPStatus.OK, {"learner": learner})
+            if path.startswith("/api/sessions/") and path.endswith("/learners/remove"):
+                user = self._require_user()
+                session_id = path.split("/")[3]
+                result = STORE.remove_roster_learner(
+                    session_id,
+                    user["id"],
+                    clean_text(payload.get("learner_id"), label="Élève", max_len=64),
+                )
+                return self._json(HTTPStatus.OK, result)
             if path.startswith("/api/sessions/") and path.endswith("/corrections"):
                 user = self._require_user()
                 session_id = path.split("/")[3]
