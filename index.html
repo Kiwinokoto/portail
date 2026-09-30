@@ -35,28 +35,28 @@
       <p id="login-status" class="status"></p>
     </section>
 
-    <section id="teacher-view" class="hidden stack">
-      <section class="hero panel">
+    <section id="teacher-view" class="hidden stack teacher-dashboard">
+      <section class="hero panel teacher-hero">
         <div>
           <p class="eyebrow">Espace professeur</p>
           <h2 id="welcome">Bonjour</h2>
           <p class="muted">Choisis d'abord une formation, puis la matière que tu veux préparer ou piloter.</p>
         </div>
-        <button id="admin-open" class="btn secondary hidden">Gérer les collègues</button>
+        <button id="admin-open" class="btn secondary hidden">Collègues</button>
       </section>
 
-      <section class="panel">
+      <div class="selector-grid">
+      <section id="formations-panel" class="panel selector-panel">
         <div class="section-head">
           <div>
             <p class="eyebrow">1 · Formation</p>
             <h3>Mes formations</h3>
           </div>
-          <button id="back-formations" class="btn ghost hidden">Toutes les formations</button>
         </div>
         <div id="formation-grid" class="grid"></div>
       </section>
 
-      <section id="subjects-panel" class="panel hidden">
+      <section id="subjects-panel" class="panel selector-panel hidden">
         <div class="section-head">
           <div>
             <p class="eyebrow">2 · Matière</p>
@@ -65,6 +65,7 @@
         </div>
         <div id="subject-grid" class="grid"></div>
       </section>
+      </div>
 
       <section id="subject-workspace" class="panel hidden">
         <div class="section-head">
@@ -76,19 +77,19 @@
           <a id="external-course" class="btn secondary hidden" target="_blank" rel="noopener">Ouvrir le cours existant</a>
         </div>
         <div class="action-grid">
-          <button id="show-create-session" class="action-card">
+          <button id="show-create-session" class="action-card" data-icon="+">
             <strong>Créer une séance</strong>
             <span>Préparer un groupe, un lien élève et un QR.</span>
           </button>
-          <button class="action-card" disabled>
+          <button class="action-card" data-icon="↗" disabled>
             <strong>Explorer le parcours</strong>
             <span>Prévisualisation professeur libre — prochaine passe.</span>
           </button>
-          <button class="action-card" disabled>
+          <button class="action-card" data-icon="✓" disabled>
             <strong>Corrigés</strong>
             <span>Verrouillés par défaut par séance — prochaine passe.</span>
           </button>
-          <button id="show-live-sessions" class="action-card">
+          <button id="show-live-sessions" class="action-card" data-icon="◎">
             <strong>Élèves / suivi</strong>
             <span>Préparer la liste des élèves et suivre leurs premiers essais.</span>
           </button>
@@ -102,7 +103,7 @@
         </form>
       </section>
 
-      <section id="recent-sessions-panel" class="panel">
+      <section id="recent-sessions-panel" class="panel recent-sessions-panel">
         <div class="section-head"><div><p class="eyebrow">Reprendre</p><h3>Mes séances récentes</h3></div><button id="refresh-sessions" class="btn ghost">Actualiser</button></div>
         <div id="sessions-list" class="session-list"></div>
       </section>

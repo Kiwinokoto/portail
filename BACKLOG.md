@@ -34,6 +34,7 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [ ] Decide whether multi-device selection of the same prepared learner needs a claim/device safeguard after classroom testing.
 - [x] Add first oral-comprehension probe without reading: spoken everyday nouns → pictorial choices.
 - [x] Sequence positioning oral-first: identity → oral → own name → first letter → finish.
+- [x] Compact teacher dashboard UI: side-by-side Formation/Matière selectors on desktop, visible selected states, clearer action affordances and compact empty sessions state.
 - [ ] Extend positioning further: visual discrimination, sound/letter matching, useful-word reading and writing gestures.
 - [ ] Separate letter-name recognition from true phoneme↔grapheme assessment; do not infer decoding ability from the current first-letter task.
 - [ ] Teacher preview bypasses learner locks.
@@ -59,20 +60,10 @@ This project must stay easy to dismantle or adapt:
 
 ## Current handoff — 30 September 2026
 
-Production deployment is now live from `main` at `bb3d1e1` (PR #7). GitHub Actions run #1 completed successfully end-to-end:
+Production is live on `portail.lagrandeclasse.fr`; deployment through GitHub Actions → VPS → Docker Compose → Traefik is operational.
 
-- deployment secrets validated;
-- SSH and pinned host key accepted;
-- VPS/Docker/Traefik preflight passed;
-- application synced to `/opt/portail`;
-- runtime `.env` written;
-- `portail_lgc` built and started;
-- Docker healthcheck passed;
-- local Traefik route passed;
-- public HTTPS `https://portail.lagrandeclasse.fr/healthz` returned successfully.
+The teacher-dashboard UI/UX pass keeps the workflow unchanged while making it substantially denser and clearer: Formation and Matière selectors share one responsive row on desktop, selected cards are explicit, action cards have stronger affordance, empty recent sessions take less space, and automatic page jumps are limited to narrow screens. “Élèves / suivi” stays disabled until the selected internal subject actually has a session instead of sending the teacher to an empty block.
 
-The application is therefore deployed and reachable. The remaining bootstrap step is manual creation of the first admin inside the running container so the one-time admin token appears only in the trusted SSH terminal.
+No backend route, SQLite schema or learner-flow behavior changes are included. `maths_lgc` remains untouched.
 
-The owner explicitly confirmed there is no local clone, no unpushed work and no remaining previous-agent activity, and authorised deployment work despite AgentCtl/RDC being unavailable today. AgentCtl registration remains pending and should be completed when RDC/admin broker access returns.
-
-`maths_lgc` remains untouched.
+AgentCtl registration remains pending while RDC/admin broker access is unavailable today. The owner confirmed there is no other active agent or unpushed local work.
