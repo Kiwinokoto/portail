@@ -210,3 +210,10 @@ h2,h3{margin:.15rem 0 .4rem}.muted{color:var(--muted);line-height:1.55}.status{c
 .numeracy-operation{display:flex;align-items:center;justify-content:center;gap:18px;padding:18px;border:1px solid var(--line);border-radius:18px;background:#fbfaff;font-size:clamp(2rem,8vw,4rem)}
 .numeracy-operation strong{color:var(--accent-strong);font-size:.8em}
 @media(max-width:620px){.numeracy-choice-grid{grid-template-columns:1fr}.numeracy-choice-button{min-height:92px}.numeracy-operation{gap:10px}}
+
+.session-title-line{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.session-row.is-closed{background:linear-gradient(145deg,#faf9fc,#f4f2f7);border-style:dashed}
+.session-row.is-closed .meta>small{color:#786f82}
+.session-state{white-space:nowrap}
+.session-state.active{background:var(--accent-soft);color:var(--accent-strong)}
+.session-state.closed{background:#ece8f0;color:#6f6679}
