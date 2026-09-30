@@ -28,6 +28,8 @@ class PortalStoreTests(unittest.TestCase):
         self.assertEqual("external", psr_maths["mode"])
         self.assertEqual("https://maths.lagrandeclasse.fr/teacher", psr_maths["external_url"])
         self.assertEqual({"ada-francais", "ada-maths"}, {s["id"] for s in by_id["ada"]["subjects"]})
+        ada_maths = next(s for s in by_id["ada"]["subjects"] if s["id"] == "ada-maths")
+        self.assertEqual("internal", ada_maths["mode"])
 
     def test_init_repairs_legacy_psr_maths_student_url(self):
         with self.store.connect() as db:
@@ -41,6 +43,19 @@ class PortalStoreTests(unittest.TestCase):
         psr = next(item for item in catalog if item["id"] == "psr")
         maths = next(subject for subject in psr["subjects"] if subject["id"] == "psr-maths")
         self.assertEqual("https://maths.lagrandeclasse.fr/teacher", maths["external_url"])
+
+    def test_init_promotes_legacy_ada_maths_plan_to_internal(self):
+        with self.store.connect() as db:
+            db.execute(
+                "UPDATE subjects SET mode='planned',description='ancienne description' WHERE id='ada-maths'"
+            )
+        self.store.init()
+        admin, _ = self.store.create_user("Admin numeracy", "admin")
+        catalog = self.store.catalog_for(admin)
+        ada = next(item for item in catalog if item["id"] == "ada")
+        maths = next(subject for subject in ada["subjects"] if subject["id"] == "ada-maths")
+        self.assertEqual("internal", maths["mode"])
+        self.assertIn("Numératie fondamentale", maths["description"])
 
     def test_sso_code_is_pkce_bound_and_single_use(self):
         import base64

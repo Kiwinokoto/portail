@@ -117,8 +117,8 @@ class BaseStore:
                  "Entrer dans l'écrit : littératie, sons, lettres, mots et lecture utile.",
                  10, "internal", None),
                 ("ada-maths", "ada", "Mathématiques",
-                 "Numératie fondamentale : quantités, nombres, calcul, monnaie, temps et mesures.",
-                 20, "planned", None),
+                 "Numératie fondamentale : quantités, nombres, calcul simple et monnaie.",
+                 20, "internal", None),
             ],
         )
         # Existing production databases predate the teacher-facing route.
@@ -135,4 +135,11 @@ class BaseStore:
                 "https://maths.lagrandeclasse.fr/",
                 "https://maths.lagrandeclasse.fr/teacher",
             ),
+        )
+        # Promote the previously planned ADA numeracy subject in existing databases.
+        db.execute(
+            """UPDATE subjects
+               SET mode='internal',
+                   description='Numératie fondamentale : quantités, nombres, calcul simple et monnaie.'
+               WHERE id='ada-maths' AND mode='planned'"""
         )

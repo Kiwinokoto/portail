@@ -195,3 +195,18 @@ h2,h3{margin:.15rem 0 .4rem}.muted{color:var(--muted);line-height:1.55}.status{c
 .writing-hint{color:var(--muted);font-size:.84rem;line-height:1.45}
 .report-table{min-width:1180px}
 @media(max-width:620px){.preview-banner{align-items:stretch;flex-direction:column}.word-choice-grid{grid-template-columns:1fr}.writing-canvas-wrap{aspect-ratio:4/3}}
+
+
+/* ADA numeracy foundation */
+.numeracy-stage{max-width:760px}
+.numeracy-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.numeracy-choice-button{min-height:112px;border:2px solid var(--line);border-radius:20px;background:#fff;color:var(--ink);font:inherit;font-size:clamp(1.3rem,5vw,2rem);font-weight:900;cursor:pointer;padding:16px;line-height:1.3}
+.numeracy-choice-button:hover,.numeracy-choice-button:focus-visible{border-color:#a995d5;background:var(--accent-soft);outline:none}
+.numeracy-choice-button.good{border-color:rgba(52,191,142,.48);background:var(--success-soft)}
+.numeracy-choice-button.bad{border-color:rgba(229,138,43,.52);background:var(--attention-soft)}
+.numeracy-choice-button:disabled{cursor:default;opacity:.78}
+.numeracy-choice-button.numeral{font-size:clamp(2.2rem,9vw,4rem)}
+.numeracy-objects{display:block;font-size:clamp(2rem,8vw,3.7rem);letter-spacing:.04em;line-height:1.35}
+.numeracy-operation{display:flex;align-items:center;justify-content:center;gap:18px;padding:18px;border:1px solid var(--line);border-radius:18px;background:#fbfaff;font-size:clamp(2rem,8vw,4rem)}
+.numeracy-operation strong{color:var(--accent-strong);font-size:.8em}
+@media(max-width:620px){.numeracy-choice-grid{grid-template-columns:1fr}.numeracy-choice-button{min-height:92px}.numeracy-operation{gap:10px}}

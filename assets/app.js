@@ -14,6 +14,8 @@ const state = {
   liveLearners: [],
   reportSessionId: null,
   previewMode: false,
+  positioningItemId: '',
+  learnerStart: null,
 };
 
 async function api(path, options = {}) {
@@ -40,20 +42,39 @@ function ssoContinuation() {
   return value.startsWith('/api/sso/authorize?') ? value : '';
 }
 
-function isAdaTeacherPreviewRequest() {
+function teacherPreviewSubject() {
   const params = new URLSearchParams(window.location.search);
-  return params.get('preview') === 'teacher' && params.get('subject') === 'ada-francais';
+  const subjectId = params.get('subject') || '';
+  if (params.get('preview') !== 'teacher') return '';
+  return ['ada-francais', 'ada-maths'].includes(subjectId) ? subjectId : '';
 }
 
-function showAdaTeacherPreview() {
+function configureLearnerPath(session) {
+  if (session.subject_id === 'ada-francais') {
+    state.positioningItemId = 'positioning-v1';
+    state.learnerStart = () => renderOralComprehensionActivity(0);
+    return true;
+  }
+  if (session.subject_id === 'ada-maths') {
+    state.positioningItemId = 'numeracy-v1';
+    state.learnerStart = renderNumeracyQuantityActivity;
+    return true;
+  }
+  state.positioningItemId = '';
+  state.learnerStart = null;
+  return false;
+}
+
+function showAdaTeacherPreview(subjectId) {
+  const isMaths = subjectId === 'ada-maths';
   state.previewMode = true;
   state.joinToken = null;
   state.joinSession = {
     id: 'teacher-preview',
     formation_id: 'ada',
     formation_label: 'ADA',
-    subject_id: 'ada-francais',
-    subject_label: 'Français',
+    subject_id: subjectId,
+    subject_label: isMaths ? 'Mathématiques' : 'Français',
     session_number: 1,
     title: 'Aperçu du positionnement',
     group_label: 'Aperçu professeur',
@@ -69,15 +90,16 @@ function showAdaTeacherPreview() {
     { id:'preview-moussa', first_name:'Moussa', last_initial:'T.' },
     { id:'preview-sofia', first_name:'Sofia', last_initial:'' },
   ];
+  configureLearnerPath(state.joinSession);
 
   show('student-view', true);
   show('login-view', false);
   show('teacher-view', false);
   show('logout', false);
   show('teacher-preview-banner', true);
-  $('student-session-title').textContent = 'ADA · Français — aperçu professeur';
+  $('student-session-title').textContent = `ADA · ${state.joinSession.subject_label} — aperçu professeur`;
   $('student-session-context').textContent = 'Navigation libre · aucune donnée élève enregistrée';
-  renderOralComprehensionActivity(0);
+  state.learnerStart();
 }
 
 async function boot() {
@@ -92,7 +114,8 @@ async function boot() {
     window.location.assign(continuation);
     return;
   }
-  if (isAdaTeacherPreviewRequest()) return showAdaTeacherPreview();
+  const previewSubject = teacherPreviewSubject();
+  if (previewSubject) return showAdaTeacherPreview(previewSubject);
   await showTeacher();
 }
 
@@ -106,8 +129,8 @@ async function showStudentJoin(token) {
     state.joinSession = session;
     $('student-session-title').textContent = `${session.formation_label} · ${session.subject_label}`;
     $('student-session-context').textContent = `Séance ${session.session_number}${session.title ? ` · ${session.title}` : ''} · ${session.group_label}`;
-    if (session.subject_id === 'ada-francais') {
-      await startAdaFrench(session);
+    if (configureLearnerPath(session)) {
+      await startPreparedLearnerPath(session);
     } else {
       $('student-session-message').innerHTML = '<p class="learner-prompt">Le parcours de cette matière sera branché ici.</p>';
     }
@@ -138,7 +161,7 @@ async function fetchJoinRoster() {
   return learners;
 }
 
-async function startAdaFrench(session) {
+async function startPreparedLearnerPath(session) {
   await fetchJoinRoster();
   const saved = storedLearner(session.id);
   if (saved?.id) {
@@ -148,8 +171,8 @@ async function startAdaFrench(session) {
         body: JSON.stringify({ token: state.joinToken, learner_id: saved.id }),
       });
       state.learner = learner;
-      await trackEvent('activity_started', 'positioning-v1', { entry: 'resume' });
-      return renderOralComprehensionActivity(0);
+      await trackEvent('activity_started', state.positioningItemId, { entry: 'resume' });
+      return state.learnerStart?.();
     } catch {
       clearStoredLearner(session.id);
     }
@@ -287,8 +310,8 @@ async function chooseRosterLearner(learnerId) {
     });
     state.learner = learner;
     saveLearner(learner);
-    await trackEvent('activity_started', 'positioning-v1', { entry: 'roster' });
-    renderOralComprehensionActivity(0);
+    await trackEvent('activity_started', state.positioningItemId, { entry: 'roster' });
+    state.learnerStart?.();
   } catch (error) {
     $('roster-choice-status').textContent = error.message;
     $('roster-choice-grid').querySelectorAll('button').forEach((button) => { button.disabled = false; });
@@ -716,6 +739,193 @@ function renderPositioningFinish() {
   speakFrench(`Bravo ${state.learner.first_name}. C'est terminé pour maintenant.`);
 }
 
+
+function renderNumeracyProbe({
+  step,
+  itemId,
+  title,
+  instruction,
+  choices,
+  target,
+  help = '',
+  next,
+}) {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage numeracy-stage">
+      <p class="eyebrow">${step}</p>
+      <h3>${esc(title)}</h3>
+      <div id="numeracy-audio"></div>
+      <div id="numeracy-choices" class="numeracy-choice-grid"></div>
+      <p id="numeracy-feedback" class="feedback" aria-live="assertive"></p>
+      ${help ? `<p class="learner-help">${esc(help)}</p>` : ''}
+    </div>`;
+  $('numeracy-audio').appendChild(audioButton('Écouter', instruction, itemId));
+  const grid = $('numeracy-choices');
+  [...choices].sort(() => Math.random() - 0.5).forEach((choice) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'numeracy-choice-button';
+    button.setAttribute('aria-label', choice.aria || choice.label);
+    if (choice.html) button.innerHTML = choice.html;
+    else button.textContent = choice.label;
+    button.addEventListener('click', async () => {
+      const correct = choice.id === target;
+      await trackEvent('answer', itemId, { correct, choice:choice.id, target });
+      grid.querySelectorAll('.numeracy-choice-button').forEach((item) => item.classList.remove('bad'));
+      if (correct) {
+        button.classList.add('good');
+        grid.querySelectorAll('.numeracy-choice-button').forEach((item) => { item.disabled = true; });
+        $('numeracy-feedback').className = 'feedback good';
+        $('numeracy-feedback').textContent = 'Oui.';
+        speakFrench('Oui.');
+        await trackEvent('activity_completed', itemId, {});
+        setTimeout(next, 750);
+      } else {
+        button.classList.add('bad');
+        $('numeracy-feedback').className = 'feedback bad';
+        $('numeracy-feedback').textContent = 'Essaie encore.';
+        speakFrench('Essaie encore. ' + instruction);
+      }
+    });
+    grid.appendChild(button);
+  });
+  speakFrench(instruction);
+}
+
+function renderNumeracyQuantityActivity() {
+  renderNumeracyProbe({
+    step:'1 · Les quantités',
+    itemId:'quantity-counting',
+    title:'Trouve trois assiettes.',
+    instruction:'Touche le groupe avec trois assiettes.',
+    choices:[
+      { id:'2', label:'deux assiettes', aria:'deux assiettes', html:'<span class="numeracy-objects">🍽️ 🍽️</span>' },
+      { id:'3', label:'trois assiettes', aria:'trois assiettes', html:'<span class="numeracy-objects">🍽️ 🍽️ 🍽️</span>' },
+      { id:'4', label:'quatre assiettes', aria:'quatre assiettes', html:'<span class="numeracy-objects">🍽️ 🍽️ 🍽️ 🍽️</span>' },
+    ],
+    target:'3',
+    help:'On regarde une quantité concrète, sans demander de lire un chiffre.',
+    next:renderNumeracySpokenNumberActivity,
+  });
+}
+
+function renderNumeracySpokenNumberActivity() {
+  renderNumeracyProbe({
+    step:'2 · Les chiffres',
+    itemId:'spoken-number',
+    title:'Écoute le nombre.',
+    instruction:'Touche le nombre sept.',
+    choices:[
+      { id:'1', label:'1' },
+      { id:'4', label:'4' },
+      { id:'7', label:'7' },
+      { id:'9', label:'9' },
+    ],
+    target:'7',
+    help:'Ce test regarde seulement si le chiffre entendu est reconnu à l’écrit.',
+    next:renderNumeracyCompareActivity,
+  });
+}
+
+function renderNumeracyCompareActivity() {
+  renderNumeracyProbe({
+    step:'3 · Plus ou moins',
+    itemId:'compare-quantities',
+    title:'Où y en a-t-il le plus ?',
+    instruction:'Regarde les deux groupes. Touche le groupe où il y a le plus de verres.',
+    choices:[
+      { id:'few', label:'deux verres', aria:'groupe avec deux verres', html:'<span class="numeracy-objects">🥛 🥛</span>' },
+      { id:'many', label:'cinq verres', aria:'groupe avec cinq verres', html:'<span class="numeracy-objects">🥛 🥛 🥛<br>🥛 🥛</span>' },
+    ],
+    target:'many',
+    help:'Il n’est pas nécessaire de connaître les mots « supérieur » ou « inférieur ».',
+    next:renderNumeracyAdditionActivity,
+  });
+}
+
+function renderNumeracyAdditionActivity() {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage numeracy-stage">
+      <p class="eyebrow">4 · Ajouter</p>
+      <h3>Deux assiettes, puis encore une.</h3>
+      <div id="numeracy-add-audio"></div>
+      <div class="numeracy-operation" aria-label="deux assiettes plus une assiette">
+        <span>🍽️ 🍽️</span><strong>+</strong><span>🍽️</span>
+      </div>
+      <p class="learner-prompt">Combien d’assiettes en tout&nbsp;?</p>
+      <div id="numeracy-add-choices" class="numeracy-choice-grid"></div>
+      <p id="numeracy-add-feedback" class="feedback" aria-live="assertive"></p>
+      <p class="learner-help">C’est une situation concrète d’addition. Aucun calcul écrit n’est demandé.</p>
+    </div>`;
+  const instruction = 'Tu as deux assiettes. On ajoute une assiette. Combien d’assiettes en tout ?';
+  $('numeracy-add-audio').appendChild(audioButton('Écouter', instruction, 'concrete-addition'));
+  const grid = $('numeracy-add-choices');
+  ['2','3','4'].sort(() => Math.random() - 0.5).forEach((value) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'numeracy-choice-button numeral';
+    button.textContent = value;
+    button.addEventListener('click', async () => {
+      const correct = value === '3';
+      await trackEvent('answer', 'concrete-addition', { correct, choice:value, target:'3' });
+      grid.querySelectorAll('.numeracy-choice-button').forEach((item) => item.classList.remove('bad'));
+      if (correct) {
+        button.classList.add('good');
+        grid.querySelectorAll('.numeracy-choice-button').forEach((item) => { item.disabled = true; });
+        $('numeracy-add-feedback').className = 'feedback good';
+        $('numeracy-add-feedback').textContent = 'Oui. Trois assiettes.';
+        speakFrench('Oui. Trois assiettes.');
+        await trackEvent('activity_completed', 'concrete-addition', {});
+        setTimeout(renderNumeracyMoneyActivity, 750);
+      } else {
+        button.classList.add('bad');
+        $('numeracy-add-feedback').className = 'feedback bad';
+        $('numeracy-add-feedback').textContent = 'Compte encore les assiettes.';
+        speakFrench('Compte encore les assiettes.');
+      }
+    });
+    grid.appendChild(button);
+  });
+  speakFrench(instruction);
+}
+
+function renderNumeracyMoneyActivity() {
+  renderNumeracyProbe({
+    step:'5 · L’argent',
+    itemId:'money-amount',
+    title:'Écoute le prix.',
+    instruction:'Touche cinq euros.',
+    choices:[
+      { id:'2', label:'2 €' },
+      { id:'5', label:'5 €' },
+      { id:'10', label:'10 €' },
+      { id:'20', label:'20 €' },
+    ],
+    target:'5',
+    help:'On vérifie seulement la reconnaissance de ce montant écrit.',
+    next:renderNumeracyFinish,
+  });
+}
+
+function renderNumeracyFinish() {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      <div class="finish-card">
+        <p class="eyebrow">Terminé pour maintenant</p>
+        <h3>Bravo ${esc(state.learner.first_name)}.</h3>
+        <p class="muted">Ton professeur voit les différentes étapes séparément et peut choisir la suite.</p>
+        <div id="numeracy-finish-audio"></div>
+      </div>
+    </div>`;
+  $('numeracy-finish-audio').appendChild(audioButton(
+    'Écouter',
+    `Bravo ${state.learner.first_name}. C’est terminé pour maintenant.`,
+    'numeracy-v1'
+  ));
+  trackEvent('activity_completed', 'numeracy-v1', {});
+  speakFrench(`Bravo ${state.learner.first_name}. C’est terminé pour maintenant.`);
+}
+
 function showLogin() {
   show('student-view', false); show('login-view', true); show('teacher-view', false); show('logout', false);
 }
@@ -791,7 +1001,7 @@ function updateWorkspaceActions() {
   const external = state.subject.mode === 'external';
   const planned = state.subject.mode === 'planned';
   const hasSessions = state.sessions.some((session) => session.subject_id === state.subject.id);
-  const hasInternalPreview = state.subject.id === 'ada-francais';
+  const hasInternalPreview = ['ada-francais', 'ada-maths'].includes(state.subject.id);
 
   if (planned) {
     setWorkspaceAction('show-create-session', { disabled:true, description:'Le parcours doit d’abord être construit.', status:'à construire', upcoming:true });
@@ -903,7 +1113,7 @@ async function loadSessions() {
         <small>${esc(s.group_label)} · créée ${new Date(s.created_at).toLocaleString('fr-FR')}</small>
       </div>
       <div class="session-actions">
-        ${s.subject_id === 'ada-francais' ? `<button class="btn primary" data-live="${esc(s.id)}">Suivi en direct</button>
+        ${['ada-francais', 'ada-maths'].includes(s.subject_id) ? `<button class="btn primary" data-live="${esc(s.id)}">Suivi en direct</button>
         <button class="btn secondary" data-corrections="${esc(s.id)}" data-unlocked="${s.corrections_unlocked ? '1' : '0'}">Corrigés : ${s.corrections_unlocked ? 'ouverts' : 'verrouillés'}</button>` : ''}
         <button class="btn ghost" data-copy="${esc(s.join_url)}">Copier le lien élève</button>
         <a class="btn secondary" href="/api/sessions/${encodeURIComponent(s.id)}/qr.svg" target="_blank">QR</a>
@@ -940,10 +1150,18 @@ async function openLiveView(sessionId) {
   state.liveTimer = window.setInterval(refreshLiveView, 4000);
 }
 
+function subjectCompletionCount(subjectId) {
+  if (subjectId === 'ada-francais') return 8;
+  if (subjectId === 'ada-maths') return 6;
+  return 1;
+}
+
 async function refreshLiveView() {
   if (!state.liveSessionId || !$('live-dialog').open) return;
   try {
     const { learners, started_count: startedCount } = await api(`/api/sessions/${encodeURIComponent(state.liveSessionId)}/activity`);
+    const liveSession = state.sessions.find((session) => session.id === state.liveSessionId);
+    const completionTarget = subjectCompletionCount(liveSession?.subject_id);
     state.liveLearners = learners;
     renderRosterManage(learners);
     if (!learners.length) {
@@ -961,7 +1179,7 @@ async function refreshLiveView() {
             : 'Pas encore commencé'}</small>
         </div>
         <div class="progress-badge ${learner.started ? '' : 'waiting'}">
-          ${learner.started ? `${learner.completed_items}/8 étapes · ${learner.correct_answers}/${learner.attempts} réponses justes` : 'En attente'}
+          ${learner.started ? `${learner.completed_items}/${completionTarget} étapes · ${learner.correct_answers}/${learner.attempts} réponses justes` : 'En attente'}
         </div>
       </article>`).join('');
   } catch (error) {
@@ -1127,9 +1345,9 @@ function stageReportLabel(learner, itemId) {
   return '—';
 }
 
-function buildAdaReport(activity) {
+function buildActivityReport(activity, completionItemId) {
   const learners = activity.learners || [];
-  const finished = learners.filter((learner) => learnerItem(learner, 'positioning-v1').completed).length;
+  const finished = learners.filter((learner) => learnerItem(learner, completionItemId).completed).length;
   const attempts = learners.reduce((sum, learner) => sum + Number(learner.attempts || 0), 0);
   const correct = learners.reduce((sum, learner) => sum + Number(learner.correct_answers || 0), 0);
   return {
@@ -1141,11 +1359,34 @@ function buildAdaReport(activity) {
   };
 }
 
+function buildAdaReport(activity) {
+  return buildActivityReport(activity, 'positioning-v1');
+}
+
+function buildNumeracyReport(activity) {
+  return buildActivityReport(activity, 'numeracy-v1');
+}
+
+function setReportLearnerHeaders(labels) {
+  const row = $('report-detail').querySelector('thead tr');
+  row.innerHTML = labels.map((label) => `<th>${esc(label)}</th>`).join('');
+}
+
 function reportMetric(label, value) {
   return `<div class="report-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`;
 }
 
 async function openReports() {
+  if (!state.subject || state.subject.mode !== 'internal') return;
+  if (state.subject.id === 'ada-francais') {
+    return openReportCollection(buildAdaReport, renderAdaReportDetail);
+  }
+  if (state.subject.id === 'ada-maths') {
+    return openReportCollection(buildNumeracyReport, renderNumeracyReportDetail);
+  }
+}
+
+async function openReportCollection(buildReport, renderDetail) {
   if (!state.subject || state.subject.mode !== 'internal') return;
   $('reports-title').textContent = `${state.formation.label} · ${state.subject.label}`;
   $('reports-context').textContent = 'Synthèse des séances auxquelles tu as accès.';
@@ -1166,7 +1407,7 @@ async function openReports() {
   );
   const reports = settled
     .filter((result) => result.status === 'fulfilled')
-    .map((result) => buildAdaReport(result.value));
+    .map((result) => buildReport(result.value));
 
   if (!reports.length) {
     $('reports-status').textContent = 'Aucun rapport n’a pu être chargé pour le moment.';
@@ -1194,13 +1435,17 @@ async function openReports() {
   $('report-session-grid').querySelectorAll('[data-report-session]').forEach((button) => {
     button.addEventListener('click', () => {
       const report = reports.find((item) => item.session.id === button.dataset.reportSession);
-      if (report) renderAdaReportDetail(report);
+      if (report) renderDetail(report);
     });
   });
   renderAdaReportComparison(reports);
 }
 
 function renderAdaReportDetail(report) {
+  setReportLearnerHeaders([
+    'Élève','Écoute','Prénom','Première lettre','Discrimination visuelle',
+    'Son → lettre guidé','Mot utile','Geste d’écriture','Terminé','Réponses'
+  ]);
   state.reportSessionId = report.session.id;
   $('report-detail-title').textContent = report.session.group_label;
   $('report-detail-meta').textContent = `Séance ${report.session.session_number}${report.session.title ? ` · ${report.session.title}` : ''}`;
@@ -1240,6 +1485,62 @@ function renderAdaReportDetail(report) {
       <td>${esc(stageReportLabel(learner, 'useful-word'))}</td>
       <td>${esc(stageReportLabel(learner, 'writing-gesture'))}</td>
       <td>${learnerItem(learner, 'positioning-v1').completed ? 'Oui' : '—'}</td>
+      <td>${learner.attempts ? `${learner.correct_answers}/${learner.attempts}` : '—'}</td>
+    </tr>`).join('');
+  show('report-detail', true);
+  $('report-detail').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+const NUMERACY_ITEM_LABELS = {
+  'quantity-counting': 'Quantité concrète',
+  'spoken-number': 'Nombre entendu → chiffre',
+  'compare-quantities': 'Comparer deux quantités',
+  'concrete-addition': 'Addition concrète',
+  'money-amount': 'Montant écrit',
+  'numeracy-v1': 'Positionnement terminé',
+};
+
+function numeracyItemLabel(itemId) {
+  return NUMERACY_ITEM_LABELS[itemId] || itemId || 'Activité';
+}
+
+function renderNumeracyReportDetail(report) {
+  state.reportSessionId = report.session.id;
+  setReportLearnerHeaders([
+    'Élève','Quantités','Chiffre entendu','Plus / moins','Addition','Argent','Terminé','Réponses'
+  ]);
+  $('report-detail-title').textContent = report.session.group_label;
+  $('report-detail-meta').textContent = `Séance ${report.session.session_number}${report.session.title ? ` · ${report.session.title}` : ''}`;
+  $('report-detail-metrics').innerHTML = [
+    reportMetric('Liste', String(report.rosterCount)),
+    reportMetric('Commencé', `${report.startedCount}/${report.rosterCount}`),
+    reportMetric('Positionnement terminé', `${report.finishedCount}/${report.rosterCount}`),
+    reportMetric('Réponses justes', report.attempts ? `${report.correct}/${report.attempts}` : '—'),
+  ].join('');
+
+  const ids = ['quantity-counting','spoken-number','compare-quantities','concrete-addition','money-amount','numeracy-v1'];
+  const items = (report.items || []).filter((item) => ids.includes(item.item_id));
+  $('report-item-summary').innerHTML = items.map((item) => `
+    <div class="report-item-row">
+      <strong>${esc(numeracyItemLabel(item.item_id))}</strong>
+      <span>${item.completed_count}/${report.rosterCount} terminé</span>
+      <span>${item.attempts ? `${item.correct_answers}/${item.attempts} justes` : 'pas de réponse'}</span>
+      <span>${item.item_id === 'concrete-addition'
+        ? 'situation concrète, pas calcul écrit'
+        : item.item_id === 'money-amount'
+          ? 'reconnaissance du montant présenté'
+          : ''}</span>
+    </div>`).join('');
+
+  $('report-learner-rows').innerHTML = report.learners.map((learner) => `
+    <tr>
+      <td>${esc(learner.first_name)}${learner.last_name ? ` ${esc(learner.last_name)}` : ''}</td>
+      <td>${esc(stageReportLabel(learner, 'quantity-counting'))}</td>
+      <td>${esc(stageReportLabel(learner, 'spoken-number'))}</td>
+      <td>${esc(stageReportLabel(learner, 'compare-quantities'))}</td>
+      <td>${esc(stageReportLabel(learner, 'concrete-addition'))}</td>
+      <td>${esc(stageReportLabel(learner, 'money-amount'))}</td>
+      <td>${learnerItem(learner, 'numeracy-v1').completed ? 'Oui' : '—'}</td>
       <td>${learner.attempts ? `${learner.correct_answers}/${learner.attempts}` : '—'}</td>
     </tr>`).join('');
   show('report-detail', true);
@@ -1318,7 +1619,8 @@ $('login-button').addEventListener('click', async () => {
       window.location.assign(continuation);
       return;
     }
-    if (isAdaTeacherPreviewRequest()) showAdaTeacherPreview();
+    const previewSubject = teacherPreviewSubject();
+    if (previewSubject) showAdaTeacherPreview(previewSubject);
     else await showTeacher();
   } catch (error) { $('login-status').textContent = error.message; }
 });
@@ -1330,8 +1632,8 @@ $('show-create-session').addEventListener('click', () => {
 });
 $('explore-subject').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('inspect');
-  if (state.subject?.id === 'ada-francais') {
-    window.open('/?preview=teacher&subject=ada-francais', '_blank', 'noopener');
+  if (['ada-francais', 'ada-maths'].includes(state.subject?.id)) {
+    window.open(`/?preview=teacher&subject=${encodeURIComponent(state.subject.id)}`, '_blank', 'noopener');
   }
 });
 $('corrections-subject').addEventListener('click', () => {
@@ -1363,8 +1665,8 @@ $('session-form').addEventListener('submit', async (event) => {
       formation_id: state.formation.id, subject_id: state.subject.id,
       session_number: Number($('session-number').value), title:$('session-title').value, group_label:$('session-group').value,
     })});
-    $('session-status').textContent = state.subject.id === 'ada-francais'
-      ? 'Séance créée ✓ · ajoute maintenant la liste des élèves dans “Élèves / suivi”.'
+    $('session-status').textContent = ['ada-francais', 'ada-maths'].includes(state.subject.id)
+      ? 'Séance créée ✓ · ajoute maintenant la liste des élèves dans “Suivi en direct”.'
       : 'Séance créée ✓';
     $('session-title').value = ''; $('session-group').value = '';
     await loadSessions();

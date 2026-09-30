@@ -22,6 +22,12 @@ Do not add a CAP/Bac Pro family layer to the main navigation unless a real UX ne
 - Literacy probes must preserve their narrow meaning: visual matching is not reading, guided sound→letter is not autonomous decoding, useful-word recognition is word-specific, and the writing canvas records only that a gesture was attempted.
 - Do not aggregate the independent probes into a global literacy score unless a later pedagogical design explicitly justifies one.
 
+## ADA numeracy invariants
+- ADA numeracy is a foundation pathway, not the CAP PSR diagnostic copied downwards.
+- Keep probes concrete and narrow: visible quantities, spoken-number recognition, more/less, one simple addition situation and recognition of a written money amount.
+- Do not aggregate these probes into a global mathematics score. Report each signal separately and treat retries as teaching information, not grading.
+- Prefer everyday/adult contexts and audio instructions; introduce formal mathematical vocabulary after the concrete situation.
+
 ## Visual language
 - Identity/navigation: violet/indigo first, with blue and rose as neutral decorative accents.
 - Semantic colors are reserved across the portal and learning activities: **green = correct/success/completed**, **orange = retry/needs work/attention**, **red = important/to remember/objective** (and destructive/system errors where appropriate).
@@ -35,7 +41,7 @@ Initial formations:
 Initial subjects:
 - PSR → Mathematics (legacy course currently lives at `maths.lagrandeclasse.fr`)
 - ADA → French / literacy
-- ADA → Mathematics / numeracy (planned)
+- ADA → Mathematics / numeracy (internal V1)
 
 ## Product boundaries
 The portal owns, temporarily:
