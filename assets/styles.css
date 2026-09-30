@@ -31,5 +31,22 @@ h2,h3{margin:.15rem 0 .4rem}.muted{color:var(--muted);line-height:1.55}.status{c
 .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}.form-grid label{display:grid;gap:6px;font-size:.84rem;font-weight:800;color:var(--muted)}.form-grid .wide{grid-column:1/-1}.form-grid.compact{padding-top:0;border-top:0}.form-grid small{font-weight:600}
 .session-list,.user-list{display:grid;gap:10px;margin-top:14px}.session-row,.user-row{padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:#fff}.session-row .meta,.user-row .meta{min-width:0}.session-row small,.user-row small{display:block;color:var(--muted);margin-top:4px}.session-actions,.user-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.pill{display:inline-flex;padding:4px 9px;border-radius:999px;background:#eee9f7;color:#64547e;font-size:.72rem;font-weight:800}
 .dialog{width:min(820px,calc(100% - 28px));border:1px solid var(--line);border-radius:22px;padding:20px;background:var(--panel);box-shadow:0 28px 80px rgba(30,23,40,.22)}.dialog::backdrop{background:rgba(27,22,34,.38)}.dialog-head{display:flex;justify-content:space-between;align-items:start;margin-bottom:14px}.token-box{margin-top:14px;padding:14px;border-radius:14px;background:#fff4d8;border:1px solid #ecd49a;overflow-wrap:anywhere}.token-box code{font-size:.9rem}.danger{color:var(--danger)!important}.success{color:var(--success)!important}.hidden{display:none!important}
+
+.learner-panel{max-width:860px;margin:3vh auto;padding:clamp(18px,4vw,34px)}
+.student-workspace{margin-top:22px}
+.learner-stage{display:grid;gap:18px;max-width:720px;margin:0 auto}
+.learner-stage h3{font-size:clamp(1.55rem,5vw,2.4rem)}
+.learner-prompt{font-size:clamp(1.25rem,4vw,1.8rem);font-weight:900;margin:0}
+.learner-help{color:var(--muted);font-size:.92rem;line-height:1.5;margin:0}
+.learner-input{font-size:clamp(1.25rem,5vw,2rem);min-height:64px;text-align:center;font-weight:850;letter-spacing:.02em}
+.audio-btn{min-height:58px;font-size:1.05rem;justify-self:start}
+.choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.choice-button{min-height:92px;border:2px solid var(--line);border-radius:18px;background:#fff;color:var(--ink);font-size:clamp(1.35rem,5vw,2rem);font-weight:900;cursor:pointer;padding:16px;overflow-wrap:anywhere}
+.choice-button:hover,.choice-button:focus-visible{border-color:#a995d5;background:var(--accent-soft);outline:none}
+.choice-button.good{border-color:#77b89c;background:#edf8f3}.choice-button.bad{border-color:#d9a2af;background:#fff2f5}
+.feedback{min-height:1.6em;font-weight:850;font-size:1.05rem}
+.feedback.good{color:var(--success)}.feedback.bad{color:var(--danger)}
+.finish-card{padding:20px;border:1px solid #cfe4d9;border-radius:18px;background:#f1faf6}
+.live-list{display:grid;gap:10px;margin-top:14px}.live-row{display:grid;grid-template-columns:minmax(150px,1fr) auto;gap:12px;align-items:center;padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:#fff}.live-row small{display:block;color:var(--muted);margin-top:4px}.progress-badge{font-weight:850;color:var(--accent-strong);white-space:nowrap}
 @media(max-width:850px){.grid,.action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:620px){.shell{width:min(100% - 18px,1120px);padding-top:14px}.topbar,.section-head,.hero,.row,.session-row,.user-row{align-items:stretch;flex-direction:column}.grid,.action-grid,.form-grid{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}.session-actions,.user-actions{justify-content:flex-start}.panel{padding:17px;border-radius:18px}}
+@media(max-width:620px){.shell{width:min(100% - 18px,1120px);padding-top:14px}.topbar,.section-head,.hero,.row,.session-row,.user-row{align-items:stretch;flex-direction:column}.grid,.action-grid,.form-grid,.choice-grid{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}.session-actions,.user-actions{justify-content:flex-start}.panel{padding:17px;border-radius:18px}.live-row{grid-template-columns:1fr}.progress-badge{white-space:normal}}

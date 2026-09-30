@@ -17,19 +17,22 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] Add signed student join URLs and QR generation endpoint.
 - [x] Add tests for auth, catalogue, user lifecycle, session ownership and join signatures.
 - [x] Bootstrap the new GitHub repository after the owner explicitly confirmed no concurrent agent work.
+- [x] Merge the tested foundation branch into `main` (PR #1, `9c9ab71`).
 - [ ] Register `Kiwinokoto/portail` in AgentCtl when the admin broker is available, before shared/automated mutation becomes possible.
-- [ ] Merge the tested foundation branch into `main`.
 - [ ] Configure deployment secrets and deploy `portail.lagrandeclasse.fr` through the LGC Traefik network.
 
 ## P1 — first real teaching vertical
 
-- [ ] ADA → French: initial learner positioning without assuming literacy.
-- [ ] First activity: recognise own first name and connect spoken form ↔ written word.
-- [ ] Introduce alphabetic principle through meaningful words/sounds, not rote A→Z first.
-- [ ] Audio-first instructions and adult-appropriate visuals.
-- [ ] Teacher live view using simple polling first (3–5 s); consider SSE only if needed.
+- [x] ADA → French positioning V1: signed learner join, first-name identity, own-name recognition and first-letter recognition.
+- [x] Audio-first instructions with browser speech synthesis and visible-text fallback.
+- [x] Persist lightweight learner activity events and expose a teacher-owned session summary.
+- [x] Teacher live view using 4 s polling.
+- [ ] Remove the remaining literacy assumption at first entry: let the teacher preload/select learner names so a learner never has to type their own name.
+- [ ] Extend positioning beyond name recognition: oral comprehension, visual discrimination, sound/letter matching, useful-word reading and writing gestures.
+- [ ] Separate letter-name recognition from true phoneme↔grapheme assessment; do not infer decoding ability from the current first-letter task.
 - [ ] Teacher preview bypasses learner locks.
-- [ ] Corrections remain locked by default per class session.
+- [ ] Corrections remain locked by default per class session and need a usable teacher control.
+- [ ] Add per-item progress detail only where it helps the teacher act; avoid turning the portal into a full LMS gradebook.
 
 ## P2 — maths convergence
 
@@ -48,6 +51,19 @@ This project must stay easy to dismantle or adapt:
 - ordinary authored content → Moodle / Course Factory;
 - high-value interactive exercises may remain as embedded/external activities.
 
-## Current handoff
+## Current handoff — 30 September 2026
 
-The foundation is tested locally. The GitHub bootstrap was explicitly authorised by the repository owner after confirming there was no other active ChatGPT agent. AgentCtl registration is still pending because the restricted admin broker is not currently reachable from this chat; do not describe the repository as registered until that has actually been done.
+Foundation PR #1 is merged on `main` at `9c9ab71`.
+
+The ADA French V1 continuation is intentionally isolated from the untouched `dev/ada-francais-v1` branch because the previous chat could not be proven fully stopped without AgentCtl/RDC. The owner explicitly authorised resuming after GitHub showed no new activity; no local/unpushed work from the previous chat can be verified from here.
+
+Current ADA V1 implementation adds:
+- learner registration/resume scoped to a signed class-session link;
+- first-name recognition and first-letter recognition with French browser TTS;
+- activity events stored in the existing `learners` / `activity_events` tables;
+- teacher live summaries polled every 4 seconds;
+- cross-session ownership checks and HTTP/store tests.
+
+Known limitation: first-time learner entry still needs the name to be typed once (teacher assistance is explicitly allowed). This is scaffolding, not the final low-literacy UX. See `docs/ada-francais-v1.md`.
+
+AgentCtl registration is still pending because RDC/admin broker access is unavailable in this pass. Do not describe the repository as registered until that has actually been done. No deployment was attempted.

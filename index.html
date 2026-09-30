@@ -17,11 +17,11 @@
       <button id="logout" class="btn ghost hidden">Se déconnecter</button>
     </header>
 
-    <section id="student-view" class="panel login-panel hidden">
+    <section id="student-view" class="panel learner-panel hidden">
       <p class="eyebrow">Séance élève</p>
       <h2 id="student-session-title">Chargement…</h2>
       <p id="student-session-context" class="muted"></p>
-      <div id="student-session-message" class="token-box">Le parcours de cette matière sera branché ici.</div>
+      <div id="student-session-message" class="student-workspace" aria-live="polite">Chargement…</div>
     </section>
 
     <section id="login-view" class="panel login-panel">
@@ -88,25 +88,34 @@
             <strong>Corrigés</strong>
             <span>Verrouillés par défaut par séance — prochaine passe.</span>
           </button>
-          <button class="action-card" disabled>
+          <button id="show-live-sessions" class="action-card">
             <strong>Suivi en direct</strong>
-            <span>Polling léger des élèves — prochaine passe.</span>
+            <span>Voir les élèves connectés et leurs premiers essais.</span>
           </button>
         </div>
 
         <form id="session-form" class="form-grid hidden">
           <label>Numéro de séance<input id="session-number" class="input" type="number" min="1" max="999" value="1" required /></label>
-          <label>Titre <small>(facultatif)</small><input id="session-title" class="input" maxlength="120" placeholder="Ex. Sons et prénom" /></label>
+          <label>Titre <small>(facultatif)</small><input id="session-title" class="input" maxlength="120" placeholder="Ex. Prénom et premières lettres" /></label>
           <label class="wide">Groupe / classe<input id="session-group" class="input" maxlength="80" placeholder="Ex. ADA 1" required /></label>
           <div class="wide row"><button class="btn primary" type="submit">Créer la séance</button><span id="session-status" class="status"></span></div>
         </form>
       </section>
 
-      <section class="panel">
+      <section id="recent-sessions-panel" class="panel">
         <div class="section-head"><div><p class="eyebrow">Reprendre</p><h3>Mes séances récentes</h3></div><button id="refresh-sessions" class="btn ghost">Actualiser</button></div>
         <div id="sessions-list" class="session-list"></div>
       </section>
     </section>
+
+    <dialog id="live-dialog" class="dialog">
+      <form method="dialog" class="dialog-head">
+        <div><p class="eyebrow">Suivi en direct</p><h2 id="live-title">Séance</h2><p id="live-context" class="muted"></p></div>
+        <button class="btn ghost">Fermer</button>
+      </form>
+      <div id="live-status" class="status"></div>
+      <div id="live-learners" class="live-list"></div>
+    </dialog>
 
     <dialog id="admin-dialog" class="dialog">
       <form method="dialog" class="dialog-head"><div><p class="eyebrow">Administration</p><h2>Collègues</h2></div><button class="btn ghost">Fermer</button></form>

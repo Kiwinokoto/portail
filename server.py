@@ -20,6 +20,7 @@ from portal.store import PortalStore
 ROOT = PROJECT_ROOT
 STORE = PortalStore()
 
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "PortailLGC/0.1"
 
@@ -82,6 +83,16 @@ class Handler(BaseHTTPRequestHandler):
         if origin not in allowed:
             raise PermissionError("Origine refusée.")
 
+    @staticmethod
+    def _session_from_join_token(token: str) -> dict:
+        session_id = verify_join_token(token)
+        if not session_id:
+            raise ValueError("Lien de séance invalide.")
+        session = STORE.get_class_session(session_id)
+        if not session["active"]:
+            raise ValueError("Cette séance est fermée.")
+        return session
+
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         path = parsed.path
@@ -110,6 +121,10 @@ class Handler(BaseHTTPRequestHandler):
                 if not session["active"]:
                     return self._json(HTTPStatus.GONE, {"error": "Cette séance est fermée."})
                 return self._json(HTTPStatus.OK, {"session": session})
+            if path.startswith("/api/sessions/") and path.endswith("/activity"):
+                user = self._require_user()
+                session_id = path.split("/")[3]
+                return self._json(HTTPStatus.OK, STORE.session_activity(session_id, user["id"]))
             if path.startswith("/api/sessions/") and path.endswith("/qr.svg"):
                 user = self._require_user()
                 session_id = path.split("/")[3]
@@ -139,6 +154,25 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/auth/logout":
                 STORE.delete_browser_session(self._cookie_token())
                 return self._json(HTTPStatus.OK, {"ok": True}, cookie=self._clear_cookie())
+            if path == "/api/join/learners":
+                session = self._session_from_join_token(str(payload.get("token") or ""))
+                learner = STORE.register_learner(
+                    session["id"],
+                    first_name=payload.get("first_name") or "",
+                    last_name=payload.get("last_name") or "",
+                    learner_id=str(payload.get("learner_id") or ""),
+                )
+                return self._json(HTTPStatus.CREATED, {"learner": learner})
+            if path == "/api/join/events":
+                session = self._session_from_join_token(str(payload.get("token") or ""))
+                event = STORE.record_activity_event(
+                    session["id"],
+                    learner_id=clean_text(payload.get("learner_id"), label="Élève", max_len=64),
+                    event_type=str(payload.get("event_type") or ""),
+                    item_id=payload.get("item_id") or "",
+                    payload=payload.get("payload") if "payload" in payload else {},
+                )
+                return self._json(HTTPStatus.CREATED, {"event": event})
             if path == "/api/sessions":
                 user = self._require_user()
                 session = STORE.create_class_session(
