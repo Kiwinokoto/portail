@@ -53,6 +53,12 @@ Every subject exposes the same five teacher workspaces, whether the implementati
 
 The labels and order are product-level vocabulary. External subjects such as PSR Maths must preserve them when handing the teacher to their own UI. An unavailable workspace should remain visible with a clear status such as **en cours** or **à venir** rather than disappear.
 
+## Internal activity adapter
+
+ADA French and ADA Mathematics share the same session infrastructure: teacher-owned class session, preloaded roster, signed learner link, opaque learner id, activity events, 4-second live follow-up and descriptive reports. The frontend selects a subject-specific learner start function and completion item while keeping identity/session handling common.
+
+This is the preferred pattern for future internal interactive subjects: reuse the session/identity/report shell and add only subject-specific activities and interpretation rules.
+
 ## Class sessions
 
 A class session belongs to exactly one teacher, formation and subject. It carries:
