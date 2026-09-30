@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Portail LGC</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">La Grande Classe</p>
+        <h1>Portail pédagogique</h1>
+      </div>
+      <button id="logout" class="btn ghost hidden">Se déconnecter</button>
+    </header>
+
+    <section id="student-view" class="panel login-panel hidden">
+      <p class="eyebrow">Séance élève</p>
+      <h2 id="student-session-title">Chargement…</h2>
+      <p id="student-session-context" class="muted"></p>
+      <div id="student-session-message" class="token-box">Le parcours de cette matière sera branché ici.</div>
+    </section>
+
+    <section id="login-view" class="panel login-panel">
+      <p class="eyebrow">Accès enseignant</p>
+      <h2>Ouvrir mon espace</h2>
+      <p class="muted">Entre ton accès personnel. Le portail se souviendra de cette session sur cet appareil.</p>
+      <div class="row">
+        <input id="login-token" class="input" type="password" autocomplete="current-password" placeholder="Token enseignant" />
+        <button id="login-button" class="btn primary">Ouvrir</button>
+      </div>
+      <p id="login-status" class="status"></p>
+    </section>
+
+    <section id="teacher-view" class="hidden stack">
+      <section class="hero panel">
+        <div>
+          <p class="eyebrow">Espace professeur</p>
+          <h2 id="welcome">Bonjour</h2>
+          <p class="muted">Choisis d'abord une formation, puis la matière que tu veux préparer ou piloter.</p>
+        </div>
+        <button id="admin-open" class="btn secondary hidden">Gérer les collègues</button>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">1 · Formation</p>
+            <h3>Mes formations</h3>
+          </div>
+          <button id="back-formations" class="btn ghost hidden">Toutes les formations</button>
+        </div>
+        <div id="formation-grid" class="grid"></div>
+      </section>
+
+      <section id="subjects-panel" class="panel hidden">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">2 · Matière</p>
+            <h3 id="subjects-title">Choisir une matière</h3>
+          </div>
+        </div>
+        <div id="subject-grid" class="grid"></div>
+      </section>
+
+      <section id="subject-workspace" class="panel hidden">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">3 · Parcours</p>
+            <h3 id="workspace-title">Matière</h3>
+            <p id="workspace-description" class="muted"></p>
+          </div>
+          <a id="external-course" class="btn secondary hidden" target="_blank" rel="noopener">Ouvrir le cours existant</a>
+        </div>
+        <div class="action-grid">
+          <button id="show-create-session" class="action-card">
+            <strong>Créer une séance</strong>
+            <span>Préparer un groupe, un lien élève et un QR.</span>
+          </button>
+          <button class="action-card" disabled>
+            <strong>Explorer le parcours</strong>
+            <span>Prévisualisation professeur libre — prochaine passe.</span>
+          </button>
+          <button class="action-card" disabled>
+            <strong>Corrigés</strong>
+            <span>Verrouillés par défaut par séance — prochaine passe.</span>
+          </button>
+          <button class="action-card" disabled>
+            <strong>Suivi en direct</strong>
+            <span>Polling léger des élèves — prochaine passe.</span>
+          </button>
+        </div>
+
+        <form id="session-form" class="form-grid hidden">
+          <label>Numéro de séance<input id="session-number" class="input" type="number" min="1" max="999" value="1" required /></label>
+          <label>Titre <small>(facultatif)</small><input id="session-title" class="input" maxlength="120" placeholder="Ex. Sons et prénom" /></label>
+          <label class="wide">Groupe / classe<input id="session-group" class="input" maxlength="80" placeholder="Ex. ADA 1" required /></label>
+          <div class="wide row"><button class="btn primary" type="submit">Créer la séance</button><span id="session-status" class="status"></span></div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="section-head"><div><p class="eyebrow">Reprendre</p><h3>Mes séances récentes</h3></div><button id="refresh-sessions" class="btn ghost">Actualiser</button></div>
+        <div id="sessions-list" class="session-list"></div>
+      </section>
+    </section>
+
+    <dialog id="admin-dialog" class="dialog">
+      <form method="dialog" class="dialog-head"><div><p class="eyebrow">Administration</p><h2>Collègues</h2></div><button class="btn ghost">Fermer</button></form>
+      <div class="panel flat">
+        <h3>Ajouter un collègue</h3>
+        <div class="form-grid compact">
+          <label>Nom affiché<input id="new-user-name" class="input" maxlength="80" placeholder="Ex. Madame Fadhila" /></label>
+          <label>Rôle<select id="new-user-role" class="input"><option value="teacher">Professeur</option><option value="admin">Administrateur</option></select></label>
+          <div class="wide row"><button id="create-user" class="btn primary" type="button">Créer l'accès</button><span id="admin-status" class="status"></span></div>
+        </div>
+        <div id="new-token-box" class="token-box hidden"></div>
+      </div>
+      <div id="users-list" class="user-list"></div>
+    </dialog>
+  </main>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>
