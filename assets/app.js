@@ -739,6 +739,193 @@ function renderPositioningFinish() {
   speakFrench(`Bravo ${state.learner.first_name}. C'est terminé pour maintenant.`);
 }
 
+
+function renderNumeracyProbe({
+  step,
+  itemId,
+  title,
+  instruction,
+  choices,
+  target,
+  help = '',
+  next,
+}) {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage numeracy-stage">
+      <p class="eyebrow">${step}</p>
+      <h3>${esc(title)}</h3>
+      <div id="numeracy-audio"></div>
+      <div id="numeracy-choices" class="numeracy-choice-grid"></div>
+      <p id="numeracy-feedback" class="feedback" aria-live="assertive"></p>
+      ${help ? `<p class="learner-help">${esc(help)}</p>` : ''}
+    </div>`;
+  $('numeracy-audio').appendChild(audioButton('Écouter', instruction, itemId));
+  const grid = $('numeracy-choices');
+  [...choices].sort(() => Math.random() - 0.5).forEach((choice) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'numeracy-choice-button';
+    button.setAttribute('aria-label', choice.aria || choice.label);
+    if (choice.html) button.innerHTML = choice.html;
+    else button.textContent = choice.label;
+    button.addEventListener('click', async () => {
+      const correct = choice.id === target;
+      await trackEvent('answer', itemId, { correct, choice:choice.id, target });
+      grid.querySelectorAll('.numeracy-choice-button').forEach((item) => item.classList.remove('bad'));
+      if (correct) {
+        button.classList.add('good');
+        grid.querySelectorAll('.numeracy-choice-button').forEach((item) => { item.disabled = true; });
+        $('numeracy-feedback').className = 'feedback good';
+        $('numeracy-feedback').textContent = 'Oui.';
+        speakFrench('Oui.');
+        await trackEvent('activity_completed', itemId, {});
+        setTimeout(next, 750);
+      } else {
+        button.classList.add('bad');
+        $('numeracy-feedback').className = 'feedback bad';
+        $('numeracy-feedback').textContent = 'Essaie encore.';
+        speakFrench('Essaie encore. ' + instruction);
+      }
+    });
+    grid.appendChild(button);
+  });
+  speakFrench(instruction);
+}
+
+function renderNumeracyQuantityActivity() {
+  renderNumeracyProbe({
+    step:'1 · Les quantités',
+    itemId:'quantity-counting',
+    title:'Trouve trois assiettes.',
+    instruction:'Touche le groupe avec trois assiettes.',
+    choices:[
+      { id:'2', label:'deux assiettes', aria:'deux assiettes', html:'<span class="numeracy-objects">🍽️ 🍽️</span>' },
+      { id:'3', label:'trois assiettes', aria:'trois assiettes', html:'<span class="numeracy-objects">🍽️ 🍽️ 🍽️</span>' },
+      { id:'4', label:'quatre assiettes', aria:'quatre assiettes', html:'<span class="numeracy-objects">🍽️ 🍽️ 🍽️ 🍽️</span>' },
+    ],
+    target:'3',
+    help:'On regarde une quantité concrète, sans demander de lire un chiffre.',
+    next:renderNumeracySpokenNumberActivity,
+  });
+}
+
+function renderNumeracySpokenNumberActivity() {
+  renderNumeracyProbe({
+    step:'2 · Les chiffres',
+    itemId:'spoken-number',
+    title:'Écoute le nombre.',
+    instruction:'Touche le nombre sept.',
+    choices:[
+      { id:'1', label:'1' },
+      { id:'4', label:'4' },
+      { id:'7', label:'7' },
+      { id:'9', label:'9' },
+    ],
+    target:'7',
+    help:'Ce test regarde seulement si le chiffre entendu est reconnu à l’écrit.',
+    next:renderNumeracyCompareActivity,
+  });
+}
+
+function renderNumeracyCompareActivity() {
+  renderNumeracyProbe({
+    step:'3 · Plus ou moins',
+    itemId:'compare-quantities',
+    title:'Où y en a-t-il le plus ?',
+    instruction:'Regarde les deux groupes. Touche le groupe où il y a le plus de verres.',
+    choices:[
+      { id:'few', label:'deux verres', aria:'groupe avec deux verres', html:'<span class="numeracy-objects">🥛 🥛</span>' },
+      { id:'many', label:'cinq verres', aria:'groupe avec cinq verres', html:'<span class="numeracy-objects">🥛 🥛 🥛<br>🥛 🥛</span>' },
+    ],
+    target:'many',
+    help:'Il n’est pas nécessaire de connaître les mots « supérieur » ou « inférieur ».',
+    next:renderNumeracyAdditionActivity,
+  });
+}
+
+function renderNumeracyAdditionActivity() {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage numeracy-stage">
+      <p class="eyebrow">4 · Ajouter</p>
+      <h3>Deux assiettes, puis encore une.</h3>
+      <div id="numeracy-add-audio"></div>
+      <div class="numeracy-operation" aria-label="deux assiettes plus une assiette">
+        <span>🍽️ 🍽️</span><strong>+</strong><span>🍽️</span>
+      </div>
+      <p class="learner-prompt">Combien d’assiettes en tout&nbsp;?</p>
+      <div id="numeracy-add-choices" class="numeracy-choice-grid"></div>
+      <p id="numeracy-add-feedback" class="feedback" aria-live="assertive"></p>
+      <p class="learner-help">C’est une situation concrète d’addition. Aucun calcul écrit n’est demandé.</p>
+    </div>`;
+  const instruction = 'Tu as deux assiettes. On ajoute une assiette. Combien d’assiettes en tout ?';
+  $('numeracy-add-audio').appendChild(audioButton('Écouter', instruction, 'concrete-addition'));
+  const grid = $('numeracy-add-choices');
+  ['2','3','4'].sort(() => Math.random() - 0.5).forEach((value) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'numeracy-choice-button numeral';
+    button.textContent = value;
+    button.addEventListener('click', async () => {
+      const correct = value === '3';
+      await trackEvent('answer', 'concrete-addition', { correct, choice:value, target:'3' });
+      grid.querySelectorAll('.numeracy-choice-button').forEach((item) => item.classList.remove('bad'));
+      if (correct) {
+        button.classList.add('good');
+        grid.querySelectorAll('.numeracy-choice-button').forEach((item) => { item.disabled = true; });
+        $('numeracy-add-feedback').className = 'feedback good';
+        $('numeracy-add-feedback').textContent = 'Oui. Trois assiettes.';
+        speakFrench('Oui. Trois assiettes.');
+        await trackEvent('activity_completed', 'concrete-addition', {});
+        setTimeout(renderNumeracyMoneyActivity, 750);
+      } else {
+        button.classList.add('bad');
+        $('numeracy-add-feedback').className = 'feedback bad';
+        $('numeracy-add-feedback').textContent = 'Compte encore les assiettes.';
+        speakFrench('Compte encore les assiettes.');
+      }
+    });
+    grid.appendChild(button);
+  });
+  speakFrench(instruction);
+}
+
+function renderNumeracyMoneyActivity() {
+  renderNumeracyProbe({
+    step:'5 · L’argent',
+    itemId:'money-amount',
+    title:'Écoute le prix.',
+    instruction:'Touche cinq euros.',
+    choices:[
+      { id:'2', label:'2 €' },
+      { id:'5', label:'5 €' },
+      { id:'10', label:'10 €' },
+      { id:'20', label:'20 €' },
+    ],
+    target:'5',
+    help:'On vérifie seulement la reconnaissance de ce montant écrit.',
+    next:renderNumeracyFinish,
+  });
+}
+
+function renderNumeracyFinish() {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      <div class="finish-card">
+        <p class="eyebrow">Terminé pour maintenant</p>
+        <h3>Bravo ${esc(state.learner.first_name)}.</h3>
+        <p class="muted">Ton professeur voit les différentes étapes séparément et peut choisir la suite.</p>
+        <div id="numeracy-finish-audio"></div>
+      </div>
+    </div>`;
+  $('numeracy-finish-audio').appendChild(audioButton(
+    'Écouter',
+    `Bravo ${state.learner.first_name}. C’est terminé pour maintenant.`,
+    'numeracy-v1'
+  ));
+  trackEvent('activity_completed', 'numeracy-v1', {});
+  speakFrench(`Bravo ${state.learner.first_name}. C’est terminé pour maintenant.`);
+}
+
 function showLogin() {
   show('student-view', false); show('login-view', true); show('teacher-view', false); show('logout', false);
 }
