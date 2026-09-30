@@ -1,9 +1,22 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import re
 import secrets
 from datetime import datetime, timedelta
 
 from .core import SESSION_TTL_DAYS, clean_text, hash_token, iso, utc_now
+
+
+SSO_CODE_TTL_SECONDS = 90
+SSO_CHALLENGE_RE = re.compile(r"^[A-Za-z0-9_-]{43}$")
+
+
+def _pkce_challenge(verifier: str) -> str:
+    digest = hashlib.sha256(verifier.encode("utf-8")).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
 
 
 class AccountsMixin:
@@ -98,6 +111,63 @@ class AccountsMixin:
                 (hash_token(raw_token), iso()),
             ).fetchone()
         return dict(row) if row else None
+
+    def create_sso_code(self, user_id: int, *, target: str, challenge: str) -> str:
+        if target != "maths":
+            raise ValueError("Cible SSO invalide.")
+        if not SSO_CHALLENGE_RE.fullmatch(challenge):
+            raise ValueError("Challenge SSO invalide.")
+        user = self.get_user(user_id)
+        if not user["active"]:
+            raise ValueError("Utilisateur désactivé.")
+
+        raw = secrets.token_urlsafe(32)
+        now = utc_now()
+        expires = now + timedelta(seconds=SSO_CODE_TTL_SECONDS)
+        with self.connect() as db:
+            db.execute(
+                "DELETE FROM sso_codes WHERE expires_at<? OR used_at IS NOT NULL",
+                (iso(now),),
+            )
+            db.execute(
+                """INSERT INTO sso_codes(
+                    code_hash,user_id,target,challenge,expires_at,used_at,created_at
+                ) VALUES(?,?,?,?,?,NULL,?)""",
+                (hash_token(raw), user_id, target, challenge, iso(expires), iso(now)),
+            )
+        return raw
+
+    def redeem_sso_code(self, raw_code: str, *, target: str, verifier: str) -> dict | None:
+        if target != "maths" or not raw_code or not verifier:
+            return None
+        expected_challenge = _pkce_challenge(verifier)
+        now = utc_now()
+        with self.connect() as db:
+            row = db.execute(
+                """SELECT c.code_hash,c.challenge,u.id,u.display_name,u.role,u.active,
+                          u.created_at,u.updated_at
+                   FROM sso_codes c
+                   JOIN users u ON u.id=c.user_id
+                   WHERE c.code_hash=? AND c.target=? AND c.used_at IS NULL
+                     AND c.expires_at>? AND u.active=1""",
+                (hash_token(raw_code), target, iso(now)),
+            ).fetchone()
+            if not row or not hmac.compare_digest(str(row["challenge"]), expected_challenge):
+                return None
+            updated = db.execute(
+                "UPDATE sso_codes SET used_at=? WHERE code_hash=? AND used_at IS NULL",
+                (iso(now), row["code_hash"]),
+            )
+            if updated.rowcount != 1:
+                return None
+            return {
+                "id": row["id"],
+                "display_name": row["display_name"],
+                "role": row["role"],
+                "active": bool(row["active"]),
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"],
+            }
 
     def delete_browser_session(self, raw_token: str) -> None:
         if not raw_token:
