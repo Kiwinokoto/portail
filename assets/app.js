@@ -1113,7 +1113,7 @@ async function loadSessions() {
         <small>${esc(s.group_label)} · créée ${new Date(s.created_at).toLocaleString('fr-FR')}</small>
       </div>
       <div class="session-actions">
-        ${s.subject_id === 'ada-francais' ? `<button class="btn primary" data-live="${esc(s.id)}">Suivi en direct</button>
+        ${['ada-francais', 'ada-maths'].includes(s.subject_id) ? `<button class="btn primary" data-live="${esc(s.id)}">Suivi en direct</button>
         <button class="btn secondary" data-corrections="${esc(s.id)}" data-unlocked="${s.corrections_unlocked ? '1' : '0'}">Corrigés : ${s.corrections_unlocked ? 'ouverts' : 'verrouillés'}</button>` : ''}
         <button class="btn ghost" data-copy="${esc(s.join_url)}">Copier le lien élève</button>
         <a class="btn secondary" href="/api/sessions/${encodeURIComponent(s.id)}/qr.svg" target="_blank">QR</a>
