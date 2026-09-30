@@ -24,6 +24,7 @@ Do not add a visible CAP/Bac Pro family level for now.
 
 ## P1 — first real teaching vertical
 
+- [x] Add reversible session lifecycle: close disables learner access immediately and relocks corrections; reports/history remain available; teacher can reopen later.
 - [x] ADA → French positioning V1: signed learner join, own-name recognition and first-letter recognition.
 - [x] Audio-first instructions with browser speech synthesis and visible-text fallback.
 - [x] Persist lightweight learner activity events and expose a teacher-owned session summary.
