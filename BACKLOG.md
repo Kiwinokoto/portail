@@ -58,14 +58,12 @@ This project must stay easy to dismantle or adapt:
 
 ## Current handoff — 30 September 2026
 
-`main` is at `02e52d4` after the tested roster/no-typing merge (PR #3).
+`main` is at `34b6539` after the tested oral-comprehension merge (PR #4).
 
-Current development branch: `dev/ada-oral-v1`, created directly from that `main`.
+Current development branch: `dev/ada-positioning-order-v1`, created directly from that `main`.
 
-This pass adds a narrow oral-comprehension probe after the name/letter activities: three replayable spoken everyday-noun instructions with pictorial choices and no reading requirement. It reuses the existing activity event model and adds no backend route or SQLite migration. Teacher live progress now expects four completed positioning stages.
+This corrective pass changes only the learner sequence: **identity selection → oral comprehension → own-name recognition → first-letter recognition → finish**. It restores the documented oral-before-written principle without changing the backend, event schema or SQLite data.
 
-The pictograms are temporary platform emoji and must be checked on the actual classroom devices before broader rollout. This is a narrow probe, not a general oral-language score.
+The oral pictograms remain temporary platform emoji and need validation on the actual classroom devices. The owner explicitly confirmed there is no local clone, no unpushed work and no remaining previous-agent activity. AgentCtl registration is still pending only because RDC/admin broker access is unavailable today.
 
-The owner explicitly confirmed there is no local clone, no unpushed work and no remaining previous-agent activity. AgentCtl registration is still pending only because RDC/admin broker access is unavailable today. Do not describe the repository as registered until that has actually been done.
-
-No deployment has been attempted in this pass.
+No deployment has been attempted.

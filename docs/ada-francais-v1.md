@@ -19,10 +19,10 @@ The first vertical is deliberately small:
 1. teacher creates the class session and preloads the learner roster;
 2. learner opens the signed class-session link / QR;
 3. learner selects their prepared identity instead of typing their name;
-4. browser speech synthesis says the learner's first name;
-5. learner recognises the written form of their own first name among adult first-name distractors;
-6. learner matches the first **letter name** of their first name;
-7. learner completes a short oral-comprehension probe: spoken everyday nouns → visual choices, with no reading required;
+4. learner completes a short oral-comprehension probe first: spoken everyday nouns → visual choices, with no reading required;
+5. browser speech synthesis says the learner's first name;
+6. learner recognises the written form of their own first name among adult first-name distractors;
+7. learner matches the first **letter name** of their first name;
 8. attempts and completions are visible to the teacher through 4-second polling.
 
 The second task is only a letter-name recognition probe. It must **not** be interpreted as evidence that the learner has mastered the initial phoneme or grapheme↔phoneme correspondence. The oral probe is deliberately independent from reading: the target instruction is spoken and the learner answers through pictorial choices.

@@ -92,7 +92,7 @@ async function startAdaFrench(session) {
       });
       state.learner = learner;
       await trackEvent('activity_started', 'positioning-v1', { entry: 'resume' });
-      return renderOwnNameActivity();
+      return renderOralComprehensionActivity(0);
     } catch {
       clearStoredLearner(session.id);
     }
@@ -231,7 +231,7 @@ async function chooseRosterLearner(learnerId) {
     state.learner = learner;
     saveLearner(learner);
     await trackEvent('activity_started', 'positioning-v1', { entry: 'roster' });
-    renderOwnNameActivity();
+    renderOralComprehensionActivity(0);
   } catch (error) {
     $('roster-choice-status').textContent = error.message;
     $('roster-choice-grid').querySelectorAll('button').forEach((button) => { button.disabled = false; });
@@ -257,7 +257,7 @@ function renderOwnNameActivity() {
   );
   $('student-session-message').innerHTML = `
     <div class="learner-stage">
-      <p class="eyebrow">1 · Mon prénom</p>
+      <p class="eyebrow">2 · Mon prénom</p>
       <h3>Écoute. Retrouve ton prénom.</h3>
       <div id="own-name-audio"></div>
       <div id="own-name-choices" class="choice-grid"></div>
@@ -302,7 +302,7 @@ function renderFirstLetterActivity() {
   const choices = shuffledChoices(firstLetter, ['A', 'M', 'S', 'K', 'L', 'R', 'B', 'N', 'D', 'F', 'T', 'O', 'E', 'I']);
   $('student-session-message').innerHTML = `
     <div class="learner-stage">
-      <p class="eyebrow">2 · Première lettre</p>
+      <p class="eyebrow">3 · Première lettre</p>
       <h3>Quelle est la première lettre de ton prénom&nbsp;?</h3>
       <div id="first-letter-audio"></div>
       <div id="first-letter-choices" class="choice-grid"></div>
@@ -326,7 +326,7 @@ function renderFirstLetterActivity() {
         $('first-letter-feedback').textContent = `Oui. ${firstName} commence par ${firstLetter}.`;
         speakFrench(`Oui. ${firstName} commence par ${firstLetter}.`);
         await trackEvent('activity_completed', 'first-letter', {});
-        setTimeout(() => renderOralComprehensionActivity(0), 900);
+        setTimeout(renderPositioningFinish, 900);
       } else {
         button.classList.add('bad');
         $('first-letter-feedback').className = 'feedback bad';
@@ -360,13 +360,13 @@ function renderOralComprehensionActivity(roundIndex = 0) {
   const round = ORAL_COMPREHENSION_ROUNDS[roundIndex];
   if (!round) {
     trackEvent('activity_completed', 'oral-comprehension', { rounds: ORAL_COMPREHENSION_ROUNDS.length });
-    return renderPositioningFinish();
+    return renderOwnNameActivity();
   }
 
   const choices = shuffledVisualChoices();
   $('student-session-message').innerHTML = `
     <div class="learner-stage oral-stage">
-      <p class="eyebrow">3 · J'écoute</p>
+      <p class="eyebrow">1 · J'écoute</p>
       <h3>Écoute et touche la bonne image.</h3>
       <div id="oral-audio"></div>
       <div id="oral-choices" class="visual-choice-grid"></div>
