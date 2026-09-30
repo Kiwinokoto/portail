@@ -648,6 +648,7 @@ async function openLiveView(sessionId) {
   $('live-title').textContent = session ? `${session.formation_label} · ${session.subject_label} · Séance ${session.session_number}` : 'Séance';
   $('live-context').textContent = session ? `${session.group_label}${session.title ? ` · ${session.title}` : ''}` : '';
   $('live-learners').innerHTML = '';
+  $('roster-manage-list').innerHTML = '';
   $('live-status').textContent = 'Chargement…';
   $('roster-input').value = '';
   $('roster-status').textContent = '';
@@ -660,6 +661,8 @@ async function refreshLiveView() {
   if (!state.liveSessionId || !$('live-dialog').open) return;
   try {
     const { learners, started_count: startedCount } = await api(`/api/sessions/${encodeURIComponent(state.liveSessionId)}/activity`);
+    state.liveLearners = learners;
+    renderRosterManage(learners);
     if (!learners.length) {
       $('live-status').textContent = 'Ajoute la liste des élèves pour préparer la séance.';
       $('live-learners').innerHTML = '<p class="muted">Aucun élève dans la liste pour le moment.</p>';
@@ -680,6 +683,78 @@ async function refreshLiveView() {
       </article>`).join('');
   } catch (error) {
     $('live-status').textContent = error.message;
+  }
+}
+
+function renderRosterManage(learners) {
+  const box = $('roster-manage-list');
+  if (!learners.length) {
+    box.innerHTML = '<p class="muted">La liste est vide.</p>';
+    return;
+  }
+  box.innerHTML = learners.map((learner) => `
+    <article class="roster-manage-row">
+      <div>
+        <strong>${esc(learner.first_name)}${learner.last_name ? ` ${esc(learner.last_name)}` : ''}</strong>
+        <small>${learner.started ? 'A déjà commencé · suppression bloquée' : 'Pas encore commencé'}</small>
+      </div>
+      <div class="roster-manage-actions">
+        <button class="btn ghost" type="button" data-roster-edit="${esc(learner.id)}">Modifier</button>
+        <button class="btn ghost danger" type="button" data-roster-remove="${esc(learner.id)}" ${learner.started ? 'disabled title="Le travail de cet élève est déjà commencé."' : ''}>Retirer</button>
+      </div>
+    </article>`).join('');
+  box.querySelectorAll('[data-roster-edit]').forEach((button) => {
+    button.addEventListener('click', () => openRosterEdit(button.dataset.rosterEdit));
+  });
+  box.querySelectorAll('[data-roster-remove]').forEach((button) => {
+    button.addEventListener('click', () => removeRosterLearner(button.dataset.rosterRemove));
+  });
+}
+
+function openRosterEdit(learnerId) {
+  const learner = state.liveLearners.find((item) => item.id === learnerId);
+  if (!learner) return;
+  $('roster-edit-id').value = learner.id;
+  $('roster-edit-first-name').value = learner.first_name;
+  $('roster-edit-last-name').value = learner.last_name || '';
+  $('roster-edit-status').textContent = '';
+  $('roster-edit-dialog').showModal();
+}
+
+async function saveRosterEdit() {
+  const learnerId = $('roster-edit-id').value;
+  $('roster-edit-status').textContent = '';
+  $('roster-edit-save').disabled = true;
+  try {
+    await api(`/api/sessions/${encodeURIComponent(state.liveSessionId)}/learners/update`, {
+      method:'POST',
+      body:JSON.stringify({
+        learner_id: learnerId,
+        first_name: $('roster-edit-first-name').value,
+        last_name: $('roster-edit-last-name').value,
+      }),
+    });
+    $('roster-edit-dialog').close();
+    await refreshLiveView();
+  } catch (error) {
+    $('roster-edit-status').textContent = error.message;
+  } finally {
+    $('roster-edit-save').disabled = false;
+  }
+}
+
+async function removeRosterLearner(learnerId) {
+  const learner = state.liveLearners.find((item) => item.id === learnerId);
+  if (!learner || learner.started) return;
+  if (!confirm(`Retirer ${learner.first_name}${learner.last_name ? ` ${learner.last_name}` : ''} de cette séance ?`)) return;
+  try {
+    await api(`/api/sessions/${encodeURIComponent(state.liveSessionId)}/learners/remove`, {
+      method:'POST',
+      body:JSON.stringify({ learner_id: learnerId }),
+    });
+    await refreshLiveView();
+  } catch (error) {
+    $('roster-status').textContent = error.message;
   }
 }
 
@@ -727,6 +802,7 @@ function clearLivePolling() {
   if (state.liveTimer) window.clearInterval(state.liveTimer);
   state.liveTimer = null;
   state.liveSessionId = null;
+  state.liveLearners = [];
 }
 
 async function loadUsers() {
