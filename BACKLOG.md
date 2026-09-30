@@ -33,6 +33,7 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [ ] Add safe roster edit/remove for corrections; current UI only appends and ignores exact duplicates.
 - [ ] Decide whether multi-device selection of the same prepared learner needs a claim/device safeguard after classroom testing.
 - [x] Add first oral-comprehension probe without reading: spoken everyday nouns → pictorial choices.
+- [x] Sequence positioning oral-first: identity → oral → own name → first letter → finish.
 - [ ] Extend positioning further: visual discrimination, sound/letter matching, useful-word reading and writing gestures.
 - [ ] Separate letter-name recognition from true phoneme↔grapheme assessment; do not infer decoding ability from the current first-letter task.
 - [ ] Teacher preview bypasses learner locks.
@@ -58,12 +59,24 @@ This project must stay easy to dismantle or adapt:
 
 ## Current handoff — 30 September 2026
 
-`main` is at `34b6539` after the tested oral-comprehension merge (PR #4).
+All tested functional work through PR #5 is merged into `main`. The last functional merge before this documentation sync is `ae022b4`.
 
-Current development branch: `dev/ada-positioning-order-v1`, created directly from that `main`.
+Delivered today:
+- portal foundation and staff/session model;
+- ADA French learner flow with signed class-session links;
+- teacher-preloaded roster so learners do not have to type their name;
+- public roster minimised to first name + optional surname initial;
+- lightweight learner events and 4 s teacher live view;
+- first oral-comprehension probe, deliberately run before written-name/letter tasks;
+- own-name recognition and first-letter-name recognition, kept distinct from true phoneme↔grapheme assessment.
 
-This corrective pass changes only the learner sequence: **identity selection → oral comprehension → own-name recognition → first-letter recognition → finish**. It restores the documented oral-before-written principle without changing the backend, event schema or SQLite data.
+No SQLite migration was required for the roster or oral work. `maths_lgc` remains untouched.
 
-The oral pictograms remain temporary platform emoji and need validation on the actual classroom devices. The owner explicitly confirmed there is no local clone, no unpushed work and no remaining previous-agent activity. AgentCtl registration is still pending only because RDC/admin broker access is unavailable today.
+Next useful checks before expanding the diagnostic:
+1. validate browser TTS and the temporary emoji pictograms on the actual classroom devices;
+2. add safe roster edit/remove if classroom setup needs corrections;
+3. then continue with an independent visual-discrimination probe, followed later by true sound↔grapheme work.
 
-No deployment has been attempted.
+The owner explicitly confirmed there is no local clone, no unpushed work and no remaining previous-agent activity. AgentCtl registration is still pending only because RDC/admin broker access is unavailable today. Do not describe the repository as registered until that has actually been done.
+
+No deployment has been attempted. After this documentation-only sync is merged, no feature branch should be treated as active.
