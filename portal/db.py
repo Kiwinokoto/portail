@@ -47,6 +47,17 @@ class BaseStore:
                     expires_at TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS sso_codes (
+                    code_hash TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    target TEXT NOT NULL,
+                    challenge TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    used_at TEXT,
+                    created_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_sso_codes_expiry
+                    ON sso_codes(expires_at);
                 CREATE TABLE IF NOT EXISTS formations (
                     id TEXT PRIMARY KEY, label TEXT NOT NULL, position INTEGER NOT NULL,
                     active INTEGER NOT NULL DEFAULT 1
