@@ -45,8 +45,8 @@ Do not add a visible CAP/Bac Pro family level for now.
 ## P2 — maths convergence
 
 - [x] Define the shared five-workspace teacher model: Séances → Parcours → Corrigés → Suivi en direct → Rapports.
-- [ ] Harmonise the Portail and Maths LGC teacher UI on those five workspaces and expose explicit availability/status.
-- [ ] Attach Maths sessions to the authenticated portal teacher identity so sessions survive browser/device changes without relying on locally stored management secrets.
+- [x] Harmonise the Portail and Maths LGC teacher UI on those five workspaces and expose explicit availability/status.
+- [x] Attach new Maths sessions to the authenticated portal teacher identity so sessions survive browser/device changes without relying on locally stored management secrets. Legacy sessions keep their existing management-secret fallback.
 - [ ] Build Reports in layers: group synthesis first, learner detail second, cross-group comparison only when enough comparable data exists.
 - [x] Add portal-issued one-time SSO handoff for Maths LGC using PKCE; no shared teacher token crosses subdomains.
 - [ ] Keep `maths_lgc` production untouched during portal bootstrap.
@@ -66,12 +66,12 @@ This project must stay easy to dismantle or adapt:
 
 ## Current handoff — 30 September 2026
 
-Production remains live on `portail.lagrandeclasse.fr`.
+Production is live on `portail.lagrandeclasse.fr` and `maths.lagrandeclasse.fr`.
 
-The SSO handoff is now in production. This branch starts the next convergence layer: one shared teacher information architecture across Portail and Maths LGC, followed by durable ownership of Maths sessions by the authenticated portal teacher identity. The portal never exposes its teacher token or the Maths legacy master token. The only accepted V1 SSO target is Maths LGC and the callback destination is fixed server-side.
+Teacher navigation is now harmonised around five shared workspaces: **Séances → Parcours → Corrigés → Suivi en direct → Rapports**. Portail exposes the same vocabulary for internal and external subjects; PSR Maths deep-links each action to the matching Maths workspace. Rapports is intentionally visible but still marked « à venir ».
 
-If the portal session has expired, the authorization route redirects to the ordinary portal login and safely resumes the pending SSO flow after login.
+The Portail→Maths SSO is in production. New Maths sessions created under SSO are now bound to the stable Portail teacher identity and can be listed/reopened after reconnecting on another browser or device. They no longer depend on a locally stored management token for normal ownership. Legacy Maths sessions remain compatible with their existing per-session management secret.
 
-Maths still keeps its legacy teacher token as a fallback during rollout; removing that fallback is a later hardening step after classroom validation.
+Maths live follow-up polls every 4 seconds while visible. The next product-level work is **Rapports** (group synthesis first, individual detail second, cross-group comparison only when the data is comparable) and continued ADA French positioning/teacher controls.
 
 AgentCtl registration remains pending while RDC/admin broker access is unavailable today. The owner confirmed there is no other active agent or unpushed local work.
