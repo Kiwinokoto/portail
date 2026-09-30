@@ -154,6 +154,11 @@ class PortalStoreTests(unittest.TestCase):
         self.assertEqual(2, summary["attempts"])
         self.assertEqual(1, summary["correct_answers"])
         self.assertEqual(1, summary["completed_items"])
+        self.assertEqual(2, summary["items"]["own-name"]["attempts"])
+        self.assertEqual(1, summary["items"]["own-name"]["correct_answers"])
+        self.assertTrue(summary["items"]["own-name"]["completed"])
+        own_name = next(item for item in activity["items"] if item["item_id"] == "own-name")
+        self.assertEqual(1, own_name["completed_count"])
         with self.assertRaises(ValueError):
             self.store.session_activity(created["id"], other["id"])
 
@@ -205,6 +210,45 @@ class PortalStoreTests(unittest.TestCase):
         self.assertTrue(all(not learner["started"] for learner in activity["learners"]))
         with self.assertRaises(ValueError):
             self.store.list_roster(created["id"], other["id"])
+
+    def test_roster_corrections_are_safe_and_teacher_scoped(self):
+        teacher, _ = self.store.create_user("Kevin", "teacher")
+        other, _ = self.store.create_user("Waren", "teacher")
+        created = self.store.create_class_session(
+            teacher_id=teacher["id"], formation_id="ada", subject_id="ada-francais",
+            session_number=1, title="", group_label="ADA 1"
+        )
+        learners = self.store.add_roster_learners(
+            created["id"], teacher["id"],
+            [
+                {"first_name": "Amina", "last_name": "Dallo"},
+                {"first_name": "Moussa", "last_name": "Traoré"},
+            ],
+        )["learners"]
+        amina = learners[0]
+        moussa = learners[1]
+
+        fixed = self.store.update_roster_learner(
+            created["id"], teacher["id"], amina["id"],
+            first_name="Amina", last_name="Diallo",
+        )
+        self.assertEqual("Diallo", fixed["last_name"])
+        with self.assertRaises(ValueError):
+            self.store.update_roster_learner(
+                created["id"], other["id"], amina["id"],
+                first_name="Amina", last_name="Diallo",
+            )
+
+        removed = self.store.remove_roster_learner(created["id"], teacher["id"], moussa["id"])
+        self.assertTrue(removed["ok"])
+        self.assertEqual(1, len(self.store.list_roster(created["id"], teacher["id"])))
+
+        self.store.record_activity_event(
+            created["id"], learner_id=amina["id"], event_type="activity_started",
+            item_id="positioning-v1", payload={},
+        )
+        with self.assertRaisesRegex(ValueError, "activité enregistrée"):
+            self.store.remove_roster_learner(created["id"], teacher["id"], amina["id"])
 
     def test_preloaded_learner_becomes_started_after_selection_event(self):
         teacher, _ = self.store.create_user("Kevin", "teacher")
