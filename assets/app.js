@@ -12,6 +12,7 @@ const state = {
   liveTimer: null,
   liveSessionId: null,
   liveLearners: [],
+  livePollInFlight: false,
   reportSessionId: null,
   previewMode: false,
   positioningItemId: '',
@@ -1114,7 +1115,8 @@ async function loadSessions() {
       </div>
       <div class="session-actions">
         ${['ada-francais', 'ada-maths'].includes(s.subject_id) ? `<button class="btn primary" data-live="${esc(s.id)}">Suivi en direct</button>
-        <button class="btn secondary" data-corrections="${esc(s.id)}" data-unlocked="${s.corrections_unlocked ? '1' : '0'}">Corrigés : ${s.corrections_unlocked ? 'ouverts' : 'verrouillés'}</button>` : ''}
+        <button class="btn secondary" data-corrections="${esc(s.id)}" data-unlocked="${s.corrections_unlocked ? '1' : '0'}">Corrigés : ${s.corrections_unlocked ? 'ouverts' : 'verrouillés'}</button>
+        <button class="btn secondary" data-report="${esc(s.id)}">Rapport</button>` : ''}
         <button class="btn ghost" data-copy="${esc(s.join_url)}">Copier le lien élève</button>
         <a class="btn secondary" href="/api/sessions/${encodeURIComponent(s.id)}/qr.svg" target="_blank">QR</a>
       </div>
@@ -1132,6 +1134,20 @@ async function loadSessions() {
   $('sessions-list').querySelectorAll('[data-corrections]').forEach((button) => {
     button.addEventListener('click', () => toggleSessionCorrections(button.dataset.corrections, button.dataset.unlocked !== '1'));
   });
+  $('sessions-list').querySelectorAll('[data-report]').forEach((button) => {
+    button.addEventListener('click', () => openSessionReport(button.dataset.report));
+  });
+}
+
+function stopLiveTimer() {
+  if (state.liveTimer) window.clearTimeout(state.liveTimer);
+  state.liveTimer = null;
+}
+
+function scheduleLivePolling() {
+  stopLiveTimer();
+  if (!state.liveSessionId || !$('live-dialog').open || document.hidden) return;
+  state.liveTimer = window.setTimeout(() => refreshLiveView({ automatic:true }), 4000);
 }
 
 async function openLiveView(sessionId) {
@@ -1147,7 +1163,6 @@ async function openLiveView(sessionId) {
   $('roster-status').textContent = '';
   $('live-dialog').showModal();
   await refreshLiveView();
-  state.liveTimer = window.setInterval(refreshLiveView, 4000);
 }
 
 function subjectCompletionCount(subjectId) {
@@ -1156,11 +1171,14 @@ function subjectCompletionCount(subjectId) {
   return 1;
 }
 
-async function refreshLiveView() {
-  if (!state.liveSessionId || !$('live-dialog').open) return;
+async function refreshLiveView({ automatic = false } = {}) {
+  const sessionId = state.liveSessionId;
+  if (!sessionId || !$('live-dialog').open || state.livePollInFlight) return;
+  state.livePollInFlight = true;
   try {
-    const { learners, started_count: startedCount } = await api(`/api/sessions/${encodeURIComponent(state.liveSessionId)}/activity`);
-    const liveSession = state.sessions.find((session) => session.id === state.liveSessionId);
+    const { learners, started_count: startedCount } = await api(`/api/sessions/${encodeURIComponent(sessionId)}/activity`);
+    if (state.liveSessionId !== sessionId || !$('live-dialog').open) return;
+    const liveSession = state.sessions.find((session) => session.id === sessionId);
     const completionTarget = subjectCompletionCount(liveSession?.subject_id);
     state.liveLearners = learners;
     renderRosterManage(learners);
@@ -1183,7 +1201,10 @@ async function refreshLiveView() {
         </div>
       </article>`).join('');
   } catch (error) {
-    $('live-status').textContent = error.message;
+    if (!automatic) $('live-status').textContent = error.message;
+  } finally {
+    state.livePollInFlight = false;
+    if (state.liveSessionId === sessionId) scheduleLivePolling();
   }
 }
 
@@ -1300,10 +1321,10 @@ async function addRosterLearners() {
 }
 
 function clearLivePolling() {
-  if (state.liveTimer) window.clearInterval(state.liveTimer);
-  state.liveTimer = null;
+  stopLiveTimer();
   state.liveSessionId = null;
   state.liveLearners = [];
+  state.livePollInFlight = false;
 }
 
 async function toggleSessionCorrections(sessionId, unlocked) {
@@ -1376,17 +1397,25 @@ function reportMetric(label, value) {
   return `<div class="report-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`;
 }
 
-async function openReports() {
+async function openReports(preferredSessionId = '') {
   if (!state.subject || state.subject.mode !== 'internal') return;
   if (state.subject.id === 'ada-francais') {
-    return openReportCollection(buildAdaReport, renderAdaReportDetail);
+    return openReportCollection(buildAdaReport, renderAdaReportDetail, preferredSessionId);
   }
   if (state.subject.id === 'ada-maths') {
-    return openReportCollection(buildNumeracyReport, renderNumeracyReportDetail);
+    return openReportCollection(buildNumeracyReport, renderNumeracyReportDetail, preferredSessionId);
   }
 }
 
-async function openReportCollection(buildReport, renderDetail) {
+async function openSessionReport(sessionId) {
+  const session = state.sessions.find((item) => item.id === sessionId);
+  if (!session || !['ada-francais', 'ada-maths'].includes(session.subject_id)) return;
+  if (state.formation?.id !== session.formation_id) selectFormation(session.formation_id);
+  if (state.subject?.id !== session.subject_id) selectSubject(session.subject_id);
+  await openReports(sessionId);
+}
+
+async function openReportCollection(buildReport, renderDetail, preferredSessionId = '') {
   if (!state.subject || state.subject.mode !== 'internal') return;
   $('reports-title').textContent = `${state.formation.label} · ${state.subject.label}`;
   $('reports-context').textContent = 'Synthèse des séances auxquelles tu as accès.';
@@ -1439,6 +1468,10 @@ async function openReportCollection(buildReport, renderDetail) {
     });
   });
   renderAdaReportComparison(reports);
+  if (preferredSessionId) {
+    const preferred = reports.find((report) => report.session.id === preferredSessionId);
+    if (preferred) renderDetail(preferred);
+  }
 }
 
 function renderAdaReportDetail(report) {
@@ -1680,6 +1713,14 @@ $('create-user').addEventListener('click', async () => {
     const { user, token } = await api('/api/admin/users', { method:'POST', body:JSON.stringify({ display_name:name, role:$('new-user-role').value }) });
     revealToken(user.display_name, token); $('new-user-name').value = ''; await loadUsers();
   } catch (error) { $('admin-status').textContent = error.message; }
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    stopLiveTimer();
+    return;
+  }
+  if (state.liveSessionId && $('live-dialog').open) refreshLiveView({ automatic:true });
 });
 
 boot().catch((error) => { $('login-status').textContent = error.message; showLogin(); });
