@@ -26,7 +26,8 @@ The portal intentionally does not recreate Moodle. It focuses on teacher session
 5. For ADA French or ADA Mathematics, open **Suivi en direct** and preload the roster (one learner per line, optional `Prénom; Nom`).
 6. Share the signed learner URL or QR code.
 7. Learners select their prepared identity; they do not type their name.
-8. Reopen the same sessions from any device after authenticating again.
+8. When a session is finished, close it from **Mes séances récentes**. The learner link/QR stops working immediately; results and Reports remain available.
+9. Reopen a closed session later if needed.
 
 Administrators can create/deactivate colleagues and rotate their access token. Generated teacher tokens are displayed once and stored only as SHA-256 hashes server-side.
 
