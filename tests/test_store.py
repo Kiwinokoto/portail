@@ -28,6 +28,8 @@ class PortalStoreTests(unittest.TestCase):
         self.assertEqual("external", psr_maths["mode"])
         self.assertEqual("https://maths.lagrandeclasse.fr/teacher", psr_maths["external_url"])
         self.assertEqual({"ada-francais", "ada-maths"}, {s["id"] for s in by_id["ada"]["subjects"]})
+        ada_maths = next(s for s in by_id["ada"]["subjects"] if s["id"] == "ada-maths")
+        self.assertEqual("internal", ada_maths["mode"])
 
     def test_init_repairs_legacy_psr_maths_student_url(self):
         with self.store.connect() as db:
