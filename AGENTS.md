@@ -17,6 +17,11 @@ Teacher tooling uses one shared five-workspace vocabulary across internal and ex
 Navigation is deliberately: **Formation → Subject → Subject pathway**.
 Do not add a CAP/Bac Pro family layer to the main navigation unless a real UX need appears.
 
+## ADA teacher/assessment invariants
+- Teacher preview must never persist learner activity: ADA preview runs without a signed join token, learner localStorage identity or event writes.
+- Literacy probes must preserve their narrow meaning: visual matching is not reading, guided sound→letter is not autonomous decoding, useful-word recognition is word-specific, and the writing canvas records only that a gesture was attempted.
+- Do not aggregate the independent probes into a global literacy score unless a later pedagogical design explicitly justifies one.
+
 ## Visual language
 - Identity/navigation: violet/indigo first, with blue and rose as neutral decorative accents.
 - Semantic colors are reserved across the portal and learning activities: **green = correct/success/completed**, **orange = retry/needs work/attention**, **red = important/to remember/objective** (and destructive/system errors where appropriate).

@@ -49,9 +49,10 @@ The browser stores only the opaque learner id in `localStorage` to resume the sa
 
 No database migration is needed for this pass: the roster reuses the existing `learners` table and whether someone has actually started is derived from `activity_events`.
 
-### Known roster limitations
+### Roster behaviour after the teacher-controls pass
 
-- roster entries are append-only in the current UI; typo/edit/remove should be added before broader rollout;
+- the teacher can correct first/last names from the live view;
+- a learner can be removed only before any activity exists; once work is recorded, removal is refused so activity is not silently destroyed;
 - exact duplicate `Prénom + Nom` rows are ignored, so identical full names need a distinguishing second given name or other teacher-entered discriminator for now;
 - the same prepared learner can still be selected on more than one device; events would then aggregate under that learner. Add a claim/device safeguard only if classroom testing shows it is needed.
 
@@ -86,3 +87,8 @@ Add small independent activities for:
 - copying / assembling a useful written word before free writing.
 
 Keep each probe short, replayable and immediately understandable through audio/visual cues.
+
+
+## V2 continuation
+
+The V1 event and identity model is retained for compatibility. The next learner sequence is documented in [`ada-francais-v2.md`](ada-francais-v2.md). The overall completion event keeps the historical `positioning-v1` item id so existing reports remain compatible; the individual new probes have their own item ids and must be interpreted independently.

@@ -13,6 +13,7 @@ const state = {
   liveSessionId: null,
   liveLearners: [],
   reportSessionId: null,
+  previewMode: false,
 };
 
 async function api(path, options = {}) {
@@ -39,8 +40,49 @@ function ssoContinuation() {
   return value.startsWith('/api/sso/authorize?') ? value : '';
 }
 
+function isAdaTeacherPreviewRequest() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('preview') === 'teacher' && params.get('subject') === 'ada-francais';
+}
+
+function showAdaTeacherPreview() {
+  state.previewMode = true;
+  state.joinToken = null;
+  state.joinSession = {
+    id: 'teacher-preview',
+    formation_id: 'ada',
+    formation_label: 'ADA',
+    subject_id: 'ada-francais',
+    subject_label: 'Français',
+    session_number: 1,
+    title: 'Aperçu du positionnement',
+    group_label: 'Aperçu professeur',
+  };
+  state.learner = {
+    id: 'teacher-preview-learner',
+    class_session_id: 'teacher-preview',
+    first_name: 'Amina',
+    last_name: '',
+  };
+  state.roster = [
+    { id:'preview-amina', first_name:'Amina', last_initial:'D.' },
+    { id:'preview-moussa', first_name:'Moussa', last_initial:'T.' },
+    { id:'preview-sofia', first_name:'Sofia', last_initial:'' },
+  ];
+
+  show('student-view', true);
+  show('login-view', false);
+  show('teacher-view', false);
+  show('logout', false);
+  show('teacher-preview-banner', true);
+  $('student-session-title').textContent = 'ADA · Français — aperçu professeur';
+  $('student-session-context').textContent = 'Navigation libre · aucune donnée élève enregistrée';
+  renderOralComprehensionActivity(0);
+}
+
 async function boot() {
-  const join = new URLSearchParams(window.location.search).get('join');
+  const params = new URLSearchParams(window.location.search);
+  const join = params.get('join');
   if (join) return showStudentJoin(join);
   const { user } = await api('/api/me');
   if (!user) return showLogin();
@@ -50,11 +92,14 @@ async function boot() {
     window.location.assign(continuation);
     return;
   }
+  if (isAdaTeacherPreviewRequest()) return showAdaTeacherPreview();
   await showTeacher();
 }
 
 async function showStudentJoin(token) {
+  state.previewMode = false;
   state.joinToken = token;
+  show('teacher-preview-banner', false);
   show('student-view', true); show('login-view', false); show('teacher-view', false); show('logout', false);
   try {
     const { session } = await api(`/api/join?token=${encodeURIComponent(token)}`);
@@ -338,7 +383,7 @@ function renderFirstLetterActivity() {
         $('first-letter-feedback').textContent = `Oui. ${firstName} commence par ${firstLetter}.`;
         speakFrench(`Oui. ${firstName} commence par ${firstLetter}.`);
         await trackEvent('activity_completed', 'first-letter', {});
-        setTimeout(renderPositioningFinish, 900);
+        setTimeout(renderVisualDiscriminationActivity, 900);
       } else {
         button.classList.add('bad');
         $('first-letter-feedback').className = 'feedback bad';
@@ -349,6 +394,239 @@ function renderFirstLetterActivity() {
     grid.appendChild(button);
   });
   speakFrench(`Ton prénom est ${firstName}. Il commence par la lettre ${firstLetter}. Trouve la lettre ${firstLetter}.`);
+}
+
+
+function renderVisualDiscriminationActivity() {
+  const target = 'BUS';
+  const choices = ['BUS', 'BVS', '8US', 'SUB'].sort(() => Math.random() - 0.5);
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      <p class="eyebrow">4 · Regarder</p>
+      <h3>Trouve exactement le même.</h3>
+      <div id="visual-discrimination-audio"></div>
+      <div class="visual-model-card">
+        <small>Modèle</small>
+        <div class="visual-model-word">${target}</div>
+      </div>
+      <div id="visual-discrimination-choices" class="word-choice-grid"></div>
+      <p id="visual-discrimination-feedback" class="feedback" aria-live="assertive"></p>
+      <p class="learner-help">Ici, il n’est pas nécessaire de savoir lire : on regarde seulement si les formes sont identiques.</p>
+    </div>`;
+  const instruction = 'Regarde le modèle. Tu n’as pas besoin de lire. Touche exactement la même forme.';
+  $('visual-discrimination-audio').appendChild(audioButton('Écouter', instruction, 'visual-discrimination'));
+  const grid = $('visual-discrimination-choices');
+  choices.forEach((choice) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'word-choice-button';
+    button.textContent = choice;
+    button.addEventListener('click', async () => {
+      const correct = choice === target;
+      await trackEvent('answer', 'visual-discrimination', { correct, choice, target });
+      grid.querySelectorAll('.word-choice-button').forEach((item) => item.classList.remove('bad'));
+      if (correct) {
+        button.classList.add('good');
+        grid.querySelectorAll('.word-choice-button').forEach((item) => { item.disabled = true; });
+        $('visual-discrimination-feedback').className = 'feedback good';
+        $('visual-discrimination-feedback').textContent = 'Oui. C’est exactement le même.';
+        speakFrench('Oui. C’est exactement le même.');
+        await trackEvent('activity_completed', 'visual-discrimination', {});
+        setTimeout(renderGuidedSoundLetterActivity, 850);
+      } else {
+        button.classList.add('bad');
+        $('visual-discrimination-feedback').className = 'feedback bad';
+        $('visual-discrimination-feedback').textContent = 'Regarde encore le modèle.';
+        speakFrench('Regarde encore le modèle.');
+      }
+    });
+    grid.appendChild(button);
+  });
+  speakFrench(instruction);
+}
+
+function renderGuidedSoundLetterActivity() {
+  const target = 'M';
+  const choices = ['M', 'N', 'A', 'S'].sort(() => Math.random() - 0.5);
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      <p class="eyebrow">5 · Écouter un son</p>
+      <h3>Écoute, puis touche la lettre.</h3>
+      <div id="sound-letter-audio"></div>
+      <div class="sound-letter-cue">
+        <strong>maman</strong>
+        <span>On te donne le son et la lettre à chercher. Ce n’est pas encore un exercice de lecture autonome.</span>
+      </div>
+      <div id="sound-letter-choices" class="choice-grid"></div>
+      <p id="sound-letter-feedback" class="feedback" aria-live="assertive"></p>
+    </div>`;
+  const instruction = 'Écoute : maman. Maman commence par le son mmm. Touche la lettre M.';
+  $('sound-letter-audio').appendChild(audioButton('Écouter', instruction, 'sound-letter-guided'));
+  const grid = $('sound-letter-choices');
+  choices.forEach((choice) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'choice-button';
+    button.textContent = choice;
+    button.addEventListener('click', async () => {
+      const correct = choice === target;
+      await trackEvent('answer', 'sound-letter-guided', { correct, choice, target, word:'maman' });
+      grid.querySelectorAll('.choice-button').forEach((item) => item.classList.remove('bad'));
+      if (correct) {
+        button.classList.add('good');
+        grid.querySelectorAll('.choice-button').forEach((item) => { item.disabled = true; });
+        $('sound-letter-feedback').className = 'feedback good';
+        $('sound-letter-feedback').textContent = 'Oui. M.';
+        speakFrench('Oui. La lettre M.');
+        await trackEvent('activity_completed', 'sound-letter-guided', { guided:true });
+        setTimeout(renderUsefulWordActivity, 850);
+      } else {
+        button.classList.add('bad');
+        $('sound-letter-feedback').className = 'feedback bad';
+        $('sound-letter-feedback').textContent = 'Écoute encore.';
+        speakFrench(instruction);
+      }
+    });
+    grid.appendChild(button);
+  });
+  speakFrench(instruction);
+}
+
+function renderUsefulWordActivity() {
+  const target = 'SORTIE';
+  const choices = ['SORTIE', 'SERVICE', 'CUISINE', 'BUS'].sort(() => Math.random() - 0.5);
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      <p class="eyebrow">6 · Un mot utile</p>
+      <h3>Écoute. Retrouve le mot.</h3>
+      <div id="useful-word-audio"></div>
+      <div id="useful-word-choices" class="word-choice-grid"></div>
+      <p id="useful-word-feedback" class="feedback" aria-live="assertive"></p>
+      <p class="learner-help">Ce petit test porte seulement sur la reconnaissance de ce mot précis.</p>
+    </div>`;
+  const instruction = 'Touche le mot SORTIE. C’est le mot qu’on voit pour trouver la sortie.';
+  $('useful-word-audio').appendChild(audioButton('Écouter', instruction, 'useful-word'));
+  const grid = $('useful-word-choices');
+  choices.forEach((choice) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'word-choice-button';
+    button.textContent = choice;
+    button.addEventListener('click', async () => {
+      const correct = choice === target;
+      await trackEvent('answer', 'useful-word', { correct, choice, target });
+      grid.querySelectorAll('.word-choice-button').forEach((item) => item.classList.remove('bad'));
+      if (correct) {
+        button.classList.add('good');
+        grid.querySelectorAll('.word-choice-button').forEach((item) => { item.disabled = true; });
+        $('useful-word-feedback').className = 'feedback good';
+        $('useful-word-feedback').textContent = 'Oui. SORTIE.';
+        speakFrench('Oui. SORTIE.');
+        await trackEvent('activity_completed', 'useful-word', { word:target });
+        setTimeout(renderWritingGestureActivity, 850);
+      } else {
+        button.classList.add('bad');
+        $('useful-word-feedback').className = 'feedback bad';
+        $('useful-word-feedback').textContent = 'Écoute encore le mot.';
+        speakFrench(instruction);
+      }
+    });
+    grid.appendChild(button);
+  });
+  speakFrench(instruction);
+}
+
+function renderWritingGestureActivity() {
+  const firstName = state.learner?.first_name || 'Amina';
+  const guide = Array.from(firstName.trim())[0]?.toLocaleUpperCase('fr-FR') || 'A';
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      <p class="eyebrow">7 · Le geste d’écriture</p>
+      <h3>Essaie de repasser sur la lettre.</h3>
+      <div id="writing-audio"></div>
+      <div class="writing-card">
+        <div class="writing-canvas-wrap">
+          <div class="writing-guide" aria-hidden="true">${esc(guide)}</div>
+          <canvas id="writing-canvas" class="writing-canvas" aria-label="Zone pour tracer la lettre ${esc(guide)}"></canvas>
+        </div>
+        <div class="writing-actions">
+          <button id="writing-clear" class="btn ghost" type="button">Effacer</button>
+          <button id="writing-done" class="btn primary" type="button" disabled>J’ai essayé</button>
+          <span id="writing-status" class="status"></span>
+        </div>
+        <p class="writing-hint">On enregistre seulement que le geste a été essayé. Le dessin n’est ni noté ni analysé.</p>
+      </div>
+    </div>`;
+  const instruction = `Essaie de repasser sur la grande lettre ${guide}. Tu peux recommencer autant de fois que tu veux.`;
+  $('writing-audio').appendChild(audioButton('Écouter', instruction, 'writing-gesture'));
+
+  const canvas = $('writing-canvas');
+  const rect = canvas.getBoundingClientRect();
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.round(rect.width * ratio));
+  canvas.height = Math.max(1, Math.round(rect.height * ratio));
+  const ctx = canvas.getContext('2d');
+  ctx.scale(ratio, ratio);
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#6550a4';
+
+  let drawing = false;
+  let lastPoint = null;
+  let drawnDistance = 0;
+  let strokes = 0;
+  const pointFromEvent = (event) => {
+    const bounds = canvas.getBoundingClientRect();
+    return { x:event.clientX - bounds.left, y:event.clientY - bounds.top };
+  };
+  const finishStroke = () => {
+    if (!drawing) return;
+    drawing = false;
+    lastPoint = null;
+  };
+
+  canvas.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    drawing = true;
+    strokes += 1;
+    lastPoint = pointFromEvent(event);
+    canvas.setPointerCapture?.(event.pointerId);
+    ctx.beginPath();
+    ctx.moveTo(lastPoint.x, lastPoint.y);
+  });
+  canvas.addEventListener('pointermove', (event) => {
+    if (!drawing || !lastPoint) return;
+    event.preventDefault();
+    const next = pointFromEvent(event);
+    drawnDistance += Math.hypot(next.x - lastPoint.x, next.y - lastPoint.y);
+    ctx.lineTo(next.x, next.y);
+    ctx.stroke();
+    lastPoint = next;
+    if (drawnDistance >= 30) $('writing-done').disabled = false;
+  });
+  canvas.addEventListener('pointerup', finishStroke);
+  canvas.addEventListener('pointercancel', finishStroke);
+  canvas.addEventListener('pointerleave', finishStroke);
+
+  $('writing-clear').addEventListener('click', () => {
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    drawnDistance = 0;
+    strokes = 0;
+    $('writing-done').disabled = true;
+    $('writing-status').textContent = '';
+  });
+  $('writing-done').addEventListener('click', async () => {
+    $('writing-done').disabled = true;
+    $('writing-status').textContent = 'Merci.';
+    await trackEvent('activity_completed', 'writing-gesture', {
+      attempted:true,
+      strokes,
+      guide,
+    });
+    setTimeout(renderPositioningFinish, 700);
+  });
+  speakFrench(instruction);
 }
 
 const ORAL_COMPREHENSION_CHOICES = [
@@ -513,6 +791,7 @@ function updateWorkspaceActions() {
   const external = state.subject.mode === 'external';
   const planned = state.subject.mode === 'planned';
   const hasSessions = state.sessions.some((session) => session.subject_id === state.subject.id);
+  const hasInternalPreview = state.subject.id === 'ada-francais';
 
   if (planned) {
     setWorkspaceAction('show-create-session', { disabled:true, description:'Le parcours doit d’abord être construit.', status:'à construire', upcoming:true });
@@ -528,10 +807,14 @@ function updateWorkspaceActions() {
     status:'disponible'
   });
   setWorkspaceAction('explore-subject', {
-    disabled: internal,
-    description: external ? 'Inspecter librement le parcours et toutes ses activités.' : 'La prévisualisation professeur sera ajoutée à ce parcours.',
-    status: external ? 'disponible' : 'en cours',
-    upcoming: internal
+    disabled: internal && !hasInternalPreview,
+    description: external
+      ? 'Inspecter librement le parcours et toutes ses activités.'
+      : hasInternalPreview
+        ? 'Parcourir toutes les activités sans enregistrer de données élève.'
+        : 'La prévisualisation professeur sera ajoutée à ce parcours.',
+    status: external || hasInternalPreview ? 'disponible' : 'en cours',
+    upcoming: internal && !hasInternalPreview
   });
   setWorkspaceAction('corrections-subject', {
     disabled: internal && !hasSessions,
@@ -678,7 +961,7 @@ async function refreshLiveView() {
             : 'Pas encore commencé'}</small>
         </div>
         <div class="progress-badge ${learner.started ? '' : 'waiting'}">
-          ${learner.started ? `${learner.completed_items}/4 étapes · ${learner.correct_answers}/${learner.attempts} réponses justes` : 'En attente'}
+          ${learner.started ? `${learner.completed_items}/8 étapes · ${learner.correct_answers}/${learner.attempts} réponses justes` : 'En attente'}
         </div>
       </article>`).join('');
   } catch (error) {
@@ -822,6 +1105,10 @@ const ADA_ITEM_LABELS = {
   'oral-comprehension': 'Compréhension orale',
   'own-name': 'Reconnaissance du prénom',
   'first-letter': 'Première lettre du prénom',
+  'visual-discrimination': 'Discrimination visuelle',
+  'sound-letter-guided': 'Association son → lettre guidée',
+  'useful-word': 'Reconnaissance du mot SORTIE',
+  'writing-gesture': 'Geste d’écriture essayé',
   'positioning-v1': 'Positionnement terminé',
 };
 
@@ -924,13 +1211,22 @@ function renderAdaReportDetail(report) {
     reportMetric('Réponses justes', report.attempts ? `${report.correct}/${report.attempts}` : '—'),
   ].join('');
 
-  const items = (report.items || []).filter((item) => ['oral-comprehension','own-name','first-letter','positioning-v1'].includes(item.item_id));
+  const items = (report.items || []).filter((item) => [
+    'oral-comprehension','own-name','first-letter','visual-discrimination',
+    'sound-letter-guided','useful-word','writing-gesture','positioning-v1'
+  ].includes(item.item_id));
   $('report-item-summary').innerHTML = items.map((item) => `
     <div class="report-item-row">
       <strong>${esc(adaItemLabel(item.item_id))}</strong>
       <span>${item.completed_count}/${report.rosterCount} terminé</span>
       <span>${item.attempts ? `${item.correct_answers}/${item.attempts} justes` : 'pas de réponse'}</span>
-      <span>${item.item_id === 'first-letter' ? 'lettre nommée, pas décodage' : ''}</span>
+      <span>${item.item_id === 'first-letter'
+        ? 'lettre nommée, pas décodage'
+        : item.item_id === 'sound-letter-guided'
+          ? 'association explicitement guidée'
+          : item.item_id === 'writing-gesture'
+            ? 'geste essayé, non évalué'
+            : ''}</span>
     </div>`).join('');
 
   $('report-learner-rows').innerHTML = report.learners.map((learner) => `
@@ -939,6 +1235,10 @@ function renderAdaReportDetail(report) {
       <td>${esc(stageReportLabel(learner, 'oral-comprehension'))}</td>
       <td>${esc(stageReportLabel(learner, 'own-name'))}</td>
       <td>${esc(stageReportLabel(learner, 'first-letter'))}</td>
+      <td>${esc(stageReportLabel(learner, 'visual-discrimination'))}</td>
+      <td>${esc(stageReportLabel(learner, 'sound-letter-guided'))}</td>
+      <td>${esc(stageReportLabel(learner, 'useful-word'))}</td>
+      <td>${esc(stageReportLabel(learner, 'writing-gesture'))}</td>
       <td>${learnerItem(learner, 'positioning-v1').completed ? 'Oui' : '—'}</td>
       <td>${learner.attempts ? `${learner.correct_answers}/${learner.attempts}` : '—'}</td>
     </tr>`).join('');
@@ -1018,7 +1318,8 @@ $('login-button').addEventListener('click', async () => {
       window.location.assign(continuation);
       return;
     }
-    await showTeacher();
+    if (isAdaTeacherPreviewRequest()) showAdaTeacherPreview();
+    else await showTeacher();
   } catch (error) { $('login-status').textContent = error.message; }
 });
 $('login-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('login-button').click(); });
@@ -1027,7 +1328,12 @@ $('show-create-session').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('create');
   show('session-form', true);
 });
-$('explore-subject').addEventListener('click', () => openExternalTeacher('inspect'));
+$('explore-subject').addEventListener('click', () => {
+  if (state.subject?.mode === 'external') return openExternalTeacher('inspect');
+  if (state.subject?.id === 'ada-francais') {
+    window.open('/?preview=teacher&subject=ada-francais', '_blank', 'noopener');
+  }
+});
 $('corrections-subject').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('corrections');
   $('recent-sessions-panel').scrollIntoView({ behavior:'smooth', block:'start' });
