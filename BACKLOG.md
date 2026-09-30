@@ -32,7 +32,8 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] Minimise public roster identity to first name + optional last-name initial.
 - [ ] Add safe roster edit/remove for corrections; current UI only appends and ignores exact duplicates.
 - [ ] Decide whether multi-device selection of the same prepared learner needs a claim/device safeguard after classroom testing.
-- [ ] Extend positioning beyond name recognition: oral comprehension, visual discrimination, sound/letter matching, useful-word reading and writing gestures.
+- [x] Add first oral-comprehension probe without reading: spoken everyday nouns → pictorial choices.
+- [ ] Extend positioning further: visual discrimination, sound/letter matching, useful-word reading and writing gestures.
 - [ ] Separate letter-name recognition from true phoneme↔grapheme assessment; do not infer decoding ability from the current first-letter task.
 - [ ] Teacher preview bypasses learner locks.
 - [ ] Corrections remain locked by default per class session and need a usable teacher control.
@@ -57,19 +58,13 @@ This project must stay easy to dismantle or adapt:
 
 ## Current handoff — 30 September 2026
 
-`main` is at `45951f9` after the tested ADA French positioning V1 merge.
+`main` is at `02e52d4` after the tested roster/no-typing merge (PR #3).
 
-Current development branch: `dev/ada-roster-v1`, created directly from that `main`.
+Current development branch: `dev/ada-oral-v1`, created directly from that `main`.
 
-This pass adds:
-- teacher-side roster preload inside **Élèves / suivi**;
-- public signed roster reduced to first name + optional last-name initial;
-- learner selection/resume without typing;
-- public creation of arbitrary unlisted learner names removed;
-- live view distinguishing rostered learners from learners who have actually started;
-- store/HTTP tests covering roster ownership, privacy minimisation and public selection.
+This pass adds a narrow oral-comprehension probe after the name/letter activities: three replayable spoken everyday-noun instructions with pictorial choices and no reading requirement. It reuses the existing activity event model and adds no backend route or SQLite migration. Teacher live progress now expects four completed positioning stages.
 
-No SQLite schema migration is needed; the existing `learners` and `activity_events` tables are reused.
+The pictograms are temporary platform emoji and must be checked on the actual classroom devices before broader rollout. This is a narrow probe, not a general oral-language score.
 
 The owner explicitly confirmed there is no local clone, no unpushed work and no remaining previous-agent activity. AgentCtl registration is still pending only because RDC/admin broker access is unavailable today. Do not describe the repository as registered until that has actually been done.
 

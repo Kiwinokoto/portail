@@ -22,9 +22,10 @@ The first vertical is deliberately small:
 4. browser speech synthesis says the learner's first name;
 5. learner recognises the written form of their own first name among adult first-name distractors;
 6. learner matches the first **letter name** of their first name;
-7. attempts and completions are visible to the teacher through 4-second polling.
+7. learner completes a short oral-comprehension probe: spoken everyday nouns → visual choices, with no reading required;
+8. attempts and completions are visible to the teacher through 4-second polling.
 
-The second task is only a letter-name recognition probe. It must **not** be interpreted as evidence that the learner has mastered the initial phoneme or grapheme↔phoneme correspondence.
+The second task is only a letter-name recognition probe. It must **not** be interpreted as evidence that the learner has mastered the initial phoneme or grapheme↔phoneme correspondence. The oral probe is deliberately independent from reading: the target instruction is spoken and the learner answers through pictorial choices.
 
 ## Audio
 
@@ -68,10 +69,17 @@ The server validates that the learner belongs to the signed class session and ca
 
 The class join URL is a bearer link. Anyone holding it can see the first names and last-name initials prepared for that class session. Do not put unnecessary personal information in the roster. This is intentionally narrower than exposing full names and should eventually be replaced by Moodle identity/group integration.
 
+## Oral-comprehension probe
+
+The first oral probe contains three short rounds using common concrete nouns (phone, key, bus) and pictorial choices. Each round can be replayed. Wrong choices produce a neutral retry cue; the learner is not blocked by a first mistake. The whole probe records as one completed activity while individual attempts remain available in the lightweight event stream.
+
+The current visuals use platform emoji as temporary dependency-free pictograms. Before classroom rollout, validate them on the actual learner devices; glyph appearance varies by OS/browser, and ambiguous icons should be replaced with controlled local SVG/image assets.
+
+This probe only gives a narrow signal about comprehension of those spoken nouns and the action instruction. It must not be treated as a general oral-French level.
+
 ## Next useful probes
 
 Add small independent activities for:
-- oral instruction comprehension without text;
 - same/different visual word discrimination;
 - sound ↔ grapheme matching;
 - recognition of a few high-value everyday/professional words;
