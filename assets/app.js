@@ -13,6 +13,7 @@ const state = {
   liveSessionId: null,
   liveLearners: [],
   reportSessionId: null,
+  previewMode: false,
 };
 
 async function api(path, options = {}) {
@@ -39,8 +40,49 @@ function ssoContinuation() {
   return value.startsWith('/api/sso/authorize?') ? value : '';
 }
 
+function isAdaTeacherPreviewRequest() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('preview') === 'teacher' && params.get('subject') === 'ada-francais';
+}
+
+function showAdaTeacherPreview() {
+  state.previewMode = true;
+  state.joinToken = null;
+  state.joinSession = {
+    id: 'teacher-preview',
+    formation_id: 'ada',
+    formation_label: 'ADA',
+    subject_id: 'ada-francais',
+    subject_label: 'Français',
+    session_number: 1,
+    title: 'Aperçu du positionnement',
+    group_label: 'Aperçu professeur',
+  };
+  state.learner = {
+    id: 'teacher-preview-learner',
+    class_session_id: 'teacher-preview',
+    first_name: 'Amina',
+    last_name: '',
+  };
+  state.roster = [
+    { id:'preview-amina', first_name:'Amina', last_initial:'D.' },
+    { id:'preview-moussa', first_name:'Moussa', last_initial:'T.' },
+    { id:'preview-sofia', first_name:'Sofia', last_initial:'' },
+  ];
+
+  show('student-view', true);
+  show('login-view', false);
+  show('teacher-view', false);
+  show('logout', false);
+  show('teacher-preview-banner', true);
+  $('student-session-title').textContent = 'ADA · Français — aperçu professeur';
+  $('student-session-context').textContent = 'Navigation libre · aucune donnée élève enregistrée';
+  renderOralComprehensionActivity(0);
+}
+
 async function boot() {
-  const join = new URLSearchParams(window.location.search).get('join');
+  const params = new URLSearchParams(window.location.search);
+  const join = params.get('join');
   if (join) return showStudentJoin(join);
   const { user } = await api('/api/me');
   if (!user) return showLogin();
@@ -50,11 +92,14 @@ async function boot() {
     window.location.assign(continuation);
     return;
   }
+  if (isAdaTeacherPreviewRequest()) return showAdaTeacherPreview();
   await showTeacher();
 }
 
 async function showStudentJoin(token) {
+  state.previewMode = false;
   state.joinToken = token;
+  show('teacher-preview-banner', false);
   show('student-view', true); show('login-view', false); show('teacher-view', false); show('logout', false);
   try {
     const { session } = await api(`/api/join?token=${encodeURIComponent(token)}`);
@@ -1018,7 +1063,8 @@ $('login-button').addEventListener('click', async () => {
       window.location.assign(continuation);
       return;
     }
-    await showTeacher();
+    if (isAdaTeacherPreviewRequest()) showAdaTeacherPreview();
+    else await showTeacher();
   } catch (error) { $('login-status').textContent = error.message; }
 });
 $('login-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('login-button').click(); });
