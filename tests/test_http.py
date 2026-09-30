@@ -121,6 +121,37 @@ class PortalHttpTests(unittest.TestCase):
             )
         self.assertEqual(410, ctx.exception.code)
 
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            self.request(
+                "/api/join/roster?token=" + urllib.parse.quote(token),
+                opener=anonymous,
+            )
+        self.assertEqual(410, ctx.exception.code)
+
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            self.request(
+                "/api/join/learners",
+                method="POST",
+                payload={"token": token, "learner_id": "prepared_learner"},
+                opener=anonymous,
+            )
+        self.assertEqual(410, ctx.exception.code)
+
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            self.request(
+                "/api/join/events",
+                method="POST",
+                payload={
+                    "token": token,
+                    "learner_id": "prepared_learner",
+                    "event_type": "activity_started",
+                    "item_id": "positioning-v1",
+                    "payload": {},
+                },
+                opener=anonymous,
+            )
+        self.assertEqual(410, ctx.exception.code)
+
         status, reopened = self.request(
             f"/api/sessions/{session['id']}/active",
             method="POST",

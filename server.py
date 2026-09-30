@@ -21,6 +21,10 @@ ROOT = PROJECT_ROOT
 STORE = PortalStore()
 
 
+class ClosedSessionError(ValueError):
+    pass
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "PortailLGC/0.1"
 
@@ -97,7 +101,7 @@ class Handler(BaseHTTPRequestHandler):
             raise ValueError("Lien de séance invalide.")
         session = STORE.get_class_session(session_id)
         if not session["active"]:
-            raise ValueError("Cette séance est fermée.")
+            raise ClosedSessionError("Cette séance est fermée.")
         return session
 
     def do_GET(self) -> None:  # noqa: N802
@@ -186,6 +190,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._serve_static(path)
         except PermissionError as exc:
             return self._json(HTTPStatus.UNAUTHORIZED, {"error": str(exc)})
+        except ClosedSessionError as exc:
+            return self._json(HTTPStatus.GONE, {"error": str(exc)})
         except ValueError as exc:
             return self._json(HTTPStatus.NOT_FOUND, {"error": str(exc)})
         except Exception:
@@ -334,6 +340,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(HTTPStatus.NOT_FOUND, {"error": "Route introuvable."})
         except PermissionError as exc:
             return self._json(HTTPStatus.UNAUTHORIZED, {"error": str(exc)})
+        except ClosedSessionError as exc:
+            return self._json(HTTPStatus.GONE, {"error": str(exc)})
         except (ValueError, TypeError) as exc:
             return self._json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
         except Exception:
