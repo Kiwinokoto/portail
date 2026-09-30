@@ -134,11 +134,65 @@
           <button id="add-roster" class="btn secondary" type="button">Ajouter à la liste</button>
           <span id="roster-status" class="status"></span>
         </div>
+        <details class="roster-manage">
+          <summary>Corriger la liste existante</summary>
+          <p class="muted">Tu peux corriger un prénom ou un nom à tout moment. Un élève qui a déjà commencé n’est pas supprimé pour éviter de perdre son travail.</p>
+          <div id="roster-manage-list" class="roster-manage-list"></div>
+        </details>
       </section>
 
       <div class="live-divider"></div>
       <div id="live-status" class="status"></div>
       <div id="live-learners" class="live-list"></div>
+    </dialog>
+
+    <dialog id="roster-edit-dialog" class="dialog compact-dialog">
+      <form method="dialog" class="dialog-head">
+        <div><p class="eyebrow">Liste des élèves</p><h2>Corriger un nom</h2></div>
+        <button class="btn ghost">Annuler</button>
+      </form>
+      <input id="roster-edit-id" type="hidden" />
+      <div class="form-grid compact">
+        <label>Prénom<input id="roster-edit-first-name" class="input" maxlength="60" /></label>
+        <label>Nom <small>(facultatif)</small><input id="roster-edit-last-name" class="input" maxlength="80" /></label>
+        <div class="wide row">
+          <button id="roster-edit-save" class="btn primary" type="button">Enregistrer</button>
+          <span id="roster-edit-status" class="status"></span>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="reports-dialog" class="dialog report-dialog">
+      <form method="dialog" class="dialog-head">
+        <div>
+          <p class="eyebrow">Rapports</p>
+          <h2 id="reports-title">Synthèses de la matière</h2>
+          <p id="reports-context" class="muted"></p>
+        </div>
+        <button class="btn ghost">Fermer</button>
+      </form>
+      <p id="reports-status" class="status"></p>
+      <div id="report-session-grid" class="report-session-grid"></div>
+      <section id="report-detail" class="report-detail hidden">
+        <div class="section-head">
+          <div><p class="eyebrow">Détail</p><h3 id="report-detail-title">Groupe</h3><p id="report-detail-meta" class="muted"></p></div>
+          <button id="report-open-live" class="btn secondary" type="button">Ouvrir le suivi en direct</button>
+        </div>
+        <div id="report-detail-metrics" class="report-metrics"></div>
+        <div id="report-item-summary" class="report-item-summary"></div>
+        <div class="report-table-wrap">
+          <table class="report-table">
+            <thead><tr><th>Élève</th><th>Écoute</th><th>Prénom</th><th>Première lettre</th><th>Terminé</th><th>Réponses</th></tr></thead>
+            <tbody id="report-learner-rows"></tbody>
+          </table>
+        </div>
+      </section>
+      <section id="report-comparison" class="report-detail hidden">
+        <p class="eyebrow">Comparaison descriptive</p>
+        <h3>Groupes sur la même séance</h3>
+        <p class="muted">Ces indicateurs servent à préparer le cours suivant. Ils ne constituent ni une note ni un classement des groupes.</p>
+        <div id="report-comparison-content"></div>
+      </section>
     </dialog>
 
     <dialog id="admin-dialog" class="dialog">
