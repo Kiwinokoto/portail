@@ -32,12 +32,22 @@ function rosterLabel(learner) {
   return [learner.first_name, suffix].filter(Boolean).join(' ');
 }
 
+function ssoContinuation() {
+  const value = new URLSearchParams(window.location.search).get('continue') || '';
+  return value.startsWith('/api/sso/authorize?') ? value : '';
+}
+
 async function boot() {
   const join = new URLSearchParams(window.location.search).get('join');
   if (join) return showStudentJoin(join);
   const { user } = await api('/api/me');
   if (!user) return showLogin();
   state.user = user;
+  const continuation = ssoContinuation();
+  if (continuation) {
+    window.location.assign(continuation);
+    return;
+  }
   await showTeacher();
 }
 
@@ -469,6 +479,10 @@ function revealOnNarrowScreen(id) {
 function externalTeacherUrl(tab = '') {
   if (!state.subject?.external_url) return '';
   const url = new URL(state.subject.external_url, window.location.origin);
+  if (state.subject.id === 'psr-maths') {
+    url.pathname = '/api/sso/start';
+    url.search = '';
+  }
   if (tab) url.searchParams.set('tab', tab);
   return url.toString();
 }
@@ -720,7 +734,14 @@ $('login-button').addEventListener('click', async () => {
   $('login-status').textContent = '';
   try {
     const { user } = await api('/api/auth/login', { method:'POST', body:JSON.stringify({ token:$('login-token').value }) });
-    $('login-token').value = ''; state.user = user; await showTeacher();
+    $('login-token').value = '';
+    state.user = user;
+    const continuation = ssoContinuation();
+    if (continuation) {
+      window.location.assign(continuation);
+      return;
+    }
+    await showTeacher();
   } catch (error) { $('login-status').textContent = error.message; }
 });
 $('login-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('login-button').click(); });
