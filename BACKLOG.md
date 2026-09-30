@@ -45,7 +45,7 @@ Do not add a visible CAP/Bac Pro family level for now.
 ## P2 — maths convergence
 
 - [ ] Keep `maths_lgc` production untouched during portal bootstrap.
-- [ ] Model PSR Mathematics in the portal as a legacy/external subject initially.
+- [x] Model PSR Mathematics as an external teacher-facing subject; portal actions route to Maths LGC `/teacher`, never the student landing page.
 - [ ] Extract/reuse generic session and teacher ideas without copying maths-specific hard-coded stages.
 - [ ] Decide how/when existing maths content is imported or linked into the portal.
 - [ ] Add ADA numeracy foundation separately from CAP-level maths diagnostics.
@@ -61,10 +61,12 @@ This project must stay easy to dismantle or adapt:
 
 ## Current handoff — 30 September 2026
 
-Production is live on `portail.lagrandeclasse.fr`; deployment through GitHub Actions → VPS → Docker Compose → Traefik is operational.
+Production is live on `portail.lagrandeclasse.fr`.
 
-The portal now follows the shared LGC visual language used by Maths LGC: violet/indigo for identity and navigation, blue/rose for neutral accents, green only for correct/success/completed states, orange for retry/needs-work/attention, and red for important/destructive/system states. Learner wrong-answer feedback is orange rather than red, while successful completion remains green. The teacher dashboard keeps the compact structure introduced in the previous pass.
+Current routing correction: PSR → Mathématiques is an external **teacher** module, so its canonical portal URL is now `https://maths.lagrandeclasse.fr/teacher`, not the student root. Existing production catalogue rows are corrected during store initialisation as well as fresh installs. For this external subject the four portal action cards route to the matching Maths LGC teacher surfaces (create/follow, inspect, corrections) instead of appearing disabled.
 
-No backend route, SQLite schema or learner-event model change is included in this semantic-color pass.
+This pass also strengthens hover/focus contrast slightly while retaining the sober violet/indigo dashboard.
+
+No portal authentication is yet shared across subdomains: Maths LGC still owns its own teacher authentication/session model. The important fix here is that a portal teacher can no longer be routed to the student landing page.
 
 AgentCtl registration remains pending while RDC/admin broker access is unavailable today. The owner confirmed there is no other active agent or unpushed local work.
