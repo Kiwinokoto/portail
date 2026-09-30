@@ -326,7 +326,7 @@ function renderFirstLetterActivity() {
         $('first-letter-feedback').textContent = `Oui. ${firstName} commence par ${firstLetter}.`;
         speakFrench(`Oui. ${firstName} commence par ${firstLetter}.`);
         await trackEvent('activity_completed', 'first-letter', {});
-        setTimeout(renderPositioningFinish, 900);
+        setTimeout(() => renderOralComprehensionActivity(0), 900);
       } else {
         button.classList.add('bad');
         $('first-letter-feedback').className = 'feedback bad';
@@ -337,6 +337,78 @@ function renderFirstLetterActivity() {
     grid.appendChild(button);
   });
   speakFrench(`Ton prénom est ${firstName}. Il commence par la lettre ${firstLetter}. Trouve la lettre ${firstLetter}.`);
+}
+
+const ORAL_COMPREHENSION_CHOICES = [
+  { id: 'telephone', label: 'téléphone', icon: '📱' },
+  { id: 'cle', label: 'clé', icon: '🔑' },
+  { id: 'bus', label: 'bus', icon: '🚌' },
+  { id: 'chaussure', label: 'chaussure', icon: '👟' },
+];
+
+const ORAL_COMPREHENSION_ROUNDS = [
+  { target: 'telephone', instruction: 'Touche le téléphone.' },
+  { target: 'cle', instruction: 'Touche la clé.' },
+  { target: 'bus', instruction: 'Touche le bus.' },
+];
+
+function shuffledVisualChoices() {
+  return [...ORAL_COMPREHENSION_CHOICES].sort(() => Math.random() - 0.5);
+}
+
+function renderOralComprehensionActivity(roundIndex = 0) {
+  const round = ORAL_COMPREHENSION_ROUNDS[roundIndex];
+  if (!round) {
+    trackEvent('activity_completed', 'oral-comprehension', { rounds: ORAL_COMPREHENSION_ROUNDS.length });
+    return renderPositioningFinish();
+  }
+
+  const choices = shuffledVisualChoices();
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage oral-stage">
+      <p class="eyebrow">3 · J'écoute</p>
+      <h3>Écoute et touche la bonne image.</h3>
+      <div id="oral-audio"></div>
+      <div id="oral-choices" class="visual-choice-grid"></div>
+      <p id="oral-feedback" class="feedback" aria-live="assertive"></p>
+      <p class="learner-help">${roundIndex + 1} / ${ORAL_COMPREHENSION_ROUNDS.length}</p>
+    </div>`;
+
+  $('oral-audio').appendChild(audioButton('Réécouter', round.instruction, 'oral-comprehension'));
+  const grid = $('oral-choices');
+  choices.forEach((choice) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'visual-choice-button';
+    button.textContent = choice.icon;
+    button.setAttribute('aria-label', choice.label);
+    button.title = choice.label;
+    button.addEventListener('click', async () => {
+      const correct = choice.id === round.target;
+      await trackEvent('answer', 'oral-comprehension', {
+        correct,
+        round: roundIndex + 1,
+        target: round.target,
+        choice: choice.id,
+      });
+      grid.querySelectorAll('.visual-choice-button').forEach((item) => item.classList.remove('bad'));
+      if (correct) {
+        button.classList.add('good');
+        grid.querySelectorAll('.visual-choice-button').forEach((item) => { item.disabled = true; });
+        $('oral-feedback').className = 'feedback good';
+        $('oral-feedback').textContent = 'Oui.';
+        speakFrench('Oui.');
+        setTimeout(() => renderOralComprehensionActivity(roundIndex + 1), 700);
+      } else {
+        button.classList.add('bad');
+        $('oral-feedback').className = 'feedback bad';
+        $('oral-feedback').textContent = 'Essaie encore.';
+        speakFrench(`Essaie encore. ${round.instruction}`);
+      }
+    });
+    grid.appendChild(button);
+  });
+  speakFrench(round.instruction);
 }
 
 function renderPositioningFinish() {
@@ -484,7 +556,7 @@ async function refreshLiveView() {
             : 'Pas encore commencé'}</small>
         </div>
         <div class="progress-badge ${learner.started ? '' : 'waiting'}">
-          ${learner.started ? `${learner.completed_items}/3 étapes · ${learner.correct_answers}/${learner.attempts} réponses justes` : 'En attente'}
+          ${learner.started ? `${learner.completed_items}/4 étapes · ${learner.correct_answers}/${learner.attempts} réponses justes` : 'En attente'}
         </div>
       </article>`).join('');
   } catch (error) {
