@@ -62,7 +62,7 @@ A class session belongs to exactly one teacher, formation and subject. It carrie
 - active/closed state;
 - deterministic signed learner URL.
 
-Teacher ownership replaces the old Maths per-session management secret for normal management. The teacher can therefore recover old sessions on another device simply by authenticating again.
+For native Portail sessions, teacher ownership is direct. For PSR Maths, new sessions created under Portail SSO persist the stable `owner_portal_user_id` supplied by the SSO identity, so the same teacher can recover them on another device after authenticating again. Historical Maths sessions that predate ownership metadata remain accessible through their per-session management secret; no destructive migration is required.
 
 ## Live follow-up
 
