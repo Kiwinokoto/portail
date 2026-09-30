@@ -66,3 +66,38 @@ h2,h3{margin:.15rem 0 .4rem}.muted{color:var(--muted);line-height:1.55}.status{c
 
 @media(max-width:850px){.grid,.action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.shell{width:min(100% - 18px,1120px);padding-top:14px}.topbar,.section-head,.hero,.row,.session-row,.user-row{align-items:stretch;flex-direction:column}.grid,.action-grid,.form-grid,.choice-grid,.roster-choice-grid,.visual-choice-grid{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}.session-actions,.user-actions{justify-content:flex-start}.panel{padding:17px;border-radius:18px}.live-row{grid-template-columns:1fr}.progress-badge{white-space:normal}}
+
+
+/* Teacher dashboard — compact visual hierarchy */
+.teacher-dashboard{gap:14px}
+.teacher-dashboard .panel{padding:18px 20px}
+.teacher-hero{min-height:0}
+.teacher-hero h2{font-size:clamp(1.35rem,2.4vw,1.7rem)}
+.teacher-hero .muted{margin:.3rem 0 0}
+.selector-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,430px),1fr));gap:14px;align-items:start}
+.selector-panel{height:100%}
+.selector-panel .section-head{align-items:flex-start}
+.selector-panel .section-head h3{font-size:1.08rem}
+.selector-panel .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.teacher-dashboard .card-button{position:relative;min-height:86px;padding:14px 16px;border-radius:16px;transition:border-color .16s ease,background .16s ease,transform .16s ease,box-shadow .16s ease}
+.teacher-dashboard .card-button:hover{transform:translateY(-1px)}
+.teacher-dashboard .card-button.selected{border-color:var(--accent);background:#f4f0ff;box-shadow:0 0 0 1px rgba(101,80,164,.08),0 8px 22px rgba(72,52,118,.08)}
+.teacher-dashboard .card-button.selected::after{content:"✓";position:absolute;top:10px;right:11px;width:23px;height:23px;display:grid;place-items:center;border-radius:999px;background:var(--accent);color:#fff;font-size:.75rem;font-weight:900}
+.teacher-dashboard .card-button strong{padding-right:28px}
+#subject-workspace .section-head{align-items:flex-start}
+#workspace-description{margin:.3rem 0 0}
+.action-grid{gap:12px;margin-top:16px}
+.action-card{position:relative;min-height:112px;padding:16px 38px 16px 54px;transition:border-color .16s ease,background .16s ease,transform .16s ease,box-shadow .16s ease}
+.action-card::before{content:attr(data-icon);position:absolute;left:15px;top:15px;width:27px;height:27px;display:grid;place-items:center;border-radius:9px;background:var(--accent-soft);color:var(--accent-strong);font-size:1rem;font-weight:900}
+.action-card:not(:disabled)::after{content:"›";position:absolute;right:15px;top:14px;color:var(--accent);font-size:1.35rem;font-weight:900}
+.action-card:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(72,52,118,.08)}
+.action-card:disabled{background:#faf8f5;opacity:.52}
+.recent-sessions-panel.is-empty{padding-top:16px;padding-bottom:16px}
+.recent-sessions-panel.is-empty .session-list{margin-top:8px}
+.empty-sessions{display:flex;align-items:center;gap:11px;color:var(--muted);padding:2px 0}
+.empty-sessions strong{display:block;color:var(--ink);font-size:.9rem}
+.empty-sessions span:not(.empty-sessions-icon){display:block;margin-top:2px;font-size:.83rem}
+.empty-sessions-icon{width:30px;height:30px;display:grid;place-items:center;border:1px dashed #c7bddc;border-radius:10px;color:var(--accent);font-weight:900}
+.teacher-dashboard .btn:focus-visible,.teacher-dashboard .card-button:focus-visible,.teacher-dashboard .action-card:focus-visible{outline:3px solid rgba(101,80,164,.2);outline-offset:2px}
+@media (max-width:900px){.action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.teacher-dashboard .panel{padding:16px}.selector-panel .grid,.action-grid{grid-template-columns:1fr}.teacher-hero{align-items:flex-start}.teacher-hero .btn{white-space:nowrap}.action-card{min-height:96px}}

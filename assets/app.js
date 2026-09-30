@@ -442,7 +442,7 @@ async function showTeacher() {
 
 function renderFormations() {
   $('formation-grid').innerHTML = state.formations.map((f) => `
-    <button class="card-button" data-formation="${esc(f.id)}">
+    <button class="card-button${state.formation?.id === f.id ? ' selected' : ''}" data-formation="${esc(f.id)}" aria-pressed="${state.formation?.id === f.id}">
       <strong>${esc(f.label)}</strong>
       <span>${f.subjects.length} matière${f.subjects.length > 1 ? 's' : ''} disponible${f.subjects.length > 1 ? 's' : ''}</span>
     </button>`).join('');
@@ -451,13 +451,51 @@ function renderFormations() {
   });
 }
 
+function markSelectedCards(containerId, dataKey, selectedId) {
+  $(containerId).querySelectorAll(`[data-${dataKey}]`).forEach((button) => {
+    const selected = button.dataset[dataKey] === selectedId;
+    button.classList.toggle('selected', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  });
+}
+
+function revealOnNarrowScreen(id) {
+  if (!window.matchMedia('(max-width: 760px)').matches) return;
+  const element = $(id);
+  if (!element) return;
+  window.requestAnimationFrame(() => element.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+
+function updateWorkspaceActions() {
+  if (!state.subject) return;
+  const internal = state.subject.mode === 'internal';
+  const hasSessions = state.sessions.some((session) => session.subject_id === state.subject.id);
+
+  $('show-create-session').disabled = !internal;
+  $('show-live-sessions').disabled = !internal || !hasSessions;
+
+  $('show-create-session').querySelector('span').textContent = state.subject.mode === 'external'
+    ? 'Les séances restent pour l’instant gérées par le site existant.'
+    : state.subject.mode === 'planned'
+      ? 'Le parcours doit d’abord être construit.'
+      : 'Préparer un groupe, un lien élève et un QR.';
+
+  $('show-live-sessions').querySelector('span').textContent = !internal
+    ? 'Disponible quand ce parcours sera géré dans le portail.'
+    : hasSessions
+      ? 'Préparer la liste des élèves et suivre leurs premiers essais.'
+      : 'Crée d’abord une séance pour préparer la liste des élèves.';
+}
+
 function selectFormation(id) {
   state.formation = state.formations.find((f) => f.id === id) || null;
   state.subject = null;
   if (!state.formation) return;
+
+  renderFormations();
   $('subjects-title').textContent = `${state.formation.label} · matières`;
   $('subject-grid').innerHTML = state.formation.subjects.map((s) => `
-    <button class="card-button" data-subject="${esc(s.id)}">
+    <button class="card-button" data-subject="${esc(s.id)}" aria-pressed="false">
       <strong>${esc(s.label)}</strong>
       <span>${esc(s.description)}</span>
       ${s.mode === 'planned' ? '<span class="pill">à construire</span>' : s.mode === 'external' ? '<span class="pill">cours existant</span>' : ''}
@@ -465,39 +503,47 @@ function selectFormation(id) {
   $('subject-grid').querySelectorAll('[data-subject]').forEach((button) => {
     button.addEventListener('click', () => selectSubject(button.dataset.subject));
   });
-  show('subjects-panel', true); show('subject-workspace', false); show('back-formations', true);
-  $('subjects-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  show('subjects-panel', true);
+  show('subject-workspace', false);
+  revealOnNarrowScreen('subjects-panel');
 }
 
 function selectSubject(id) {
   state.subject = state.formation?.subjects.find((s) => s.id === id) || null;
   if (!state.subject) return;
+
+  markSelectedCards('subject-grid', 'subject', id);
   $('workspace-title').textContent = `${state.formation.label} · ${state.subject.label}`;
   $('workspace-description').textContent = state.subject.description;
   if (state.subject.external_url) {
     $('external-course').href = state.subject.external_url;
     show('external-course', true);
   } else show('external-course', false);
+
   show('subject-workspace', true);
   show('session-form', false);
-  const internal = state.subject.mode === 'internal';
-  $('show-create-session').disabled = !internal;
-  $('show-live-sessions').disabled = !internal;
-  $('show-create-session').querySelector('span').textContent = state.subject.mode === 'external'
-    ? 'Les séances restent pour l’instant gérées par le site existant.'
-    : state.subject.mode === 'planned'
-      ? 'Le parcours doit d’abord être construit.'
-      : 'Préparer un groupe, un lien élève et un QR.';
-  $('subject-workspace').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  updateWorkspaceActions();
+  revealOnNarrowScreen('subject-workspace');
 }
 
 async function loadSessions() {
   const { sessions } = await api('/api/sessions');
   state.sessions = sessions;
+  $('recent-sessions-panel').classList.toggle('is-empty', !sessions.length);
+  updateWorkspaceActions();
+
   if (!sessions.length) {
-    $('sessions-list').innerHTML = '<p class="muted">Aucune séance créée pour le moment.</p>';
+    $('sessions-list').innerHTML = `
+      <div class="empty-sessions">
+        <span class="empty-sessions-icon" aria-hidden="true">○</span>
+        <div>
+          <strong>Pas encore de séance</strong>
+          <span>Choisis un parcours puis crée ta première séance.</span>
+        </div>
+      </div>`;
     return;
   }
+
   $('sessions-list').innerHTML = sessions.map((s) => `
     <article class="session-row">
       <div class="meta">
@@ -651,7 +697,6 @@ $('login-button').addEventListener('click', async () => {
 });
 $('login-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('login-button').click(); });
 $('logout').addEventListener('click', async () => { await api('/api/auth/logout', { method:'POST', body:'{}' }); state.user = null; showLogin(); });
-$('back-formations').addEventListener('click', () => { state.formation = null; state.subject = null; show('subjects-panel', false); show('subject-workspace', false); show('back-formations', false); });
 $('show-create-session').addEventListener('click', () => show('session-form', true));
 $('show-live-sessions').addEventListener('click', () => $('recent-sessions-panel').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 $('refresh-sessions').addEventListener('click', loadSessions);
