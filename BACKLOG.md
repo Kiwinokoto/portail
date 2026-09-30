@@ -36,9 +36,10 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] Sequence positioning oral-first: identity → oral → own name → first letter → finish.
 - [x] Compact teacher dashboard UI: side-by-side Formation/Matière selectors on desktop, visible selected states, clearer action affordances and compact empty sessions state.
 - [x] Align Portail with the shared LGC semantic palette: violet/indigo identity, green success, orange retry/attention, red important/destructive; semantic colors are never decorative.
-- [ ] Extend positioning further: visual discrimination, sound/letter matching, useful-word reading and writing gestures.
-- [ ] Separate letter-name recognition from true phoneme↔grapheme assessment; do not infer decoding ability from the current first-letter task.
-- [ ] Teacher preview bypasses learner locks.
+- [x] Extend positioning V2 with visual discrimination, a deliberately guided sound→letter association, recognition of one useful word and a non-scored writing gesture.
+- [x] Separate letter-name recognition from decoding: the first-letter task remains letter-name recognition and the new sound→letter task is explicitly guided, not evidence of autonomous phoneme↔grapheme decoding.
+- [ ] Add a genuinely independent phoneme↔grapheme probe only after pedagogical validation of the instruction and target items.
+- [x] Teacher preview of ADA French runs the learner flow without a join token, learner persistence or activity recording.
 - [x] Corrections remain locked by default per class session and now have a usable per-session teacher toggle.
 - [x] Add focused per-item progress detail to ADA Reports V1 (oral comprehension, own-name recognition, first-letter task, completion) without turning the portal into a gradebook.
 
@@ -72,6 +73,6 @@ Teacher navigation is now harmonised around five shared workspaces: **Séances �
 
 The Portail→Maths SSO is in production. New Maths sessions created under SSO are bound to the stable Portail teacher identity and are designed to be listed/reopened after reconnecting on another browser or device. Automated tests cover the ownership boundary, but Kevin has not yet been able to perform the manual two-machine/two-browser validation, so this remains **implemented but not field-validated**. Legacy Maths sessions remain compatible with their existing per-session management secret.
 
-Maths live follow-up polls every 4 seconds while visible. Reports V1 now exists for Maths and ADA French. ADA teacher controls now include safe roster correction/removal, per-session correction locking and per-item report detail. Next work should focus on teacher preview for ADA and extending the literacy positioning beyond the current oral/name/first-letter probes.
+Maths live follow-up polls every 4 seconds while visible. Reports V1 exists for Maths and ADA French. ADA teacher controls include safe roster correction/removal, per-session correction locking and per-item report detail. ADA French positioning V2 now extends the probe sequence through visual discrimination, guided sound→letter association, useful-word recognition and an unscored writing gesture, with an authenticated teacher preview that records no learner activity. Next validation should happen on real learner devices before adding stronger literacy inferences.
 
 AgentCtl registration remains pending while RDC/admin broker access is unavailable today. The owner confirmed there is no other active agent or unpushed local work.
