@@ -81,5 +81,10 @@ python -m compileall -q server.py tests
 
 Before deployment, also smoke-test `/healthz`, teacher login, admin user creation, session creation and signed learner links.
 
+## Field-validation discipline
+- Distinguish automated validation from field validation. Do not mark a browser/device/classroom behavior as validated merely because unit/smoke tests pass.
+- Current explicit pending check: Maths SSO-owned session recovery across two distinct browsers/devices has automated coverage but has not yet been manually validated by Kevin.
+- Do not deepen literacy or numeracy inference until the current learner flows have been observed on actual target devices.
+
 ## Handoff
 Before ending a development pass: re-check lease, branch, HEAD, worktree status and remote divergence; push the working branch if possible; record blockers and next steps in `BACKLOG.md`; release the lease.
