@@ -12,6 +12,8 @@ It provides a lightweight teacher workspace for interactive courses, sessions an
 - Keep this file and `BACKLOG.md` aligned with the real Git state.
 
 ## Product structure
+Teacher tooling uses one shared five-workspace vocabulary across internal and external subjects: **Séances → Parcours → Corrigés → Suivi en direct → Rapports**. Keep all five visible when useful; show explicit status for unfinished capabilities instead of inventing subject-specific labels for the same job.
+
 Navigation is deliberately: **Formation → Subject → Subject pathway**.
 Do not add a CAP/Bac Pro family layer to the main navigation unless a real UX need appears.
 
