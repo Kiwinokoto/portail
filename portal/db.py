@@ -101,7 +101,7 @@ class BaseStore:
             [
                 ("psr-maths", "psr", "Mathématiques",
                  "Diagnostic de rentrée et parcours mathématiques contextualisé PSR.",
-                 10, "external", "https://maths.lagrandeclasse.fr"),
+                 10, "external", "https://maths.lagrandeclasse.fr/teacher"),
                 ("ada-francais", "ada", "Français",
                  "Entrer dans l'écrit : littératie, sons, lettres, mots et lecture utile.",
                  10, "internal", None),
@@ -109,4 +109,19 @@ class BaseStore:
                  "Numératie fondamentale : quantités, nombres, calcul, monnaie, temps et mesures.",
                  20, "planned", None),
             ],
+        )
+        # Existing production databases predate the teacher-facing route.
+        # The portal is a teacher workspace, so external subjects must never
+        # send an authenticated teacher to the student landing page.
+        db.execute(
+            """UPDATE subjects
+               SET external_url=?
+               WHERE id='psr-maths'
+                 AND external_url IN (?, ?, ?)""",
+            (
+                "https://maths.lagrandeclasse.fr/teacher",
+                "https://maths.lagrandeclasse.fr",
+                "https://maths.lagrandeclasse.fr/",
+                "https://maths.lagrandeclasse.fr/teacher",
+            ),
         )
