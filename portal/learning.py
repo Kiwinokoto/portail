@@ -147,6 +147,58 @@ class LearningMixin:
             "skipped": skipped + (len(learners) - len(cleaned)),
         }
 
+    def update_roster_learner(
+        self,
+        class_session_id: str,
+        teacher_id: int,
+        learner_id: str,
+        *,
+        first_name: str,
+        last_name: str = "",
+    ) -> dict:
+        self.get_class_session(class_session_id, teacher_id=teacher_id)
+        learner = self.get_learner(learner_id, class_session_id=class_session_id)
+        first_name = clean_text(first_name, label="Prénom", max_len=60)
+        last_name = clean_text(last_name, label="Nom", max_len=80, required=False)
+        with self.connect() as db:
+            duplicate = db.execute(
+                """SELECT id FROM learners
+                WHERE class_session_id=? AND id<>?
+                AND lower(first_name)=lower(?) AND lower(last_name)=lower(?)""",
+                (class_session_id, learner_id, first_name, last_name),
+            ).fetchone()
+            if duplicate:
+                raise ValueError("Un élève avec ce prénom et ce nom existe déjà dans la séance.")
+            now = iso()
+            db.execute(
+                "UPDATE learners SET first_name=?,last_name=?,updated_at=? WHERE id=?",
+                (first_name, last_name, now, learner["id"]),
+            )
+        return self.get_learner(learner_id, class_session_id=class_session_id)
+
+    def remove_roster_learner(
+        self,
+        class_session_id: str,
+        teacher_id: int,
+        learner_id: str,
+    ) -> dict:
+        self.get_class_session(class_session_id, teacher_id=teacher_id)
+        learner = self.get_learner(learner_id, class_session_id=class_session_id)
+        with self.connect() as db:
+            activity_count = db.execute(
+                "SELECT COUNT(*) AS n FROM activity_events WHERE learner_id=? AND class_session_id=?",
+                (learner_id, class_session_id),
+            ).fetchone()["n"]
+            if activity_count:
+                raise ValueError(
+                    "Cet élève a déjà une activité enregistrée. Corrige son nom plutôt que de le retirer."
+                )
+            db.execute(
+                "DELETE FROM learners WHERE id=? AND class_session_id=?",
+                (learner_id, class_session_id),
+            )
+        return {"ok": True, "learner_id": learner_id}
+
     def record_activity_event(
         self,
         class_session_id: str,
@@ -209,10 +261,13 @@ class LearningMixin:
                 "attempts": 0,
                 "correct_answers": 0,
                 "completed_items": 0,
+                "items": {},
             }
             for row in learner_rows
         }
         completed: dict[str, set[str]] = {row["id"]: set() for row in learner_rows}
+        item_order: list[str] = []
+
         for row in event_rows:
             learner_id = row["learner_id"]
             summary = summaries.get(learner_id)
@@ -222,21 +277,63 @@ class LearningMixin:
                 summary["started"] = True
                 summary["started_at"] = row["created_at"]
             summary["last_activity_at"] = row["created_at"]
+
+            item_id = row["item_id"] or ""
+            item = None
+            if item_id:
+                if item_id not in item_order:
+                    item_order.append(item_id)
+                item = summary["items"].setdefault(
+                    item_id,
+                    {"attempts": 0, "correct_answers": 0, "completed": False},
+                )
+
             if row["event_type"] == "answer":
                 summary["attempts"] += 1
+                if item is not None:
+                    item["attempts"] += 1
                 try:
                     payload = json.loads(row["payload_json"] or "{}")
                 except json.JSONDecodeError:
                     payload = {}
                 if payload.get("correct") is True:
                     summary["correct_answers"] += 1
-            elif row["event_type"] == "activity_completed":
-                completed[learner_id].add(row["item_id"])
+                    if item is not None:
+                        item["correct_answers"] += 1
+            elif row["event_type"] == "activity_completed" and item_id:
+                completed[learner_id].add(item_id)
+                if item is not None:
+                    item["completed"] = True
+
         for learner_id, items in completed.items():
             summaries[learner_id]["completed_items"] = len(items)
+
         learners = list(summaries.values())
+        item_summaries = []
+        for item_id in item_order:
+            attempts = 0
+            correct_answers = 0
+            completed_count = 0
+            for learner in learners:
+                item = learner["items"].get(item_id)
+                if not item:
+                    continue
+                attempts += item["attempts"]
+                correct_answers += item["correct_answers"]
+                if item["completed"]:
+                    completed_count += 1
+            item_summaries.append(
+                {
+                    "item_id": item_id,
+                    "attempts": attempts,
+                    "correct_answers": correct_answers,
+                    "completed_count": completed_count,
+                }
+            )
+
         return {
             "session": session,
             "learners": learners,
             "started_count": sum(1 for learner in learners if learner["started"]),
+            "items": item_summaries,
         }
