@@ -121,6 +121,20 @@ class Handler(BaseHTTPRequestHandler):
                 if not session["active"]:
                     return self._json(HTTPStatus.GONE, {"error": "Cette séance est fermée."})
                 return self._json(HTTPStatus.OK, {"session": session})
+            if path == "/api/join/roster":
+                query = parse_qs(parsed.query)
+                session = self._session_from_join_token((query.get("token") or [""])[0])
+                return self._json(
+                    HTTPStatus.OK,
+                    {"learners": STORE.public_roster(session["id"])},
+                )
+            if path.startswith("/api/sessions/") and path.endswith("/learners"):
+                user = self._require_user()
+                session_id = path.split("/")[3]
+                return self._json(
+                    HTTPStatus.OK,
+                    {"learners": STORE.list_roster(session_id, user["id"])},
+                )
             if path.startswith("/api/sessions/") and path.endswith("/activity"):
                 user = self._require_user()
                 session_id = path.split("/")[3]
@@ -156,13 +170,23 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(HTTPStatus.OK, {"ok": True}, cookie=self._clear_cookie())
             if path == "/api/join/learners":
                 session = self._session_from_join_token(str(payload.get("token") or ""))
+                learner_id = clean_text(
+                    payload.get("learner_id"),
+                    label="Élève",
+                    max_len=64,
+                )
                 learner = STORE.register_learner(
                     session["id"],
-                    first_name=payload.get("first_name") or "",
-                    last_name=payload.get("last_name") or "",
-                    learner_id=str(payload.get("learner_id") or ""),
+                    learner_id=learner_id,
+                    first_name="",
                 )
-                return self._json(HTTPStatus.CREATED, {"learner": learner})
+                public_learner = {
+                    "id": learner["id"],
+                    "class_session_id": learner["class_session_id"],
+                    "first_name": learner["first_name"],
+                    "last_initial": f"{learner['last_name'][0].upper()}." if learner["last_name"] else "",
+                }
+                return self._json(HTTPStatus.CREATED, {"learner": public_learner})
             if path == "/api/join/events":
                 session = self._session_from_join_token(str(payload.get("token") or ""))
                 event = STORE.record_activity_event(
@@ -184,6 +208,15 @@ class Handler(BaseHTTPRequestHandler):
                     group_label=payload.get("group_label") or "",
                 )
                 return self._json(HTTPStatus.CREATED, {"session": session})
+            if path.startswith("/api/sessions/") and path.endswith("/learners"):
+                user = self._require_user()
+                session_id = path.split("/")[3]
+                result = STORE.add_roster_learners(
+                    session_id,
+                    user["id"],
+                    payload.get("learners"),
+                )
+                return self._json(HTTPStatus.CREATED, result)
             if path.startswith("/api/sessions/") and path.endswith("/corrections"):
                 user = self._require_user()
                 session_id = path.split("/")[3]

@@ -18,16 +18,20 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] Add tests for auth, catalogue, user lifecycle, session ownership and join signatures.
 - [x] Bootstrap the new GitHub repository after the owner explicitly confirmed no concurrent agent work.
 - [x] Merge the tested foundation branch into `main` (PR #1, `9c9ab71`).
+- [x] Merge ADA French positioning V1 into `main` (PR #2, `45951f9`).
 - [ ] Register `Kiwinokoto/portail` in AgentCtl when the admin broker is available, before shared/automated mutation becomes possible.
 - [ ] Configure deployment secrets and deploy `portail.lagrandeclasse.fr` through the LGC Traefik network.
 
 ## P1 — first real teaching vertical
 
-- [x] ADA → French positioning V1: signed learner join, first-name identity, own-name recognition and first-letter recognition.
+- [x] ADA → French positioning V1: signed learner join, own-name recognition and first-letter recognition.
 - [x] Audio-first instructions with browser speech synthesis and visible-text fallback.
 - [x] Persist lightweight learner activity events and expose a teacher-owned session summary.
 - [x] Teacher live view using 4 s polling.
-- [ ] Remove the remaining literacy assumption at first entry: let the teacher preload/select learner names so a learner never has to type their own name.
+- [x] Remove first-entry typing: teacher-preloaded roster + learner selection with spoken-name support.
+- [x] Minimise public roster identity to first name + optional last-name initial.
+- [ ] Add safe roster edit/remove for corrections; current UI only appends and ignores exact duplicates.
+- [ ] Decide whether multi-device selection of the same prepared learner needs a claim/device safeguard after classroom testing.
 - [ ] Extend positioning beyond name recognition: oral comprehension, visual discrimination, sound/letter matching, useful-word reading and writing gestures.
 - [ ] Separate letter-name recognition from true phoneme↔grapheme assessment; do not infer decoding ability from the current first-letter task.
 - [ ] Teacher preview bypasses learner locks.
@@ -53,17 +57,20 @@ This project must stay easy to dismantle or adapt:
 
 ## Current handoff — 30 September 2026
 
-Foundation PR #1 is merged on `main` at `9c9ab71`.
+`main` is at `45951f9` after the tested ADA French positioning V1 merge.
 
-The ADA French V1 continuation is intentionally isolated from the untouched `dev/ada-francais-v1` branch because the previous chat could not be proven fully stopped without AgentCtl/RDC. The owner explicitly authorised resuming after GitHub showed no new activity; no local/unpushed work from the previous chat can be verified from here.
+Current development branch: `dev/ada-roster-v1`, created directly from that `main`.
 
-Current ADA V1 implementation adds:
-- learner registration/resume scoped to a signed class-session link;
-- first-name recognition and first-letter recognition with French browser TTS;
-- activity events stored in the existing `learners` / `activity_events` tables;
-- teacher live summaries polled every 4 seconds;
-- cross-session ownership checks and HTTP/store tests.
+This pass adds:
+- teacher-side roster preload inside **Élèves / suivi**;
+- public signed roster reduced to first name + optional last-name initial;
+- learner selection/resume without typing;
+- public creation of arbitrary unlisted learner names removed;
+- live view distinguishing rostered learners from learners who have actually started;
+- store/HTTP tests covering roster ownership, privacy minimisation and public selection.
 
-Known limitation: first-time learner entry still needs the name to be typed once (teacher assistance is explicitly allowed). This is scaffolding, not the final low-literacy UX. See `docs/ada-francais-v1.md`.
+No SQLite schema migration is needed; the existing `learners` and `activity_events` tables are reused.
 
-AgentCtl registration is still pending because RDC/admin broker access is unavailable in this pass. Do not describe the repository as registered until that has actually been done. No deployment was attempted.
+The owner explicitly confirmed there is no local clone, no unpushed work and no remaining previous-agent activity. AgentCtl registration is still pending only because RDC/admin broker access is unavailable today. Do not describe the repository as registered until that has actually been done.
+
+No deployment has been attempted in this pass.

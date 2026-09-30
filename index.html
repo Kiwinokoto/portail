@@ -89,8 +89,8 @@
             <span>Verrouillés par défaut par séance — prochaine passe.</span>
           </button>
           <button id="show-live-sessions" class="action-card">
-            <strong>Suivi en direct</strong>
-            <span>Voir les élèves connectés et leurs premiers essais.</span>
+            <strong>Élèves / suivi</strong>
+            <span>Préparer la liste des élèves et suivre leurs premiers essais.</span>
           </button>
         </div>
 
@@ -110,9 +110,23 @@
 
     <dialog id="live-dialog" class="dialog">
       <form method="dialog" class="dialog-head">
-        <div><p class="eyebrow">Suivi en direct</p><h2 id="live-title">Séance</h2><p id="live-context" class="muted"></p></div>
+        <div><p class="eyebrow">Élèves / suivi</p><h2 id="live-title">Séance</h2><p id="live-context" class="muted"></p></div>
         <button class="btn ghost">Fermer</button>
       </form>
+
+      <section class="roster-editor">
+        <div>
+          <h3>Préparer la liste</h3>
+          <p class="muted">Un élève par ligne. Écris <strong>Prénom; Nom</strong> si le nom est utile pour distinguer deux prénoms identiques. Le nom complet n’est pas affiché aux autres élèves&nbsp;: seulement son initiale.</p>
+        </div>
+        <textarea id="roster-input" class="input roster-input" rows="5" placeholder="Amina; Diallo&#10;Moussa; Traoré&#10;Sofia"></textarea>
+        <div class="row roster-actions">
+          <button id="add-roster" class="btn secondary" type="button">Ajouter à la liste</button>
+          <span id="roster-status" class="status"></span>
+        </div>
+      </section>
+
+      <div class="live-divider"></div>
       <div id="live-status" class="status"></div>
       <div id="live-learners" class="live-list"></div>
     </dialog>
