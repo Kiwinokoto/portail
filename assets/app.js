@@ -493,6 +493,18 @@ function openExternalTeacher(tab = '') {
   window.open(url, '_blank', 'noopener');
 }
 
+function setWorkspaceAction(id, { disabled = false, description = '', status = '', upcoming = false } = {}) {
+  const button = $(id);
+  button.disabled = disabled;
+  const descriptionNode = button.querySelector('.action-description');
+  const statusNode = button.querySelector('.action-status');
+  if (descriptionNode) descriptionNode.textContent = description;
+  if (statusNode) {
+    statusNode.textContent = status;
+    statusNode.classList.toggle('upcoming', upcoming);
+  }
+}
+
 function updateWorkspaceActions() {
   if (!state.subject) return;
   const internal = state.subject.mode === 'internal';
@@ -500,30 +512,47 @@ function updateWorkspaceActions() {
   const planned = state.subject.mode === 'planned';
   const hasSessions = state.sessions.some((session) => session.subject_id === state.subject.id);
 
-  $('show-create-session').disabled = planned;
-  $('explore-subject').disabled = !external;
-  $('corrections-subject').disabled = !external;
-  $('show-live-sessions').disabled = planned || (internal && !hasSessions);
+  if (planned) {
+    setWorkspaceAction('show-create-session', { disabled:true, description:'Le parcours doit d’abord être construit.', status:'à construire', upcoming:true });
+    setWorkspaceAction('explore-subject', { disabled:true, description:'Inspection disponible une fois le parcours construit.', status:'à construire', upcoming:true });
+    setWorkspaceAction('corrections-subject', { disabled:true, description:'Pilotage disponible une fois les activités construites.', status:'à construire', upcoming:true });
+    setWorkspaceAction('show-live-sessions', { disabled:true, description:'Le suivi démarrera avec les premières activités.', status:'à construire', upcoming:true });
+    setWorkspaceAction('reports-subject', { disabled:false, description:'Synthèses groupe, individuelles et comparaisons.', status:'à venir', upcoming:true });
+    return;
+  }
 
-  $('show-create-session').querySelector('span').textContent = external
-    ? 'Créer et piloter les séances directement dans Maths LGC.'
-    : planned
-      ? 'Le parcours doit d’abord être construit.'
-      : 'Préparer un groupe, un lien élève et un QR.';
-
-  $('explore-subject').querySelector('span').textContent = external
-    ? 'Ouvrir la prévisualisation professeur libre dans Maths LGC.'
-    : 'Prévisualisation professeur libre — prochaine passe.';
-
-  $('corrections-subject').querySelector('span').textContent = external
-    ? 'Ouvrir la gestion des corrigés dans Maths LGC.'
-    : 'Verrouillés par défaut par séance — prochaine passe.';
-
-  $('show-live-sessions').querySelector('span').textContent = external
-    ? 'Ouvrir le tableau Maths LGC pour reprendre une séance et suivre les élèves.'
-    : hasSessions
-      ? 'Préparer la liste des élèves et suivre leurs premiers essais.'
-      : 'Crée d’abord une séance pour préparer la liste des élèves.';
+  setWorkspaceAction('show-create-session', {
+    description: external ? 'Créer ou reprendre une séance directement dans Maths LGC.' : 'Créer un groupe, son lien élève et son QR.',
+    status:'disponible'
+  });
+  setWorkspaceAction('explore-subject', {
+    disabled: internal,
+    description: external ? 'Inspecter librement le parcours et toutes ses activités.' : 'La prévisualisation professeur sera ajoutée à ce parcours.',
+    status: external ? 'disponible' : 'en cours',
+    upcoming: internal
+  });
+  setWorkspaceAction('corrections-subject', {
+    disabled: internal,
+    description: external ? 'Verrouiller ou ouvrir les corrigés au moment choisi.' : 'Le contrôle des corrigés par séance est en préparation.',
+    status: external ? 'disponible' : 'en cours',
+    upcoming: internal
+  });
+  setWorkspaceAction('show-live-sessions', {
+    disabled: internal && !hasSessions,
+    description: external
+      ? 'Voir les présences, l’avancement, les résultats et le rythme indicatif.'
+      : hasSessions
+        ? 'Voir qui a commencé et suivre les premières activités.'
+        : 'Crée d’abord une séance pour démarrer le suivi.',
+    status: external || hasSessions ? 'disponible' : 'après création',
+    upcoming: internal && !hasSessions
+  });
+  setWorkspaceAction('reports-subject', {
+    disabled:false,
+    description:'Synthèse du groupe, détail individuel et comparaison entre groupes.',
+    status:'à venir',
+    upcoming:true
+  });
 }
 
 function selectFormation(id) {
@@ -753,8 +782,12 @@ $('show-create-session').addEventListener('click', () => {
 $('explore-subject').addEventListener('click', () => openExternalTeacher('inspect'));
 $('corrections-subject').addEventListener('click', () => openExternalTeacher('corrections'));
 $('show-live-sessions').addEventListener('click', () => {
-  if (state.subject?.mode === 'external') return openExternalTeacher('create');
+  if (state.subject?.mode === 'external') return openExternalTeacher('live');
   $('recent-sessions-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+$('reports-subject').addEventListener('click', () => {
+  if (state.subject?.mode === 'external') return openExternalTeacher('reports');
+  window.alert('Les rapports pédagogiques arrivent dans une prochaine passe : synthèse du groupe, détail individuel et comparaisons entre groupes.');
 });
 $('refresh-sessions').addEventListener('click', loadSessions);
 $('live-dialog').addEventListener('close', clearLivePolling);

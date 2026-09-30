@@ -76,22 +76,31 @@
           </div>
           <a id="external-course" class="btn secondary hidden" target="_blank" rel="noopener">Ouvrir l’espace professeur</a>
         </div>
-        <div class="action-grid">
+        <div class="action-grid" aria-label="Outils enseignant">
           <button id="show-create-session" class="action-card" data-icon="+">
-            <strong>Créer une séance</strong>
-            <span>Préparer un groupe, un lien élève et un QR.</span>
+            <strong>Séances</strong>
+            <span class="action-description">Créer ou reprendre une séance de groupe.</span>
+            <small class="action-status">disponible</small>
           </button>
           <button id="explore-subject" class="action-card" data-icon="↗" disabled>
-            <strong>Explorer le parcours</strong>
-            <span>Prévisualisation professeur libre — prochaine passe.</span>
+            <strong>Parcours</strong>
+            <span class="action-description">Inspecter librement le cours et ses activités.</span>
+            <small class="action-status">en cours</small>
           </button>
           <button id="corrections-subject" class="action-card" data-icon="✓" disabled>
             <strong>Corrigés</strong>
-            <span>Verrouillés par défaut par séance — prochaine passe.</span>
+            <span class="action-description">Piloter ce que les élèves peuvent consulter.</span>
+            <small class="action-status">en cours</small>
           </button>
           <button id="show-live-sessions" class="action-card" data-icon="◎">
-            <strong>Élèves / suivi</strong>
-            <span>Préparer la liste des élèves et suivre leurs premiers essais.</span>
+            <strong>Suivi en direct</strong>
+            <span class="action-description">Voir les présences, l’avancement et les premiers résultats.</span>
+            <small class="action-status">disponible</small>
+          </button>
+          <button id="reports-subject" class="action-card" data-icon="≡">
+            <strong>Rapports</strong>
+            <span class="action-description">Synthèses groupe, individuelles et comparaisons.</span>
+            <small class="action-status upcoming">à venir</small>
           </button>
         </div>
 
