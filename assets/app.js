@@ -11,6 +11,8 @@ const state = {
   learner: null,
   liveTimer: null,
   liveSessionId: null,
+  liveLearners: [],
+  reportSessionId: null,
 };
 
 async function api(path, options = {}) {
@@ -517,7 +519,7 @@ function updateWorkspaceActions() {
     setWorkspaceAction('explore-subject', { disabled:true, description:'Inspection disponible une fois le parcours construit.', status:'à construire', upcoming:true });
     setWorkspaceAction('corrections-subject', { disabled:true, description:'Pilotage disponible une fois les activités construites.', status:'à construire', upcoming:true });
     setWorkspaceAction('show-live-sessions', { disabled:true, description:'Le suivi démarrera avec les premières activités.', status:'à construire', upcoming:true });
-    setWorkspaceAction('reports-subject', { disabled:false, description:'Synthèses groupe, individuelles et comparaisons.', status:'à venir', upcoming:true });
+    setWorkspaceAction('reports-subject', { disabled:true, description:'Les rapports démarreront avec les premières activités.', status:'à construire', upcoming:true });
     return;
   }
 
@@ -532,26 +534,22 @@ function updateWorkspaceActions() {
     upcoming: internal
   });
   setWorkspaceAction('corrections-subject', {
-    disabled: internal,
-    description: external ? 'Verrouiller ou ouvrir les corrigés au moment choisi.' : 'Le contrôle des corrigés par séance est en préparation.',
-    status: external ? 'disponible' : 'en cours',
-    upcoming: internal
+    disabled: internal && !hasSessions,
+    description: external ? 'Verrouiller ou ouvrir les corrigés au moment choisi.' : (hasSessions ? 'Verrouiller ou ouvrir les corrigés séance par séance.' : 'Crée d’abord une séance pour piloter les corrigés.'),
+    status: external || hasSessions ? 'disponible' : 'après création',
+    upcoming: internal && !hasSessions
   });
   setWorkspaceAction('show-live-sessions', {
     disabled: internal && !hasSessions,
-    description: external
-      ? 'Voir les présences, l’avancement, les résultats et le rythme indicatif.'
-      : hasSessions
-        ? 'Voir qui a commencé et suivre les premières activités.'
-        : 'Crée d’abord une séance pour démarrer le suivi.',
+    description: external ? 'Voir les présences, l’avancement, les résultats et le rythme indicatif.' : (hasSessions ? 'Voir qui a commencé et suivre les premières activités.' : 'Crée d’abord une séance pour démarrer le suivi.'),
     status: external || hasSessions ? 'disponible' : 'après création',
     upcoming: internal && !hasSessions
   });
   setWorkspaceAction('reports-subject', {
-    disabled:false,
-    description:'Synthèse du groupe, détail individuel et comparaison entre groupes.',
-    status:'à venir',
-    upcoming:true
+    disabled: internal && !hasSessions,
+    description: 'Synthèse du groupe, détail individuel et comparaison descriptive.',
+    status: external || hasSessions ? 'V1' : 'après création',
+    upcoming: internal && !hasSessions
   });
 }
 
@@ -780,14 +778,17 @@ $('show-create-session').addEventListener('click', () => {
   show('session-form', true);
 });
 $('explore-subject').addEventListener('click', () => openExternalTeacher('inspect'));
-$('corrections-subject').addEventListener('click', () => openExternalTeacher('corrections'));
+$('corrections-subject').addEventListener('click', () => {
+  if (state.subject?.mode === 'external') return openExternalTeacher('corrections');
+  $('recent-sessions-panel').scrollIntoView({ behavior:'smooth', block:'start' });
+});
 $('show-live-sessions').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('live');
   $('recent-sessions-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 $('reports-subject').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('reports');
-  window.alert('Les rapports pédagogiques arrivent dans une prochaine passe : synthèse du groupe, détail individuel et comparaisons entre groupes.');
+  openReports();
 });
 $('refresh-sessions').addEventListener('click', loadSessions);
 $('live-dialog').addEventListener('close', clearLivePolling);
