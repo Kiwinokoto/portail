@@ -121,6 +121,33 @@ class PortalStoreTests(unittest.TestCase):
         token = created["join_url"].split("?join=", 1)[1]
         self.assertEqual(created["id"], server.verify_join_token(token))
 
+    def test_session_close_reopen_is_reversible_and_relocks_corrections(self):
+        teacher, _ = self.store.create_user("Kevin lifecycle", "teacher")
+        other, _ = self.store.create_user("Waren lifecycle", "teacher")
+        created = self.store.create_class_session(
+            teacher_id=teacher["id"],
+            formation_id="ada",
+            subject_id="ada-francais",
+            session_number=9,
+            title="Cycle de vie",
+            group_label="ADA test",
+        )
+        self.store.set_corrections(created["id"], teacher["id"], True)
+        closed = self.store.set_session_active(created["id"], teacher["id"], False)
+        self.assertFalse(closed["active"])
+        self.assertFalse(closed["corrections_unlocked"])
+        self.assertEqual([], self.store.list_class_sessions(teacher["id"]))
+        archived = self.store.list_class_sessions(teacher["id"], include_inactive=True)
+        self.assertEqual(created["id"], archived[0]["id"])
+        self.assertFalse(archived[0]["active"])
+        with self.assertRaises(ValueError):
+            self.store.set_corrections(created["id"], teacher["id"], True)
+        with self.assertRaises(ValueError):
+            self.store.set_session_active(created["id"], other["id"], True)
+        reopened = self.store.set_session_active(created["id"], teacher["id"], True)
+        self.assertTrue(reopened["active"])
+        self.assertFalse(reopened["corrections_unlocked"])
+
     def test_invalid_join_signature_is_rejected(self):
         self.assertIsNone(server.verify_join_token("session.invalid"))
 

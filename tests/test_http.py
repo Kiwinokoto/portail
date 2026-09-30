@@ -95,6 +95,47 @@ class PortalHttpTests(unittest.TestCase):
         self.assertEqual("ADA", joined["session"]["formation_label"])
         self.assertEqual("Français", joined["session"]["subject_label"])
 
+    def test_teacher_can_close_and_reopen_session_without_losing_history(self):
+        session = self.create_ada_session()
+        token = session["join_url"].split("?join=", 1)[1]
+        anonymous = urllib.request.build_opener()
+
+        status, closed = self.request(
+            f"/api/sessions/{session['id']}/active",
+            method="POST",
+            payload={"active": False},
+        )
+        self.assertEqual(200, status)
+        self.assertFalse(closed["session"]["active"])
+        self.assertFalse(closed["session"]["corrections_unlocked"])
+
+        status, listed = self.request("/api/sessions")
+        self.assertEqual(200, status)
+        saved = next(item for item in listed["sessions"] if item["id"] == session["id"])
+        self.assertFalse(saved["active"])
+
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            self.request(
+                "/api/join?token=" + urllib.parse.quote(token),
+                opener=anonymous,
+            )
+        self.assertEqual(410, ctx.exception.code)
+
+        status, reopened = self.request(
+            f"/api/sessions/{session['id']}/active",
+            method="POST",
+            payload={"active": True},
+        )
+        self.assertEqual(200, status)
+        self.assertTrue(reopened["session"]["active"])
+
+        status, joined = self.request(
+            "/api/join?token=" + urllib.parse.quote(token),
+            opener=anonymous,
+        )
+        self.assertEqual(200, status)
+        self.assertEqual(session["id"], joined["session"]["id"])
+
     def test_teacher_preloads_roster_and_public_selection_feeds_live_view(self):
         session = self.create_ada_session()
         status, roster = self.request(

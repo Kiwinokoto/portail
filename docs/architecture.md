@@ -65,7 +65,7 @@ A class session belongs to exactly one teacher, formation and subject. It carrie
 - session number + optional title;
 - free-form group label;
 - corrections locked by default;
-- active/closed state;
+- active/closed state; closing is a reversible revocation switch for learner access and automatically relocks corrections;
 - deterministic signed learner URL.
 
 For native Portail sessions, teacher ownership is direct. For PSR Maths, new sessions created under Portail SSO persist the stable `owner_portal_user_id` supplied by the SSO identity, so the same teacher can recover them on another device after authenticating again. Historical Maths sessions that predate ownership metadata remain accessible through their per-session management secret; no destructive migration is required.
@@ -74,7 +74,7 @@ For native Portail sessions, teacher ownership is direct. For PSR Maths, new ses
 
 Internal subjects expose teacher-owned reports from the same activity data used by live follow-up. ADA French Reports V1 intentionally stays descriptive: roster/start/completion counts, item-level attempts/completions and learner detail. Cross-group comparison is only shown for sessions with the same session number/title and must never be presented as a ranking.
 
-Roster corrections are reversible where possible: names may be corrected after activity starts, but removing a learner is refused once activity events exist so recorded work is not silently destroyed. Corrections remain locked by default and are toggled per class session by the owning teacher.
+Roster corrections are reversible where possible: names may be corrected after activity starts, but removing a learner is refused once activity events exist so recorded work is not silently destroyed. Corrections remain locked by default and are toggled per class session by the owning teacher. Closing a session preserves all activity/report data but makes its signed learner URL unusable until the owning teacher reopens it.
 
 ## Live follow-up
 

@@ -1001,7 +1001,9 @@ function updateWorkspaceActions() {
   const internal = state.subject.mode === 'internal';
   const external = state.subject.mode === 'external';
   const planned = state.subject.mode === 'planned';
-  const hasSessions = state.sessions.some((session) => session.subject_id === state.subject.id);
+  const subjectSessions = state.sessions.filter((session) => session.subject_id === state.subject.id);
+  const hasSessions = subjectSessions.length > 0;
+  const hasActiveSessions = subjectSessions.some((session) => session.active);
   const hasInternalPreview = ['ada-francais', 'ada-maths'].includes(state.subject.id);
 
   if (planned) {
@@ -1028,16 +1030,28 @@ function updateWorkspaceActions() {
     upcoming: internal && !hasInternalPreview
   });
   setWorkspaceAction('corrections-subject', {
-    disabled: internal && !hasSessions,
-    description: external ? 'Verrouiller ou ouvrir les corrigés au moment choisi.' : (hasSessions ? 'Verrouiller ou ouvrir les corrigés séance par séance.' : 'Crée d’abord une séance pour piloter les corrigés.'),
-    status: external || hasSessions ? 'disponible' : 'après création',
-    upcoming: internal && !hasSessions
+    disabled: internal && !hasActiveSessions,
+    description: external
+      ? 'Verrouiller ou ouvrir les corrigés au moment choisi.'
+      : hasActiveSessions
+        ? 'Verrouiller ou ouvrir les corrigés séance par séance.'
+        : hasSessions
+          ? 'Réouvre une séance pour modifier ses corrigés.'
+          : 'Crée d’abord une séance pour piloter les corrigés.',
+    status: external || hasActiveSessions ? 'disponible' : hasSessions ? 'séance fermée' : 'après création',
+    upcoming: internal && !hasActiveSessions
   });
   setWorkspaceAction('show-live-sessions', {
-    disabled: internal && !hasSessions,
-    description: external ? 'Voir les présences, l’avancement, les résultats et le rythme indicatif.' : (hasSessions ? 'Voir qui a commencé et suivre les premières activités.' : 'Crée d’abord une séance pour démarrer le suivi.'),
-    status: external || hasSessions ? 'disponible' : 'après création',
-    upcoming: internal && !hasSessions
+    disabled: internal && !hasActiveSessions,
+    description: external
+      ? 'Voir les présences, l’avancement, les résultats et le rythme indicatif.'
+      : hasActiveSessions
+        ? 'Voir qui a commencé et suivre les premières activités.'
+        : hasSessions
+          ? 'Réouvre une séance pour reprendre le suivi en direct.'
+          : 'Crée d’abord une séance pour démarrer le suivi.',
+    status: external || hasActiveSessions ? 'disponible' : hasSessions ? 'séance fermée' : 'après création',
+    upcoming: internal && !hasActiveSessions
   });
   setWorkspaceAction('reports-subject', {
     disabled: internal && !hasSessions,
@@ -1107,20 +1121,29 @@ async function loadSessions() {
     return;
   }
 
-  $('sessions-list').innerHTML = sessions.map((s) => `
-    <article class="session-row">
+  $('sessions-list').innerHTML = sessions.map((s) => {
+    const internalAda = ['ada-francais', 'ada-maths'].includes(s.subject_id);
+    const lifecycleLabel = s.active ? 'ouverte' : 'fermée';
+    return `
+    <article class="session-row${s.active ? '' : ' is-closed'}">
       <div class="meta">
-        <strong>${esc(s.formation_label)} · ${esc(s.subject_label)} · Séance ${s.session_number}${s.title ? ` · ${esc(s.title)}` : ''}</strong>
-        <small>${esc(s.group_label)} · créée ${new Date(s.created_at).toLocaleString('fr-FR')}</small>
+        <div class="session-title-line">
+          <strong>${esc(s.formation_label)} · ${esc(s.subject_label)} · Séance ${s.session_number}${s.title ? ` · ${esc(s.title)}` : ''}</strong>
+          <span class="pill session-state ${s.active ? 'active' : 'closed'}">Séance ${lifecycleLabel}</span>
+        </div>
+        <small>${esc(s.group_label)} · créée ${new Date(s.created_at).toLocaleString('fr-FR')}${s.active ? '' : ' · le lien élève est désactivé'}</small>
       </div>
       <div class="session-actions">
-        ${['ada-francais', 'ada-maths'].includes(s.subject_id) ? `<button class="btn primary" data-live="${esc(s.id)}">Suivi en direct</button>
-        <button class="btn secondary" data-corrections="${esc(s.id)}" data-unlocked="${s.corrections_unlocked ? '1' : '0'}">Corrigés : ${s.corrections_unlocked ? 'ouverts' : 'verrouillés'}</button>
-        <button class="btn secondary" data-report="${esc(s.id)}">Rapport</button>` : ''}
-        <button class="btn ghost" data-copy="${esc(s.join_url)}">Copier le lien élève</button>
-        <a class="btn secondary" href="/api/sessions/${encodeURIComponent(s.id)}/qr.svg" target="_blank">QR</a>
+        ${internalAda && s.active ? `<button class="btn primary" data-live="${esc(s.id)}">Suivi en direct</button>
+        <button class="btn secondary" data-corrections="${esc(s.id)}" data-unlocked="${s.corrections_unlocked ? '1' : '0'}">Corrigés : ${s.corrections_unlocked ? 'ouverts' : 'verrouillés'}</button>` : ''}
+        ${internalAda ? `<button class="btn secondary" data-report="${esc(s.id)}">Rapport</button>` : ''}
+        ${s.active ? `<button class="btn ghost" data-copy="${esc(s.join_url)}">Copier le lien élève</button>
+        <a class="btn secondary" href="/api/sessions/${encodeURIComponent(s.id)}/qr.svg" target="_blank" rel="noopener">QR</a>` : ''}
+        <button class="btn ghost ${s.active ? 'danger' : ''}" data-session-active="${esc(s.id)}" data-active="${s.active ? '1' : '0'}">${s.active ? 'Fermer la séance' : 'Réouvrir'}</button>
       </div>
-    </article>`).join('');
+    </article>`;
+  }).join('');
+
   $('sessions-list').querySelectorAll('[data-copy]').forEach((button) => {
     button.addEventListener('click', async () => {
       await navigator.clipboard.writeText(button.dataset.copy);
@@ -1137,6 +1160,33 @@ async function loadSessions() {
   $('sessions-list').querySelectorAll('[data-report]').forEach((button) => {
     button.addEventListener('click', () => openSessionReport(button.dataset.report));
   });
+  $('sessions-list').querySelectorAll('[data-session-active]').forEach((button) => {
+    button.addEventListener('click', () => setSessionActive(button.dataset.sessionActive, button.dataset.active !== '1'));
+  });
+}
+
+async function setSessionActive(sessionId, active) {
+  const session = state.sessions.find((item) => item.id === sessionId);
+  if (!session) return;
+  if (!active) {
+    const label = `${session.formation_label} · ${session.subject_label} · ${session.group_label}`;
+    const ok = confirm(
+      `Fermer la séance « ${label} » ?\n\nLe lien et le QR élève cesseront immédiatement de fonctionner. Les résultats et rapports restent conservés, et tu pourras réouvrir la séance plus tard. Les corrigés seront reverrouillés.`
+    );
+    if (!ok) return;
+  }
+  try {
+    await api(`/api/sessions/${encodeURIComponent(sessionId)}/active`, {
+      method:'POST',
+      body:JSON.stringify({ active }),
+    });
+    if (!active && state.liveSessionId === sessionId && $('live-dialog').open) {
+      $('live-dialog').close();
+    }
+    await loadSessions();
+  } catch (error) {
+    window.alert(`Impossible de ${active ? 'réouvrir' : 'fermer'} la séance : ${error.message}`);
+  }
 }
 
 function stopLiveTimer() {
@@ -1152,8 +1202,12 @@ function scheduleLivePolling() {
 
 async function openLiveView(sessionId) {
   clearLivePolling();
-  state.liveSessionId = sessionId;
   const session = state.sessions.find((item) => item.id === sessionId);
+  if (!session?.active) {
+    window.alert('Cette séance est fermée. Réouvre-la avant de lancer le suivi en direct.');
+    return;
+  }
+  state.liveSessionId = sessionId;
   $('live-title').textContent = session ? `${session.formation_label} · ${session.subject_label} · Séance ${session.session_number}` : 'Séance';
   $('live-context').textContent = session ? `${session.group_label}${session.title ? ` · ${session.title}` : ''}` : '';
   $('live-learners').innerHTML = '';
@@ -1328,6 +1382,11 @@ function clearLivePolling() {
 }
 
 async function toggleSessionCorrections(sessionId, unlocked) {
+  const session = state.sessions.find((item) => item.id === sessionId);
+  if (!session?.active) {
+    window.alert('Cette séance est fermée. Réouvre-la avant de modifier les corrigés.');
+    return;
+  }
   if (unlocked && !confirm('Ouvrir les corrigés pour les élèves de cette séance ?')) return;
   try {
     await api(`/api/sessions/${encodeURIComponent(sessionId)}/corrections`, {

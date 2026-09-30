@@ -72,6 +72,8 @@ Sur une séance jetable :
 - [ ] Observer **Suivi en direct** ; actualisation environ toutes les 4 s.
 - [ ] Masquer l'onglet professeur puis le réafficher : le polling doit se mettre en pause puis reprendre.
 - [ ] Vérifier les corrigés verrouillés par défaut, puis les ouvrir et les reverrouiller.
+- [ ] Fermer la séance : vérifier que le lien/QR élève renvoie « séance fermée », que le rapport reste lisible et que les corrigés sont reverrouillés.
+- [ ] Réouvrir la séance : vérifier que le même lien/QR élève fonctionne à nouveau.
 - [ ] Ouvrir **Rapports** depuis le parcours puis directement depuis **Mes séances récentes**.
 - [ ] Vérifier synthèse groupe, détail élève et comparaison uniquement entre séances comparables.
 

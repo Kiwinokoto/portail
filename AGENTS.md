@@ -60,6 +60,7 @@ Long term, identities/groups move to Moodle, pathway orchestration to Roads, ord
 - Never store plaintext teacher tokens in SQLite; store SHA-256 only because tokens are high-entropy generated secrets, not passwords.
 - Browser authentication uses opaque server-side sessions and HttpOnly cookies.
 - Student access uses signed session links, not student accounts in V1.
+- A signed learner link remains valid only while its class session is active. Closing a session is the normal reversible revocation mechanism; it must preserve learner history/reports and relock corrections.
 - Never commit `.env`, SQLite data, tokens, deployment credentials or learner data.
 - New teachers are created by an administrator and receive a generated token shown once.
 - Deactivation must be reversible; do not delete users as the normal offboarding path.

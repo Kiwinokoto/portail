@@ -143,7 +143,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(HTTPStatus.OK, {"formations": STORE.catalog_for(user)})
             if path == "/api/sessions":
                 user = self._require_user()
-                return self._json(HTTPStatus.OK, {"sessions": STORE.list_class_sessions(user["id"])})
+                return self._json(
+                    HTTPStatus.OK,
+                    {"sessions": STORE.list_class_sessions(user["id"], include_inactive=True)},
+                )
             if path == "/api/admin/users":
                 self._require_admin()
                 return self._json(HTTPStatus.OK, {"users": STORE.list_users()})
@@ -288,6 +291,15 @@ class Handler(BaseHTTPRequestHandler):
                     clean_text(payload.get("learner_id"), label="Élève", max_len=64),
                 )
                 return self._json(HTTPStatus.OK, result)
+            if path.startswith("/api/sessions/") and path.endswith("/active"):
+                user = self._require_user()
+                session_id = path.split("/")[3]
+                session = STORE.set_session_active(
+                    session_id,
+                    user["id"],
+                    bool(payload.get("active")),
+                )
+                return self._json(HTTPStatus.OK, {"session": session})
             if path.startswith("/api/sessions/") and path.endswith("/corrections"):
                 user = self._require_user()
                 session_id = path.split("/")[3]
