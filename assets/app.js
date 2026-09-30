@@ -791,6 +791,7 @@ function updateWorkspaceActions() {
   const external = state.subject.mode === 'external';
   const planned = state.subject.mode === 'planned';
   const hasSessions = state.sessions.some((session) => session.subject_id === state.subject.id);
+  const hasInternalPreview = state.subject.id === 'ada-francais';
 
   if (planned) {
     setWorkspaceAction('show-create-session', { disabled:true, description:'Le parcours doit d’abord être construit.', status:'à construire', upcoming:true });
@@ -806,10 +807,14 @@ function updateWorkspaceActions() {
     status:'disponible'
   });
   setWorkspaceAction('explore-subject', {
-    disabled: internal,
-    description: external ? 'Inspecter librement le parcours et toutes ses activités.' : 'La prévisualisation professeur sera ajoutée à ce parcours.',
-    status: external ? 'disponible' : 'en cours',
-    upcoming: internal
+    disabled: internal && !hasInternalPreview,
+    description: external
+      ? 'Inspecter librement le parcours et toutes ses activités.'
+      : hasInternalPreview
+        ? 'Parcourir toutes les activités sans enregistrer de données élève.'
+        : 'La prévisualisation professeur sera ajoutée à ce parcours.',
+    status: external || hasInternalPreview ? 'disponible' : 'en cours',
+    upcoming: internal && !hasInternalPreview
   });
   setWorkspaceAction('corrections-subject', {
     disabled: internal && !hasSessions,
@@ -956,7 +961,7 @@ async function refreshLiveView() {
             : 'Pas encore commencé'}</small>
         </div>
         <div class="progress-badge ${learner.started ? '' : 'waiting'}">
-          ${learner.started ? `${learner.completed_items}/4 étapes · ${learner.correct_answers}/${learner.attempts} réponses justes` : 'En attente'}
+          ${learner.started ? `${learner.completed_items}/8 étapes · ${learner.correct_answers}/${learner.attempts} réponses justes` : 'En attente'}
         </div>
       </article>`).join('');
   } catch (error) {
@@ -1100,6 +1105,10 @@ const ADA_ITEM_LABELS = {
   'oral-comprehension': 'Compréhension orale',
   'own-name': 'Reconnaissance du prénom',
   'first-letter': 'Première lettre du prénom',
+  'visual-discrimination': 'Discrimination visuelle',
+  'sound-letter-guided': 'Association son → lettre guidée',
+  'useful-word': 'Reconnaissance du mot SORTIE',
+  'writing-gesture': 'Geste d’écriture essayé',
   'positioning-v1': 'Positionnement terminé',
 };
 
@@ -1202,13 +1211,22 @@ function renderAdaReportDetail(report) {
     reportMetric('Réponses justes', report.attempts ? `${report.correct}/${report.attempts}` : '—'),
   ].join('');
 
-  const items = (report.items || []).filter((item) => ['oral-comprehension','own-name','first-letter','positioning-v1'].includes(item.item_id));
+  const items = (report.items || []).filter((item) => [
+    'oral-comprehension','own-name','first-letter','visual-discrimination',
+    'sound-letter-guided','useful-word','writing-gesture','positioning-v1'
+  ].includes(item.item_id));
   $('report-item-summary').innerHTML = items.map((item) => `
     <div class="report-item-row">
       <strong>${esc(adaItemLabel(item.item_id))}</strong>
       <span>${item.completed_count}/${report.rosterCount} terminé</span>
       <span>${item.attempts ? `${item.correct_answers}/${item.attempts} justes` : 'pas de réponse'}</span>
-      <span>${item.item_id === 'first-letter' ? 'lettre nommée, pas décodage' : ''}</span>
+      <span>${item.item_id === 'first-letter'
+        ? 'lettre nommée, pas décodage'
+        : item.item_id === 'sound-letter-guided'
+          ? 'association explicitement guidée'
+          : item.item_id === 'writing-gesture'
+            ? 'geste essayé, non évalué'
+            : ''}</span>
     </div>`).join('');
 
   $('report-learner-rows').innerHTML = report.learners.map((learner) => `
@@ -1217,6 +1235,10 @@ function renderAdaReportDetail(report) {
       <td>${esc(stageReportLabel(learner, 'oral-comprehension'))}</td>
       <td>${esc(stageReportLabel(learner, 'own-name'))}</td>
       <td>${esc(stageReportLabel(learner, 'first-letter'))}</td>
+      <td>${esc(stageReportLabel(learner, 'visual-discrimination'))}</td>
+      <td>${esc(stageReportLabel(learner, 'sound-letter-guided'))}</td>
+      <td>${esc(stageReportLabel(learner, 'useful-word'))}</td>
+      <td>${esc(stageReportLabel(learner, 'writing-gesture'))}</td>
       <td>${learnerItem(learner, 'positioning-v1').completed ? 'Oui' : '—'}</td>
       <td>${learner.attempts ? `${learner.correct_answers}/${learner.attempts}` : '—'}</td>
     </tr>`).join('');
@@ -1306,7 +1328,12 @@ $('show-create-session').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('create');
   show('session-form', true);
 });
-$('explore-subject').addEventListener('click', () => openExternalTeacher('inspect'));
+$('explore-subject').addEventListener('click', () => {
+  if (state.subject?.mode === 'external') return openExternalTeacher('inspect');
+  if (state.subject?.id === 'ada-francais') {
+    window.open('/?preview=teacher&subject=ada-francais', '_blank', 'noopener');
+  }
+});
 $('corrections-subject').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('corrections');
   $('recent-sessions-panel').scrollIntoView({ behavior:'smooth', block:'start' });
