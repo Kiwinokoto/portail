@@ -1,0 +1,191 @@
+name: Deploy Portail LGC
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-portail-lgc-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  DEPLOY_HOST: 173.212.214.227
+  DEPLOY_USER: root
+  PROJECT_DIR: /opt/portail
+  PUBLIC_HOST: portail.lagrandeclasse.fr
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Validate deployment secrets
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          PORTAIL_APP_SECRET: ${{ secrets.PORTAIL_APP_SECRET }}
+        run: |
+          set -euo pipefail
+
+          [ -n "${DEPLOY_SSH_KEY}" ] || { echo "Missing DEPLOY_SSH_KEY"; exit 1; }
+          [ -n "${DEPLOY_KNOWN_HOSTS}" ] || { echo "Missing DEPLOY_KNOWN_HOSTS"; exit 1; }
+          [ "${#PORTAIL_APP_SECRET}" -ge 32 ] || {
+            echo "PORTAIL_APP_SECRET must be at least 32 characters."
+            exit 1
+          }
+
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Pin VPS host key
+        env:
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "${DEPLOY_KNOWN_HOSTS}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: VPS preflight
+        run: |
+          set -euo pipefail
+          ssh "${DEPLOY_USER}@${DEPLOY_HOST}" '
+            set -euo pipefail
+            docker info >/dev/null
+            docker compose version >/dev/null
+            docker network inspect traefik_network >/dev/null
+            docker ps --format "{{.Names}}" | grep -qx traefik
+            command -v rsync >/dev/null
+          '
+
+      - name: Prepare persistent directories
+        run: |
+          set -euo pipefail
+          ssh "${DEPLOY_USER}@${DEPLOY_HOST}" "
+            set -euo pipefail
+            install -d -m 0755 '${PROJECT_DIR}'
+            install -d -o 65532 -g 65532 -m 0750 '${PROJECT_DIR}/data'
+          "
+
+      - name: Sync application
+        run: |
+          set -euo pipefail
+          rsync -az --delete \
+            -e "ssh" \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.env' \
+            --exclude 'data' \
+            ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${PROJECT_DIR}/"
+
+      - name: Write runtime configuration
+        env:
+          PORTAIL_APP_SECRET: ${{ secrets.PORTAIL_APP_SECRET }}
+        run: |
+          set -euo pipefail
+          SECRET_B64="$(printf '%s' "${PORTAIL_APP_SECRET}" | base64 -w0)"
+          IMAGE_TAG="${GITHUB_SHA::12}"
+
+          ssh "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "PROJECT_DIR='${PROJECT_DIR}' SECRET_B64='${SECRET_B64}' IMAGE_TAG='${IMAGE_TAG}' PUBLIC_HOST='${PUBLIC_HOST}' bash -s" <<'EOF'
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+          umask 077
+          SECRET="$(printf '%s' "$SECRET_B64" | base64 -d)"
+          printf 'PORTAIL_APP_SECRET=%s\nPORTAIL_PUBLIC_URL=https://%s\nPORTAIL_SESSION_TTL_DAYS=30\nPORTAIL_IMAGE_TAG=%s\n' \
+            "$SECRET" "$PUBLIC_HOST" "$IMAGE_TAG" > .env
+          chmod 600 .env
+          EOF
+
+      - name: Validate and deploy
+        run: |
+          set -euo pipefail
+          ssh "${DEPLOY_USER}@${DEPLOY_HOST}" "
+            set -euo pipefail
+            cd '${PROJECT_DIR}'
+            docker compose config >/dev/null
+            docker compose build --pull
+            docker compose up -d --remove-orphans
+          "
+
+      - name: Verify container and Traefik route
+        run: |
+          set -euo pipefail
+          ssh "${DEPLOY_USER}@${DEPLOY_HOST}" "PUBLIC_HOST='${PUBLIC_HOST}' bash -s" <<'EOF'
+          set -euo pipefail
+
+          deadline=$(( $(date +%s) + 90 ))
+          while :; do
+            health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' portail_lgc 2>/dev/null || true)"
+            if [ "$health" = "healthy" ]; then
+              break
+            fi
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "Container did not become healthy; status=$health" >&2
+              docker logs --tail 120 portail_lgc >&2 || true
+              exit 1
+            fi
+            sleep 2
+          done
+
+          route_deadline=$(( $(date +%s) + 120 ))
+          health_code="000"
+          me_code="000"
+
+          while :; do
+            health_code="$(curl -k -sS -o /dev/null -w '%{http_code}' \
+              --connect-timeout 3 --max-time 5 \
+              --resolve "$PUBLIC_HOST:443:127.0.0.1" \
+              "https://$PUBLIC_HOST/healthz" 2>/dev/null || true)"
+            me_code="$(curl -k -sS -o /dev/null -w '%{http_code}' \
+              --connect-timeout 3 --max-time 5 \
+              --resolve "$PUBLIC_HOST:443:127.0.0.1" \
+              "https://$PUBLIC_HOST/api/me" 2>/dev/null || true)"
+
+            health_code="${health_code:-000}"
+            me_code="${me_code:-000}"
+
+            if [ "$health_code" = "200" ] && [ "$me_code" = "200" ]; then
+              echo "Portail LGC is healthy and routed through Traefik."
+              break
+            fi
+
+            if [ "$(date +%s)" -ge "$route_deadline" ]; then
+              echo "Traefik route did not become ready in time: health=$health_code me=$me_code" >&2
+              docker logs --tail 120 portail_lgc >&2 || true
+              docker logs --since 5m traefik 2>&1 | grep -Ei 'portail|acme|certificate|error' | tail -80 >&2 || true
+              exit 1
+            fi
+
+            echo "Waiting for Traefik route: health=$health_code me=$me_code"
+            sleep 2
+          done
+          EOF
+
+      - name: Verify public HTTPS
+        run: |
+          set -euo pipefail
+          deadline=$(( $(date +%s) + 120 ))
+          code="000"
+          while :; do
+            code="$(curl -sS -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 10 "https://${PUBLIC_HOST}/healthz" 2>/dev/null || true)"
+            code="${code:-000}"
+            if [ "$code" = "200" ]; then
+              echo "Public HTTPS endpoint is ready."
+              break
+            fi
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "Public HTTPS endpoint did not become ready; code=$code" >&2
+              exit 1
+            fi
+            sleep 3
+          done

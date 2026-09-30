@@ -59,24 +59,12 @@ This project must stay easy to dismantle or adapt:
 
 ## Current handoff — 30 September 2026
 
-All tested functional work through PR #5 is merged into `main`. The last functional merge before this documentation sync is `ae022b4`.
+All tested functional work through PR #6 is merged into `main` at `5ec54d2`.
 
-Delivered today:
-- portal foundation and staff/session model;
-- ADA French learner flow with signed class-session links;
-- teacher-preloaded roster so learners do not have to type their name;
-- public roster minimised to first name + optional surname initial;
-- lightweight learner events and 4 s teacher live view;
-- first oral-comprehension probe, deliberately run before written-name/letter tasks;
-- own-name recognition and first-letter-name recognition, kept distinct from true phoneme↔grapheme assessment.
+Deployment preparation is now isolated on `dev/deploy-vps-v1`. It adds a GitHub Actions → VPS rsync deployment flow matching the proven `maths_lgc` pattern, targeting `/opt/portail` and the existing `traefik_network`. This avoids storing GitHub credentials on the VPS.
 
-No SQLite migration was required for the roster or oral work. `maths_lgc` remains untouched.
+Before merging the deployment PR, configure repository Actions secrets `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` and `PORTAIL_APP_SECRET`, and ensure DNS `portail.lagrandeclasse.fr` points to `173.212.214.227`. The first admin is then created manually inside the running container so its one-time token never appears in CI logs.
 
-Next useful checks before expanding the diagnostic:
-1. validate browser TTS and the temporary emoji pictograms on the actual classroom devices;
-2. add safe roster edit/remove if classroom setup needs corrections;
-3. then continue with an independent visual-discrimination probe, followed later by true sound↔grapheme work.
+The owner explicitly confirmed there is no local clone, no unpushed work and no remaining previous-agent activity, and explicitly authorised this deployment work despite AgentCtl/RDC being unavailable today. AgentCtl registration remains pending and must still be completed when RDC/admin broker access returns.
 
-The owner explicitly confirmed there is no local clone, no unpushed work and no remaining previous-agent activity. AgentCtl registration is still pending only because RDC/admin broker access is unavailable today. Do not describe the repository as registered until that has actually been done.
-
-No deployment has been attempted. After this documentation-only sync is merged, no feature branch should be treated as active.
+`maths_lgc` remains untouched.

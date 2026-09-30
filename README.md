@@ -61,6 +61,28 @@ python -m compileall -q server.py portal tests
 node --check assets/app.js
 ```
 
-## Deployment direction
+## Deployment
 
-The intended target is `https://portail.lagrandeclasse.fr` on the existing LGC VPS behind the shared Traefik v3 network, following the same isolated-container pattern as `maths_lgc`. Deployment is not performed until AgentCtl and VPS deployment leases are available.
+Production target: `https://portail.lagrandeclasse.fr` on the existing LGC VPS `173.212.214.227`, behind the shared Traefik v3 network.
+
+The deployment workflow mirrors `maths_lgc`: GitHub Actions checks out the exact `main` commit and synchronises it to `/opt/portail` over a dedicated SSH key. The VPS therefore does **not** need GitHub credentials or a repository deploy key.
+
+Required repository Actions secrets:
+
+- `DEPLOY_SSH_KEY` — private ed25519 key dedicated to `Kiwinokoto/portail`; only its public half is installed in the VPS `root` account;
+- `DEPLOY_KNOWN_HOSTS` — pinned SSH host-key line for `173.212.214.227`;
+- `PORTAIL_APP_SECRET` — stable random secret (32+ characters) used to sign learner-session links.
+
+The workflow preserves `/opt/portail/data` and `.env`, builds only the portal image, starts/updates only `portail_lgc`, waits for the Docker healthcheck, verifies the Traefik route locally, then verifies the public HTTPS endpoint.
+
+Before the first deployment, DNS for `portail.lagrandeclasse.fr` must point to the LGC VPS.
+
+After the first successful deployment, create the first administrator manually so the one-time token is printed only in the trusted SSH terminal, never in Actions logs:
+
+```bash
+ssh root@173.212.214.227
+cd /opt/portail
+docker compose exec -T portail python server.py init-admin --name "Kevin"
+```
+
+Store the printed admin token securely; do not commit it or place it in Actions secrets.
