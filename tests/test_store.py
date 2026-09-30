@@ -85,6 +85,56 @@ class PortalStoreTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.store.set_corrections(created["id"], other["id"], False)
 
+    def test_learner_activity_is_scoped_and_summarised(self):
+        teacher, _ = self.store.create_user("Kevin", "teacher")
+        other, _ = self.store.create_user("Fadhila", "teacher")
+        created = self.store.create_class_session(
+            teacher_id=teacher["id"], formation_id="ada", subject_id="ada-francais",
+            session_number=1, title="Prénom", group_label="ADA 1"
+        )
+        learner = self.store.register_learner(created["id"], first_name="Amina")
+        resumed = self.store.register_learner(
+            created["id"], first_name="ignored", learner_id=learner["id"]
+        )
+        self.assertEqual(learner["id"], resumed["id"])
+        self.store.record_activity_event(
+            created["id"], learner_id=learner["id"], event_type="answer",
+            item_id="own-name", payload={"correct": False, "choice": "Mariam"},
+        )
+        self.store.record_activity_event(
+            created["id"], learner_id=learner["id"], event_type="answer",
+            item_id="own-name", payload={"correct": True, "choice": "Amina"},
+        )
+        self.store.record_activity_event(
+            created["id"], learner_id=learner["id"], event_type="activity_completed",
+            item_id="own-name", payload={},
+        )
+        activity = self.store.session_activity(created["id"], teacher["id"])
+        summary = activity["learners"][0]
+        self.assertEqual("Amina", summary["first_name"])
+        self.assertEqual(2, summary["attempts"])
+        self.assertEqual(1, summary["correct_answers"])
+        self.assertEqual(1, summary["completed_items"])
+        with self.assertRaises(ValueError):
+            self.store.session_activity(created["id"], other["id"])
+
+    def test_activity_event_cannot_cross_sessions(self):
+        teacher, _ = self.store.create_user("Kevin", "teacher")
+        first = self.store.create_class_session(
+            teacher_id=teacher["id"], formation_id="ada", subject_id="ada-francais",
+            session_number=1, title="", group_label="ADA 1"
+        )
+        second = self.store.create_class_session(
+            teacher_id=teacher["id"], formation_id="ada", subject_id="ada-francais",
+            session_number=2, title="", group_label="ADA 1"
+        )
+        learner = self.store.register_learner(first["id"], first_name="Moussa")
+        with self.assertRaises(ValueError):
+            self.store.record_activity_event(
+                second["id"], learner_id=learner["id"], event_type="answer",
+                item_id="own-name", payload={"correct": True},
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

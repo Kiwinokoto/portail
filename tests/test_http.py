@@ -57,16 +57,7 @@ class PortalHttpTests(unittest.TestCase):
         self.assertEqual(200, status)
         return payload
 
-    def test_health_and_login_catalog(self):
-        status, payload = self.request("/healthz")
-        self.assertEqual(200, status)
-        self.assertTrue(payload["ok"])
-        self.login()
-        status, payload = self.request("/api/catalog")
-        self.assertEqual(200, status)
-        self.assertEqual(["psr", "ada"], [f["id"] for f in payload["formations"]])
-
-    def test_create_session_and_public_join_resolution(self):
+    def create_ada_session(self):
         self.login()
         status, payload = self.request(
             "/api/sessions",
@@ -80,14 +71,51 @@ class PortalHttpTests(unittest.TestCase):
             },
         )
         self.assertEqual(201, status)
-        join_url = payload["session"]["join_url"]
-        token = join_url.split("?join=", 1)[1]
+        return payload["session"]
+
+    def test_health_and_login_catalog(self):
+        status, payload = self.request("/healthz")
+        self.assertEqual(200, status)
+        self.assertTrue(payload["ok"])
+        self.login()
+        status, payload = self.request("/api/catalog")
+        self.assertEqual(200, status)
+        self.assertEqual(["psr", "ada"], [f["id"] for f in payload["formations"]])
+
+    def test_create_session_and_public_join_resolution(self):
+        session = self.create_ada_session()
+        token = session["join_url"].split("?join=", 1)[1]
         anonymous = urllib.request.build_opener()
         req = urllib.request.Request(self.base + "/api/join?token=" + token)
         with anonymous.open(req, timeout=3) as response:
             joined = json.loads(response.read())
         self.assertEqual("ADA", joined["session"]["formation_label"])
         self.assertEqual("Français", joined["session"]["subject_label"])
+
+    def test_public_learner_events_feed_teacher_live_view(self):
+        session = self.create_ada_session()
+        token = session["join_url"].split("?join=", 1)[1]
+        status, joined = self.request(
+            "/api/join/learners", method="POST",
+            payload={"token": token, "first_name": "Amina"},
+        )
+        self.assertEqual(201, status)
+        learner_id = joined["learner"]["id"]
+        status, _ = self.request(
+            "/api/join/events", method="POST",
+            payload={
+                "token": token,
+                "learner_id": learner_id,
+                "event_type": "answer",
+                "item_id": "own-name",
+                "payload": {"correct": True, "choice": "Amina"},
+            },
+        )
+        self.assertEqual(201, status)
+        status, activity = self.request(f"/api/sessions/{session['id']}/activity")
+        self.assertEqual(200, status)
+        self.assertEqual("Amina", activity["learners"][0]["first_name"])
+        self.assertEqual(1, activity["learners"][0]["correct_answers"])
 
     def test_admin_can_create_teacher_but_token_is_one_time_response(self):
         self.login()
