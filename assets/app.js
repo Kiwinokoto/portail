@@ -1001,7 +1001,7 @@ function updateWorkspaceActions() {
   const external = state.subject.mode === 'external';
   const planned = state.subject.mode === 'planned';
   const hasSessions = state.sessions.some((session) => session.subject_id === state.subject.id);
-  const hasInternalPreview = state.subject.id === 'ada-francais';
+  const hasInternalPreview = ['ada-francais', 'ada-maths'].includes(state.subject.id);
 
   if (planned) {
     setWorkspaceAction('show-create-session', { disabled:true, description:'Le parcours doit d’abord être construit.', status:'à construire', upcoming:true });
@@ -1150,10 +1150,18 @@ async function openLiveView(sessionId) {
   state.liveTimer = window.setInterval(refreshLiveView, 4000);
 }
 
+function subjectCompletionCount(subjectId) {
+  if (subjectId === 'ada-francais') return 8;
+  if (subjectId === 'ada-maths') return 6;
+  return 1;
+}
+
 async function refreshLiveView() {
   if (!state.liveSessionId || !$('live-dialog').open) return;
   try {
     const { learners, started_count: startedCount } = await api(`/api/sessions/${encodeURIComponent(state.liveSessionId)}/activity`);
+    const liveSession = state.sessions.find((session) => session.id === state.liveSessionId);
+    const completionTarget = subjectCompletionCount(liveSession?.subject_id);
     state.liveLearners = learners;
     renderRosterManage(learners);
     if (!learners.length) {
@@ -1171,7 +1179,7 @@ async function refreshLiveView() {
             : 'Pas encore commencé'}</small>
         </div>
         <div class="progress-badge ${learner.started ? '' : 'waiting'}">
-          ${learner.started ? `${learner.completed_items}/8 étapes · ${learner.correct_answers}/${learner.attempts} réponses justes` : 'En attente'}
+          ${learner.started ? `${learner.completed_items}/${completionTarget} étapes · ${learner.correct_answers}/${learner.attempts} réponses justes` : 'En attente'}
         </div>
       </article>`).join('');
   } catch (error) {
@@ -1337,9 +1345,9 @@ function stageReportLabel(learner, itemId) {
   return '—';
 }
 
-function buildAdaReport(activity) {
+function buildActivityReport(activity, completionItemId) {
   const learners = activity.learners || [];
-  const finished = learners.filter((learner) => learnerItem(learner, 'positioning-v1').completed).length;
+  const finished = learners.filter((learner) => learnerItem(learner, completionItemId).completed).length;
   const attempts = learners.reduce((sum, learner) => sum + Number(learner.attempts || 0), 0);
   const correct = learners.reduce((sum, learner) => sum + Number(learner.correct_answers || 0), 0);
   return {
@@ -1351,11 +1359,34 @@ function buildAdaReport(activity) {
   };
 }
 
+function buildAdaReport(activity) {
+  return buildActivityReport(activity, 'positioning-v1');
+}
+
+function buildNumeracyReport(activity) {
+  return buildActivityReport(activity, 'numeracy-v1');
+}
+
+function setReportLearnerHeaders(labels) {
+  const row = $('report-detail').querySelector('thead tr');
+  row.innerHTML = labels.map((label) => `<th>${esc(label)}</th>`).join('');
+}
+
 function reportMetric(label, value) {
   return `<div class="report-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`;
 }
 
 async function openReports() {
+  if (!state.subject || state.subject.mode !== 'internal') return;
+  if (state.subject.id === 'ada-francais') {
+    return openReportCollection(buildAdaReport, renderAdaReportDetail);
+  }
+  if (state.subject.id === 'ada-maths') {
+    return openReportCollection(buildNumeracyReport, renderNumeracyReportDetail);
+  }
+}
+
+async function openReportCollection(buildReport, renderDetail) {
   if (!state.subject || state.subject.mode !== 'internal') return;
   $('reports-title').textContent = `${state.formation.label} · ${state.subject.label}`;
   $('reports-context').textContent = 'Synthèse des séances auxquelles tu as accès.';
@@ -1376,7 +1407,7 @@ async function openReports() {
   );
   const reports = settled
     .filter((result) => result.status === 'fulfilled')
-    .map((result) => buildAdaReport(result.value));
+    .map((result) => buildReport(result.value));
 
   if (!reports.length) {
     $('reports-status').textContent = 'Aucun rapport n’a pu être chargé pour le moment.';
@@ -1404,13 +1435,17 @@ async function openReports() {
   $('report-session-grid').querySelectorAll('[data-report-session]').forEach((button) => {
     button.addEventListener('click', () => {
       const report = reports.find((item) => item.session.id === button.dataset.reportSession);
-      if (report) renderAdaReportDetail(report);
+      if (report) renderDetail(report);
     });
   });
   renderAdaReportComparison(reports);
 }
 
 function renderAdaReportDetail(report) {
+  setReportLearnerHeaders([
+    'Élève','Écoute','Prénom','Première lettre','Discrimination visuelle',
+    'Son → lettre guidé','Mot utile','Geste d’écriture','Terminé','Réponses'
+  ]);
   state.reportSessionId = report.session.id;
   $('report-detail-title').textContent = report.session.group_label;
   $('report-detail-meta').textContent = `Séance ${report.session.session_number}${report.session.title ? ` · ${report.session.title}` : ''}`;
@@ -1450,6 +1485,62 @@ function renderAdaReportDetail(report) {
       <td>${esc(stageReportLabel(learner, 'useful-word'))}</td>
       <td>${esc(stageReportLabel(learner, 'writing-gesture'))}</td>
       <td>${learnerItem(learner, 'positioning-v1').completed ? 'Oui' : '—'}</td>
+      <td>${learner.attempts ? `${learner.correct_answers}/${learner.attempts}` : '—'}</td>
+    </tr>`).join('');
+  show('report-detail', true);
+  $('report-detail').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+const NUMERACY_ITEM_LABELS = {
+  'quantity-counting': 'Quantité concrète',
+  'spoken-number': 'Nombre entendu → chiffre',
+  'compare-quantities': 'Comparer deux quantités',
+  'concrete-addition': 'Addition concrète',
+  'money-amount': 'Montant écrit',
+  'numeracy-v1': 'Positionnement terminé',
+};
+
+function numeracyItemLabel(itemId) {
+  return NUMERACY_ITEM_LABELS[itemId] || itemId || 'Activité';
+}
+
+function renderNumeracyReportDetail(report) {
+  state.reportSessionId = report.session.id;
+  setReportLearnerHeaders([
+    'Élève','Quantités','Chiffre entendu','Plus / moins','Addition','Argent','Terminé','Réponses'
+  ]);
+  $('report-detail-title').textContent = report.session.group_label;
+  $('report-detail-meta').textContent = `Séance ${report.session.session_number}${report.session.title ? ` · ${report.session.title}` : ''}`;
+  $('report-detail-metrics').innerHTML = [
+    reportMetric('Liste', String(report.rosterCount)),
+    reportMetric('Commencé', `${report.startedCount}/${report.rosterCount}`),
+    reportMetric('Positionnement terminé', `${report.finishedCount}/${report.rosterCount}`),
+    reportMetric('Réponses justes', report.attempts ? `${report.correct}/${report.attempts}` : '—'),
+  ].join('');
+
+  const ids = ['quantity-counting','spoken-number','compare-quantities','concrete-addition','money-amount','numeracy-v1'];
+  const items = (report.items || []).filter((item) => ids.includes(item.item_id));
+  $('report-item-summary').innerHTML = items.map((item) => `
+    <div class="report-item-row">
+      <strong>${esc(numeracyItemLabel(item.item_id))}</strong>
+      <span>${item.completed_count}/${report.rosterCount} terminé</span>
+      <span>${item.attempts ? `${item.correct_answers}/${item.attempts} justes` : 'pas de réponse'}</span>
+      <span>${item.item_id === 'concrete-addition'
+        ? 'situation concrète, pas calcul écrit'
+        : item.item_id === 'money-amount'
+          ? 'reconnaissance du montant présenté'
+          : ''}</span>
+    </div>`).join('');
+
+  $('report-learner-rows').innerHTML = report.learners.map((learner) => `
+    <tr>
+      <td>${esc(learner.first_name)}${learner.last_name ? ` ${esc(learner.last_name)}` : ''}</td>
+      <td>${esc(stageReportLabel(learner, 'quantity-counting'))}</td>
+      <td>${esc(stageReportLabel(learner, 'spoken-number'))}</td>
+      <td>${esc(stageReportLabel(learner, 'compare-quantities'))}</td>
+      <td>${esc(stageReportLabel(learner, 'concrete-addition'))}</td>
+      <td>${esc(stageReportLabel(learner, 'money-amount'))}</td>
+      <td>${learnerItem(learner, 'numeracy-v1').completed ? 'Oui' : '—'}</td>
       <td>${learner.attempts ? `${learner.correct_answers}/${learner.attempts}` : '—'}</td>
     </tr>`).join('');
   show('report-detail', true);
@@ -1541,8 +1632,8 @@ $('show-create-session').addEventListener('click', () => {
 });
 $('explore-subject').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('inspect');
-  if (state.subject?.id === 'ada-francais') {
-    window.open('/?preview=teacher&subject=ada-francais', '_blank', 'noopener');
+  if (['ada-francais', 'ada-maths'].includes(state.subject?.id)) {
+    window.open(`/?preview=teacher&subject=${encodeURIComponent(state.subject.id)}`, '_blank', 'noopener');
   }
 });
 $('corrections-subject').addEventListener('click', () => {
@@ -1574,8 +1665,8 @@ $('session-form').addEventListener('submit', async (event) => {
       formation_id: state.formation.id, subject_id: state.subject.id,
       session_number: Number($('session-number').value), title:$('session-title').value, group_label:$('session-group').value,
     })});
-    $('session-status').textContent = state.subject.id === 'ada-francais'
-      ? 'Séance créée ✓ · ajoute maintenant la liste des élèves dans “Élèves / suivi”.'
+    $('session-status').textContent = ['ada-francais', 'ada-maths'].includes(state.subject.id)
+      ? 'Séance créée ✓ · ajoute maintenant la liste des élèves dans “Suivi en direct”.'
       : 'Séance créée ✓';
     $('session-title').value = ''; $('session-group').value = '';
     await loadSessions();
