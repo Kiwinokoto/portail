@@ -35,6 +35,7 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] Add first oral-comprehension probe without reading: spoken everyday nouns → pictorial choices.
 - [x] Sequence positioning oral-first: identity → oral → own name → first letter → finish.
 - [x] Compact teacher dashboard UI: side-by-side Formation/Matière selectors on desktop, visible selected states, clearer action affordances and compact empty sessions state.
+- [x] Align Portail with the shared LGC semantic palette: violet/indigo identity, green success, orange retry/attention, red important/destructive; semantic colors are never decorative.
 - [ ] Extend positioning further: visual discrimination, sound/letter matching, useful-word reading and writing gestures.
 - [ ] Separate letter-name recognition from true phoneme↔grapheme assessment; do not infer decoding ability from the current first-letter task.
 - [ ] Teacher preview bypasses learner locks.
@@ -62,8 +63,8 @@ This project must stay easy to dismantle or adapt:
 
 Production is live on `portail.lagrandeclasse.fr`; deployment through GitHub Actions → VPS → Docker Compose → Traefik is operational.
 
-The teacher-dashboard UI/UX pass keeps the workflow unchanged while making it substantially denser and clearer: Formation and Matière selectors share one responsive row on desktop, selected cards are explicit, action cards have stronger affordance, empty recent sessions take less space, and automatic page jumps are limited to narrow screens. “Élèves / suivi” stays disabled until the selected internal subject actually has a session instead of sending the teacher to an empty block.
+The portal now follows the shared LGC visual language used by Maths LGC: violet/indigo for identity and navigation, blue/rose for neutral accents, green only for correct/success/completed states, orange for retry/needs-work/attention, and red for important/destructive/system states. Learner wrong-answer feedback is orange rather than red, while successful completion remains green. The teacher dashboard keeps the compact structure introduced in the previous pass.
 
-No backend route, SQLite schema or learner-flow behavior changes are included. `maths_lgc` remains untouched.
+No backend route, SQLite schema or learner-event model change is included in this semantic-color pass.
 
 AgentCtl registration remains pending while RDC/admin broker access is unavailable today. The owner confirmed there is no other active agent or unpushed local work.
