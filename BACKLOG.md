@@ -27,7 +27,7 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] ADA → French positioning V1: signed learner join, own-name recognition and first-letter recognition.
 - [x] Audio-first instructions with browser speech synthesis and visible-text fallback.
 - [x] Persist lightweight learner activity events and expose a teacher-owned session summary.
-- [x] Teacher live view using 4 s polling.
+- [x] Teacher live view using visibility-aware 4 s polling.
 - [x] Remove first-entry typing: teacher-preloaded roster + learner selection with spoken-name support.
 - [x] Minimise public roster identity to first name + optional last-name initial.
 - [x] Add safe roster edit/remove for corrections; names can be fixed at any time, and removal is refused once activity exists so learner work is not destroyed.
@@ -50,11 +50,19 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] Attach new Maths sessions to the authenticated portal teacher identity so sessions survive browser/device changes without relying on locally stored management secrets. Legacy sessions keep their existing management-secret fallback.
 - [x] Build Reports V1 in both teacher surfaces: group synthesis, learner detail, and descriptive cross-group comparison only for comparable sessions.
 - [x] Add portal-issued one-time SSO handoff for Maths LGC using PKCE; no shared teacher token crosses subdomains.
-- [ ] Keep `maths_lgc` production untouched during portal bootstrap.
+- [x] Keep `maths_lgc` production untouched during the initial portal bootstrap; later Maths changes were deliberate convergence work after the portal foundation was live.
 - [x] Model PSR Mathematics as an external teacher-facing subject; portal actions route to Maths LGC `/teacher`, never the student landing page.
 - [x] Reuse the prepared-roster learner identity flow, teacher preview, live follow-up and report collection across ADA French and ADA Mathematics instead of creating a second session system.
-- [ ] Decide how/when existing maths content is imported or linked into the portal.
+- [x] Keep PSR Maths linked as an external interactive course through SSO rather than importing its content into Portail; ordinary-content migration remains a future Moodle decision.
 - [x] Add ADA numeracy foundation V1 separately from CAP-level Maths LGC: concrete quantity, spoken numeral, quantity comparison, concrete addition and written money amount.
+
+## Field validation still pending
+
+- [ ] Manually validate Portail → Maths session recovery on two distinct browsers/devices. Automated ownership tests are green; Kevin has not yet completed the field test.
+- [ ] Validate ADA French V2 on actual learner phones/tablets: TTS, emoji/visual rendering, instruction comprehension and touch targets.
+- [ ] Validate ADA Mathematics V1 on actual learner phones/tablets: quantities, € rendering, TTS and the wording « le plus » / « en tout ».
+- [ ] Run one full teacher loop with real or disposable test learners: roster → QR → learner work → live view → corrections → Reports.
+- [ ] Revisit the prepared-learner multi-device claim question only after observing classroom/device sharing behavior.
 
 ## Moodle migration principle
 
@@ -69,7 +77,7 @@ This project must stay easy to dismantle or adapt:
 
 Production is live on `portail.lagrandeclasse.fr` and `maths.lagrandeclasse.fr`.
 
-Teacher navigation is now harmonised around five shared workspaces: **Séances → Parcours → Corrigés → Suivi en direct → Rapports**. Portail exposes the same vocabulary for internal and external subjects; PSR Maths deep-links each action to the matching Maths workspace. Rapports is intentionally visible but still marked « à venir ».
+Teacher navigation is now harmonised around five shared workspaces: **Séances → Parcours → Corrigés → Suivi en direct → Rapports**. Portail exposes the same vocabulary for internal and external subjects; PSR Maths deep-links each action to the matching Maths workspace. Rapports V1 is active for Maths LGC, ADA French and ADA Mathematics.
 
 The Portail→Maths SSO is in production. New Maths sessions created under SSO are bound to the stable Portail teacher identity and are designed to be listed/reopened after reconnecting on another browser or device. Automated tests cover the ownership boundary, but Kevin has not yet been able to perform the manual two-machine/two-browser validation, so this remains **implemented but not field-validated**. Legacy Maths sessions remain compatible with their existing per-session management secret.
 
