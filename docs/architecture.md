@@ -41,6 +41,18 @@ The initial local catalogue is intentionally tiny:
 
 Later, catalogue ownership can move to Moodle/Roads without changing the teacher-facing Formation → Subject mental model.
 
+## Shared teacher workspaces
+
+Every subject exposes the same five teacher workspaces, whether the implementation is internal to Portail or delegated to an external interactive course:
+
+1. **Séances** — create/reopen a class session and obtain the learner entry point.
+2. **Parcours** — inspect the course freely in teacher/preview mode.
+3. **Corrigés** — control when learner corrections become visible.
+4. **Suivi en direct** — presence, progress, results and indicative pace during a session.
+5. **Rapports** — post-session group synthesis, learner detail and later cross-group comparison.
+
+The labels and order are product-level vocabulary. External subjects such as PSR Maths must preserve them when handing the teacher to their own UI. An unavailable workspace should remain visible with a clear status such as **en cours** or **à venir** rather than disappear.
+
 ## Class sessions
 
 A class session belongs to exactly one teacher, formation and subject. It carries:
