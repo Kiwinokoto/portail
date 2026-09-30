@@ -1,0 +1,1 @@
+"""Portail LGC domain package."""
