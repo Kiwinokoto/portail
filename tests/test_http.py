@@ -130,6 +130,8 @@ class PortalHttpTests(unittest.TestCase):
         )
         self.assertEqual(201, status)
         self.assertEqual("Amina", joined["learner"]["first_name"])
+        self.assertEqual("D.", joined["learner"]["last_initial"])
+        self.assertNotIn("last_name", joined["learner"])
 
         status, _ = self.request(
             "/api/join/events",

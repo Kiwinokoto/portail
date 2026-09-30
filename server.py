@@ -180,7 +180,13 @@ class Handler(BaseHTTPRequestHandler):
                     learner_id=learner_id,
                     first_name="",
                 )
-                return self._json(HTTPStatus.CREATED, {"learner": learner})
+                public_learner = {
+                    "id": learner["id"],
+                    "class_session_id": learner["class_session_id"],
+                    "first_name": learner["first_name"],
+                    "last_initial": f"{learner['last_name'][0].upper()}." if learner["last_name"] else "",
+                }
+                return self._json(HTTPStatus.CREATED, {"learner": public_learner})
             if path == "/api/join/events":
                 session = self._session_from_join_token(str(payload.get("token") or ""))
                 event = STORE.record_activity_event(
