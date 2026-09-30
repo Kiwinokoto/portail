@@ -15,6 +15,12 @@ It provides a lightweight teacher workspace for interactive courses, sessions an
 Navigation is deliberately: **Formation → Subject → Subject pathway**.
 Do not add a CAP/Bac Pro family layer to the main navigation unless a real UX need appears.
 
+## Visual language
+- Identity/navigation: violet/indigo first, with blue and rose as neutral decorative accents.
+- Semantic colors are reserved across the portal and learning activities: **green = correct/success/completed**, **orange = retry/needs work/attention**, **red = important/to remember/objective** (and destructive/system errors where appropriate).
+- Do not use green or orange as decoration. A semantic state must never rely on color alone; pair it with text, iconography or explicit structure.
+- Keep teacher surfaces mostly neutral + violet/indigo so learner-feedback colors keep their meaning.
+
 Initial formations:
 - PSR
 - ADA
