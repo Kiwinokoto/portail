@@ -16,7 +16,7 @@ Une fonctionnalité n'est **pas** considérée validée terrain tant que la dern
 | --- | --- | --- | --- |
 | SSO Portail → Maths sans recopier de jeton | ✅ | ✅ | ⬜ |
 | Un autre professeur ne peut pas ouvrir la séance | ✅ | ✅ | ⬜ |
-| Une séance créée sous SSO réapparaît après reconnexion sur un autre navigateur/appareil | ✅ | ✅ | ⬜ |
+| Une séance créée sous SSO réapparaît après reconnexion sur un autre navigateur/appareil | ✅ | ✅ | ⚠️ revalidation plus tard |
 | Les anciennes séances restent accessibles par leur ancien secret de gestion | ✅ | ✅ | ⬜ |
 
 ### Test manuel recommandé
@@ -29,7 +29,7 @@ Une fonctionnalité n'est **pas** considérée validée terrain tant que la dern
 6. Vérifier que la séance réapparaît et que son suivi s'ouvre.
 7. Si un second compte professeur de test existe, vérifier qu'il ne voit pas/ n'ouvre pas cette séance.
 
-**État actuel : pas encore testé manuellement par Kevin.**
+**État actuel : comportement accepté provisoirement pour ne pas bloquer la suite, sur la base de la couverture automatisée et de l'état déployé. Kevin a différé le retest téléphone / second appareil ; il reste donc à refaire plus tard et ne doit pas être présenté comme une validation terrain directement observée.**
 
 ## 2. ADA Français V2 — appareil élève réel
 
