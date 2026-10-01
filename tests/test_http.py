@@ -113,6 +113,8 @@ class PortalHttpTests(unittest.TestCase):
             practice_js = response.read().decode("utf-8")
         self.assertIn("renderAdaTeacherPreviewHome", practice_js)
         self.assertIn("renderLearningMemoryPractice", practice_js)
+        self.assertIn("renderCaseMemoryPractice", practice_js)
+        self.assertIn("renderSyllableListeningPractice", practice_js)
 
         with urllib.request.urlopen(self.base + "/assets/learning/literacy-basics.json", timeout=3) as response:
             self.assertEqual(200, response.status)
@@ -134,6 +136,34 @@ class PortalHttpTests(unittest.TestCase):
         self.assertEqual(200, status)
         self.assertEqual("ADA", joined["session"]["formation_label"])
         self.assertEqual("Français", joined["session"]["subject_label"])
+        self.assertEqual("positioning-v1", joined["session"]["pathway_id"])
+
+    def test_teacher_can_create_practice_session_and_join_keeps_pathway(self):
+        self.login()
+        status, payload = self.request(
+            "/api/sessions",
+            method="POST",
+            payload={
+                "formation_id": "ada",
+                "subject_id": "ada-francais",
+                "pathway_id": "practice-v1",
+                "session_number": 2,
+                "title": "Cartes et Memory",
+                "group_label": "ADA pratique",
+            },
+        )
+        self.assertEqual(201, status)
+        session = payload["session"]
+        self.assertEqual("practice-v1", session["pathway_id"])
+
+        token = session["join_url"].split("?join=", 1)[1]
+        anonymous = urllib.request.build_opener()
+        status, joined = self.request(
+            "/api/join?token=" + urllib.parse.quote(token),
+            opener=anonymous,
+        )
+        self.assertEqual(200, status)
+        self.assertEqual("practice-v1", joined["session"]["pathway_id"])
 
     def test_teacher_can_close_and_reopen_session_without_losing_history(self):
         session = self.create_ada_session()
