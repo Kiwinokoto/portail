@@ -76,6 +76,28 @@ Possible pair types:
 
 Preview/reveal is allowed because this is practice, not assessment.
 
+## Image sourcing strategy
+
+Do not generate hundreds of bespoke pictures one by one. Keep vocabulary independent from the visual source and curate a local asset library with explicit provenance.
+
+Preferred sourcing order:
+
+1. **Openverse / Wikimedia Commons** for final manual curation of a specific everyday word. Prefer public-domain, CC0 or CC BY assets when possible, and verify the license on each selected work.
+2. **Open Images V7** as a bulk candidate pool when object annotations/bounding boxes can help isolate a clear object. Treat it as discovery material rather than importing a corpus blindly; verify the selected image license.
+3. **ARASAAC** only when a pictogram is pedagogically preferable to a photo and its more restrictive licence is acceptable for the intended distribution.
+
+Avoid **ImageNet** as the default production source because its access/use terms are awkward for redistributable product assets. Avoid **COCO** as the primary source because licensing of the underlying Flickr images must be checked image by image even though COCO annotations have their own open licence.
+
+A future curation tool should:
+
+- accept Portail vocabulary IDs/words as input;
+- gather several candidates per word;
+- reject embedded text, visible watermarks, avoidable brands, cluttered scenes and ambiguous objects;
+- crop around the annotated target when useful;
+- optimize selected assets for local phone-friendly delivery;
+- persist source URL, author, licence, licence URL and crop/modification notes alongside the vocabulary item;
+- never require a runtime third-party image request.
+
 ## Audio and accessibility
 
 - Audio-first instructions with visible text fallback.
