@@ -107,6 +107,10 @@ def candidate_score(candidate: Candidate, concept: dict) -> int:
         score += 4
     if not candidate.review_required:
         score += 12
+    else:
+        score -= 28
+    if license_key in {"by", "by-sa"} and not candidate.creator:
+        score -= 24
     if candidate.provider == "wikimedia":
         score += 3
     if title_relevant(candidate.title, concept):
@@ -240,6 +244,12 @@ def normalize_wikimedia(page: dict, concept_id: str, query: str) -> Candidate | 
         return None
     license_name = meta("LicenseShortName") or meta("UsageTerms")
     license_url = meta("LicenseUrl")
+    creator = meta("Artist") or meta("Credit")
+    license_key = _license_key(license_name)
+    review_required = (
+        license_key not in DEFAULT_LICENSES
+        or (license_key in {"by", "by-sa"} and not creator)
+    )
     return Candidate(
         candidate_id=f"wikimedia:{provider_id}",
         concept_id=concept_id,
@@ -247,7 +257,7 @@ def normalize_wikimedia(page: dict, concept_id: str, query: str) -> Candidate | 
         provider_id=provider_id,
         query=query,
         title=str(page.get("title") or "").removeprefix("File:"),
-        creator=meta("Artist") or meta("Credit"),
+        creator=creator,
         source_name="Wikimedia Commons",
         source_url=str(imageinfo.get("descriptionurl") or imageinfo.get("url") or ""),
         asset_url=asset_url,
@@ -256,7 +266,7 @@ def normalize_wikimedia(page: dict, concept_id: str, query: str) -> Candidate | 
         width=_int_or_none(imageinfo.get("thumbwidth") or imageinfo.get("width")),
         height=_int_or_none(imageinfo.get("thumbheight") or imageinfo.get("height")),
         license_confidence="source-metadata",
-        review_required=_license_key(license_name) not in DEFAULT_LICENSES,
+        review_required=review_required,
     )
 
 
@@ -525,10 +535,15 @@ def write_gallery(workspace: Path, concepts: list[dict], candidates: list[Candid
                 ] if part
             )
             badge = '<span class="suggestion">Suggestion automatique</span>' if suggested else ""
+            review_badge = (
+                '<span class="review-warning">À vérifier : licence / attribution</span>'
+                if candidate.review_required else ""
+            )
             items.append(
-                f"""<label class="candidate{' suggested' if suggested else ''}">
+                f"""<label class="candidate{' suggested' if suggested else ''}{' review-needed' if candidate.review_required else ''}">
 <input type="checkbox" value="{candidate_id}" data-suggested="{'1' if suggested else '0'}">
 {badge}
+{review_badge}
 <img loading="lazy" src="{image_src}" alt="{html.escape(candidate.title or label)}">
 <strong>{html.escape(candidate.title or label)}</strong>
 <small>{html.escape(meta)}</small>
@@ -550,6 +565,8 @@ body{{font-family:system-ui,sans-serif;margin:24px;background:#f7f5fb;color:#241
 .candidate{{position:relative;display:grid;gap:6px;background:white;border:1px solid #ddd5ee;border-radius:14px;padding:10px}}
 .candidate.suggested{{border-color:#8f7ce8}} .candidate:has(input:checked){{outline:3px solid #6b57d9}}
 .suggestion{{font-size:.72rem;font-weight:800;color:#5544ba;background:#eeeaff;border-radius:999px;padding:4px 8px;width:max-content}}
+.review-warning{{font-size:.72rem;font-weight:800;color:#8a4c00;background:#fff0d6;border-radius:999px;padding:4px 8px;width:max-content}}
+.candidate.review-needed{{border-style:dashed}}
 img{{width:100%;height:150px;object-fit:contain;background:#fafafa}}
 small{{color:#655e70}} code{{font-size:.7em;color:#6657aa}}
 .toolbar{{position:sticky;top:0;background:#f7f5fb;padding:12px 0;z-index:2;display:flex;gap:8px;align-items:center;flex-wrap:wrap}}
