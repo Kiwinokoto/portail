@@ -103,7 +103,14 @@ La galerie montre les candidats regroupés par concept, avec source, auteur, lic
 
 Le bouton **Sélectionner les suggestions** coche d’un coup une proposition par concept. Tu peux ensuite corriger uniquement les cas douteux, ajouter plusieurs variantes ou tout décocher. Cliquer **Exporter la sélection** télécharge ensuite un `selection.json`.
 
-La suggestion favorise notamment les métadonnées de licence issues directement de la source, les licences simples, les titres cohérents avec le concept et des dimensions exploitables. Elle pénalise certains indices de faux positifs (poster, logo, diagramme, trophée, etc.). **Ce score n’est ni une validation pédagogique ni une validation juridique.**
+La suggestion favorise notamment les métadonnées de licence issues directement de la source, les licences simples, l’adéquation entre la requête et le titre, et des dimensions exploitables. Elle pénalise certains indices de faux positifs (poster, logo, diagramme, trophée, etc.).
+
+Deux garde-fous sont appliqués avant toute suggestion :
+
+- au moins **3 candidats à métadonnées directes et non douteuses** doivent exister pour le concept ; un petit pool reste volontairement sans suggestion ;
+- une licence BY/BY-SA sans auteur/crédit exploitable est automatiquement marquée **à vérifier** et fortement pénalisée, y compris lorsqu’un ancien workspace l’avait initialement enregistrée comme sûre.
+
+**Ce score n’est ni une validation pédagogique ni une validation juridique.** Il réduit le volume de revue humaine ; il ne remplace pas l’observation de l’image finale.
 
 La même présélection peut être produite en ligne de commande :
 

@@ -24,6 +24,7 @@ WIKIMEDIA_API = "https://commons.wikimedia.org/w/api.php"
 USER_AGENT = "LGC-Portail-ImageBank/1.0 (educational image curation)"
 DEFAULT_LICENSES = {"cc0", "pdm", "by", "by-sa", "public domain"}
 MAX_DOWNLOAD_BYTES = 12 * 1024 * 1024
+MIN_VERIFIED_POOL_FOR_SUGGESTION = 3
 
 
 @dataclass
@@ -80,21 +81,39 @@ def concept_keywords(concept: dict) -> list[str]:
     return keywords
 
 
+def _contains_token(text: str, token: str) -> bool:
+    if len(token) <= 3:
+        return bool(re.search(rf"(?<![a-z0-9]){re.escape(token)}s?(?![a-z0-9])", text))
+    return token in text
+
+
 def title_relevant(title: str, concept: dict) -> bool:
     text = _fold_text(title)
-    for token in concept_keywords(concept):
-        if len(token) <= 3:
-            if re.search(rf"(?<![a-z0-9]){re.escape(token)}s?(?![a-z0-9])", text):
-                return True
-        elif token in text:
-            return True
-    return False
+    return any(_contains_token(text, token) for token in concept_keywords(concept))
+
+
+def query_title_overlap(candidate: Candidate) -> int:
+    title = _fold_text(candidate.title)
+    tokens: list[str] = []
+    for token in re.findall(r"[a-zA-ZÀ-ÿ]+", candidate.query or ""):
+        folded = _fold_text(token)
+        if len(folded) >= 3 and folded not in tokens:
+            tokens.append(folded)
+    return sum(1 for token in tokens if _contains_token(title, token))
 
 
 SUSPICIOUS_TITLE_WORDS = {
     "logo", "poster", "diagram", "map", "chart", "screenshot",
     "painting", "artwork", "trophy", "award", "sign", "banner",
 }
+
+
+def candidate_requires_review(candidate: Candidate) -> bool:
+    license_key = _license_key(candidate.license)
+    return bool(
+        candidate.review_required
+        or (license_key in {"by", "by-sa"} and not candidate.creator)
+    )
 
 
 def candidate_score(candidate: Candidate, concept: dict) -> int:
@@ -105,12 +124,20 @@ def candidate_score(candidate: Candidate, concept: dict) -> int:
         score += 18
     elif candidate.license_confidence == "aggregated-metadata":
         score += 4
-    if not candidate.review_required:
+    if not candidate_requires_review(candidate):
         score += 12
+    else:
+        score -= 28
+    if license_key in {"by", "by-sa"} and not candidate.creator:
+        score -= 24
     if candidate.provider == "wikimedia":
         score += 3
     if title_relevant(candidate.title, concept):
         score += 12
+    overlap = query_title_overlap(candidate)
+    score += overlap * 10
+    if overlap >= 2:
+        score += 4
 
     width = candidate.width or 0
     height = candidate.height or 0
@@ -148,6 +175,13 @@ def recommended_candidates(
             concept_id,
             {"id": concept_id, "labels": {"fr": concept_id, "en": concept_id}},
         )
+        verified_pool = [
+            item for item in items
+            if item.license_confidence == "source-metadata"
+            and not candidate_requires_review(item)
+        ]
+        if len(verified_pool) < MIN_VERIFIED_POOL_FOR_SUGGESTION:
+            continue
         ranked = sorted(
             items,
             key=lambda item: (
@@ -240,6 +274,12 @@ def normalize_wikimedia(page: dict, concept_id: str, query: str) -> Candidate | 
         return None
     license_name = meta("LicenseShortName") or meta("UsageTerms")
     license_url = meta("LicenseUrl")
+    creator = meta("Artist") or meta("Credit")
+    license_key = _license_key(license_name)
+    review_required = (
+        license_key not in DEFAULT_LICENSES
+        or (license_key in {"by", "by-sa"} and not creator)
+    )
     return Candidate(
         candidate_id=f"wikimedia:{provider_id}",
         concept_id=concept_id,
@@ -247,7 +287,7 @@ def normalize_wikimedia(page: dict, concept_id: str, query: str) -> Candidate | 
         provider_id=provider_id,
         query=query,
         title=str(page.get("title") or "").removeprefix("File:"),
-        creator=meta("Artist") or meta("Credit"),
+        creator=creator,
         source_name="Wikimedia Commons",
         source_url=str(imageinfo.get("descriptionurl") or imageinfo.get("url") or ""),
         asset_url=asset_url,
@@ -256,7 +296,7 @@ def normalize_wikimedia(page: dict, concept_id: str, query: str) -> Candidate | 
         width=_int_or_none(imageinfo.get("thumbwidth") or imageinfo.get("width")),
         height=_int_or_none(imageinfo.get("thumbheight") or imageinfo.get("height")),
         license_confidence="source-metadata",
-        review_required=_license_key(license_name) not in DEFAULT_LICENSES,
+        review_required=review_required,
     )
 
 
@@ -525,10 +565,16 @@ def write_gallery(workspace: Path, concepts: list[dict], candidates: list[Candid
                 ] if part
             )
             badge = '<span class="suggestion">Suggestion automatique</span>' if suggested else ""
+            needs_review = candidate_requires_review(candidate)
+            review_badge = (
+                '<span class="review-warning">À vérifier : licence / attribution</span>'
+                if needs_review else ""
+            )
             items.append(
-                f"""<label class="candidate{' suggested' if suggested else ''}">
+                f"""<label class="candidate{' suggested' if suggested else ''}{' review-needed' if needs_review else ''}">
 <input type="checkbox" value="{candidate_id}" data-suggested="{'1' if suggested else '0'}">
 {badge}
+{review_badge}
 <img loading="lazy" src="{image_src}" alt="{html.escape(candidate.title or label)}">
 <strong>{html.escape(candidate.title or label)}</strong>
 <small>{html.escape(meta)}</small>
@@ -550,6 +596,8 @@ body{{font-family:system-ui,sans-serif;margin:24px;background:#f7f5fb;color:#241
 .candidate{{position:relative;display:grid;gap:6px;background:white;border:1px solid #ddd5ee;border-radius:14px;padding:10px}}
 .candidate.suggested{{border-color:#8f7ce8}} .candidate:has(input:checked){{outline:3px solid #6b57d9}}
 .suggestion{{font-size:.72rem;font-weight:800;color:#5544ba;background:#eeeaff;border-radius:999px;padding:4px 8px;width:max-content}}
+.review-warning{{font-size:.72rem;font-weight:800;color:#8a4c00;background:#fff0d6;border-radius:999px;padding:4px 8px;width:max-content}}
+.candidate.review-needed{{border-style:dashed}}
 img{{width:100%;height:150px;object-fit:contain;background:#fafafa}}
 small{{color:#655e70}} code{{font-size:.7em;color:#6657aa}}
 .toolbar{{position:sticky;top:0;background:#f7f5fb;padding:12px 0;z-index:2;display:flex;gap:8px;align-items:center;flex-wrap:wrap}}
