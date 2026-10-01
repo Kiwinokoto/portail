@@ -59,7 +59,22 @@ Une fonctionnalité n'est **pas** considérée validée terrain tant que la dern
 - [ ] Les cinq probes restent présentés séparément ; aucune note globale.
 - [ ] Le professeur retrouve chaque probe séparément dans le rapport.
 
-## 4. Boucle professeur complète ADA
+## 4. ADA Français — entraînement fondamental sur appareil réel
+
+Sur une séance **Entraînement** distincte du positionnement :
+
+- [ ] Le professeur peut choisir « Entraînement — cartes, écoute et Memory » à la création.
+- [ ] Le lien/QR conserve ce parcours après rechargement et sur un autre navigateur.
+- [ ] L’élève préparé arrive sur le menu d’entraînement, jamais sur le positionnement.
+- [ ] Cartes image + mot : illustrations nettes et mots lisibles sur téléphone.
+- [ ] Écoute et retrouve : TTS compréhensible pour les huit mots de V1.
+- [ ] Memory image ↔ mot : 4 paires manipulables sans scroll gênant.
+- [ ] MAJ ↔ min : formes lisibles et non ambiguës.
+- [ ] Syllabes simples : valider la prononciation TTS ; remplacer par audio enregistré si elle est instable.
+- [ ] Les séances d’entraînement n’affichent ni bouton Corrigés ni Rapport de positionnement.
+- [ ] Le Suivi en direct peut montrer qu’un élève a commencé sans transformer ses essais d’entraînement en note.
+
+## 5. Boucle professeur complète ADA
 
 Sur une séance jetable :
 
@@ -77,7 +92,7 @@ Sur une séance jetable :
 - [ ] Ouvrir **Rapports** depuis le parcours puis directement depuis **Mes séances récentes**.
 - [ ] Vérifier synthèse groupe, détail élève et comparaison uniquement entre séances comparables.
 
-## 5. Règle de décision après test
+## 6. Règle de décision après test
 
 Un problème de rendu, de compréhension ou de navigation constaté sur appareil réel doit être corrigé avant d'ajouter des inférences pédagogiques plus fortes.
 
