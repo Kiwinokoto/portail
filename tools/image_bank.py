@@ -81,15 +81,25 @@ def concept_keywords(concept: dict) -> list[str]:
     return keywords
 
 
+def _contains_token(text: str, token: str) -> bool:
+    if len(token) <= 3:
+        return bool(re.search(rf"(?<![a-z0-9]){re.escape(token)}s?(?![a-z0-9])", text))
+    return token in text
+
+
 def title_relevant(title: str, concept: dict) -> bool:
     text = _fold_text(title)
-    for token in concept_keywords(concept):
-        if len(token) <= 3:
-            if re.search(rf"(?<![a-z0-9]){re.escape(token)}s?(?![a-z0-9])", text):
-                return True
-        elif token in text:
-            return True
-    return False
+    return any(_contains_token(text, token) for token in concept_keywords(concept))
+
+
+def query_title_overlap(candidate: Candidate) -> int:
+    title = _fold_text(candidate.title)
+    tokens: list[str] = []
+    for token in re.findall(r"[a-zA-ZÀ-ÿ]+", candidate.query or ""):
+        folded = _fold_text(token)
+        if len(folded) >= 3 and folded not in tokens:
+            tokens.append(folded)
+    return sum(1 for token in tokens if _contains_token(title, token))
 
 
 SUSPICIOUS_TITLE_WORDS = {
@@ -124,6 +134,10 @@ def candidate_score(candidate: Candidate, concept: dict) -> int:
         score += 3
     if title_relevant(candidate.title, concept):
         score += 12
+    overlap = query_title_overlap(candidate)
+    score += overlap * 10
+    if overlap >= 2:
+        score += 4
 
     width = candidate.width or 0
     height = candidate.height or 0
