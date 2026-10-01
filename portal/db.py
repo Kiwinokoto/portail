@@ -79,6 +79,7 @@ class BaseStore:
                     id TEXT PRIMARY KEY, teacher_id INTEGER NOT NULL REFERENCES users(id),
                     formation_id TEXT NOT NULL REFERENCES formations(id),
                     subject_id TEXT NOT NULL REFERENCES subjects(id),
+                    pathway_id TEXT NOT NULL DEFAULT 'default',
                     session_number INTEGER NOT NULL, title TEXT NOT NULL DEFAULT '',
                     group_label TEXT NOT NULL, corrections_unlocked INTEGER NOT NULL DEFAULT 0,
                     active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
@@ -97,6 +98,20 @@ class BaseStore:
                     payload_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL
                 );
                 """
+            )
+            columns = {row["name"] for row in db.execute("PRAGMA table_info(class_sessions)").fetchall()}
+            if "pathway_id" not in columns:
+                db.execute(
+                    "ALTER TABLE class_sessions ADD COLUMN pathway_id TEXT NOT NULL DEFAULT 'default'"
+                )
+            # Backfill pre-pathway sessions without changing any existing learner/history rows.
+            db.execute(
+                "UPDATE class_sessions SET pathway_id='positioning-v1' "
+                "WHERE subject_id='ada-francais' AND pathway_id='default'"
+            )
+            db.execute(
+                "UPDATE class_sessions SET pathway_id='numeracy-v1' "
+                "WHERE subject_id='ada-maths' AND pathway_id='default'"
             )
             self._seed_catalog(db)
 
