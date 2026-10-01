@@ -266,6 +266,7 @@ class Handler(BaseHTTPRequestHandler):
                     session_number=int(payload.get("session_number") or 0),
                     title=payload.get("title") or "",
                     group_label=payload.get("group_label") or "",
+                    pathway_id=payload.get("pathway_id") or "",
                 )
                 return self._json(HTTPStatus.CREATED, {"session": session})
             if path.startswith("/api/sessions/") and path.endswith("/learners"):
