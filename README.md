@@ -56,7 +56,7 @@ Open:
 
 ## Field validation
 
-Automated tests do not replace classroom/device checks. The current manual checklist lives in `docs/field-validation-checklist.md`. In particular, cross-device recovery of Maths sessions is implemented and covered automatically but has **not yet been manually validated by Kevin on two distinct browsers/devices**.
+Automated tests do not replace classroom/device checks. The current manual checklist lives in `docs/field-validation-checklist.md`. Maths SSO ownership/recovery has now been manually validated phone → desktop; the remaining check is that Portail's aggregated **Mes séances récentes** surface exposes the remote Maths session and deep-links to the intended follow-up.
 
 ## Tests
 
