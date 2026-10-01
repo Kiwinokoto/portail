@@ -54,7 +54,9 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] Start with very small sets: the V1 Memory uses four image↔word pairs, listening uses four short rounds, and learning cards are audio-first.
 - [x] Define a content dataset independent from the game engine: `assets/learning/vocabulary.json` feeds cards, listening and Memory; illustrations live in one local SVG sprite.
 - [x] Reuse the useful interaction ideas from `memory` selectively instead of embedding/copying the whole legacy app. The new implementation is Portail-native and preserves Portail identity/session boundaries and semantic feedback rules.
-- [ ] Decide later, after classroom observation, whether practice history should remain device-local, record simple completion/repetition signals, or drive adaptive repetition. Do not feed raw practice attempts into positioning reports by default.
+- [x] Add an explicit ADA French session pathway discriminator so a teacher can create either `positioning-v1` or `practice-v1`; existing ADA French/Maths sessions are backfilled to their historical pathways by an additive SQLite migration.
+- [x] Route `practice-v1` signed learner sessions into the same prepared-roster identity flow and training menu while excluding them from positioning Reports and Corrigés.
+- [ ] Decide later, after classroom observation, whether practice history should remain coarse (started/audio only), record simple completion/repetition signals, or drive adaptive repetition. Do not feed raw practice attempts into positioning reports by default.
 
 ## P2 — maths convergence
 
