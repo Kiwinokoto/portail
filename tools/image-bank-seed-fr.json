@@ -87,7 +87,7 @@
       "id": "pomme",
       "labels": {
         "fr": "POMME",
-        "en": "apple fruit"
+        "en": "apple"
       },
       "queries": [
         "red apple fruit",
@@ -105,7 +105,7 @@
       "id": "banane",
       "labels": {
         "fr": "BANANE",
-        "en": "banana fruit"
+        "en": "banana"
       },
       "queries": [
         "banana fruit",
@@ -139,7 +139,7 @@
       "id": "pain",
       "labels": {
         "fr": "PAIN",
-        "en": "bread loaf"
+        "en": "bread"
       },
       "queries": [
         "bread loaf",
@@ -156,7 +156,7 @@
       "id": "lait",
       "labels": {
         "fr": "LAIT",
-        "en": "milk glass"
+        "en": "milk"
       },
       "queries": [
         "milk glass",
@@ -173,7 +173,7 @@
       "id": "oeuf",
       "labels": {
         "fr": "ŒUF",
-        "en": "chicken egg"
+        "en": "egg"
       },
       "queries": [
         "chicken egg",
@@ -190,7 +190,7 @@
       "id": "riz",
       "labels": {
         "fr": "RIZ",
-        "en": "rice food"
+        "en": "rice"
       },
       "queries": [
         "rice food",
@@ -207,7 +207,7 @@
       "id": "eau",
       "labels": {
         "fr": "EAU",
-        "en": "glass of water"
+        "en": "water"
       },
       "queries": [
         "glass of water",
@@ -223,7 +223,7 @@
       "id": "tasse",
       "labels": {
         "fr": "TASSE",
-        "en": "cup mug"
+        "en": "mug"
       },
       "queries": [
         "coffee mug",
@@ -241,7 +241,7 @@
       "id": "verre",
       "labels": {
         "fr": "VERRE",
-        "en": "drinking glass"
+        "en": "glass"
       },
       "queries": [
         "drinking glass",
@@ -259,7 +259,7 @@
       "id": "assiette",
       "labels": {
         "fr": "ASSIETTE",
-        "en": "plate dish"
+        "en": "plate"
       },
       "queries": [
         "plate dish",
@@ -310,7 +310,7 @@
       "id": "fourchette",
       "labels": {
         "fr": "FOURCHETTE",
-        "en": "fork utensil"
+        "en": "fork"
       },
       "queries": [
         "fork utensil",
@@ -327,7 +327,7 @@
       "id": "couteau",
       "labels": {
         "fr": "COUTEAU",
-        "en": "table knife utensil"
+        "en": "knife"
       },
       "queries": [
         "table knife utensil",
@@ -344,7 +344,7 @@
       "id": "casserole",
       "labels": {
         "fr": "CASSEROLE",
-        "en": "cooking pot"
+        "en": "pot"
       },
       "queries": [
         "cooking pot",
@@ -395,7 +395,7 @@
       "id": "four",
       "labels": {
         "fr": "FOUR",
-        "en": "kitchen oven"
+        "en": "oven"
       },
       "queries": [
         "kitchen oven appliance",
@@ -413,7 +413,7 @@
       "id": "robinet",
       "labels": {
         "fr": "ROBINET",
-        "en": "water faucet"
+        "en": "faucet"
       },
       "queries": [
         "water faucet",
@@ -430,7 +430,7 @@
       "id": "savon",
       "labels": {
         "fr": "SAVON",
-        "en": "bar of soap"
+        "en": "soap"
       },
       "queries": [
         "bar soap",
@@ -484,7 +484,7 @@
       "id": "douche",
       "labels": {
         "fr": "DOUCHE",
-        "en": "shower bathroom"
+        "en": "shower"
       },
       "queries": [
         "shower bathroom",
@@ -500,7 +500,7 @@
       "id": "toilette",
       "labels": {
         "fr": "TOILETTES",
-        "en": "toilet bathroom"
+        "en": "toilet"
       },
       "queries": [
         "toilet bathroom",
@@ -516,7 +516,7 @@
       "id": "cle",
       "labels": {
         "fr": "CLÉ",
-        "en": "house key"
+        "en": "key"
       },
       "queries": [
         "house key",
@@ -549,7 +549,7 @@
       "id": "table",
       "labels": {
         "fr": "TABLE",
-        "en": "table furniture"
+        "en": "table"
       },
       "queries": [
         "table furniture",
@@ -581,7 +581,7 @@
       "id": "lit",
       "labels": {
         "fr": "LIT",
-        "en": "bed furniture"
+        "en": "bed"
       },
       "queries": [
         "bed furniture",
@@ -598,7 +598,7 @@
       "id": "lampe",
       "labels": {
         "fr": "LAMPE",
-        "en": "table lamp"
+        "en": "lamp"
       },
       "queries": [
         "table lamp",
@@ -614,7 +614,7 @@
       "id": "maison",
       "labels": {
         "fr": "MAISON",
-        "en": "house exterior"
+        "en": "house"
       },
       "queries": [
         "house exterior",
@@ -647,7 +647,7 @@
       "id": "stylo",
       "labels": {
         "fr": "STYLO",
-        "en": "pen writing"
+        "en": "pen"
       },
       "queries": [
         "pen writing",
@@ -663,7 +663,7 @@
       "id": "sac",
       "labels": {
         "fr": "SAC",
-        "en": "bag backpack"
+        "en": "bag"
       },
       "queries": [
         "backpack bag",
@@ -680,7 +680,7 @@
       "id": "manteau",
       "labels": {
         "fr": "MANTEAU",
-        "en": "coat clothing"
+        "en": "coat"
       },
       "queries": [
         "coat clothing",
@@ -713,7 +713,7 @@
       "id": "chemise",
       "labels": {
         "fr": "CHEMISE",
-        "en": "shirt clothing"
+        "en": "shirt"
       },
       "queries": [
         "shirt clothing",
@@ -729,7 +729,7 @@
       "id": "pantalon",
       "labels": {
         "fr": "PANTALON",
-        "en": "trousers pants"
+        "en": "trousers"
       },
       "queries": [
         "trousers pants",
@@ -745,7 +745,7 @@
       "id": "telephone",
       "labels": {
         "fr": "TÉLÉPHONE",
-        "en": "smartphone"
+        "en": "phone"
       },
       "queries": [
         "smartphone",
@@ -761,7 +761,7 @@
       "id": "montre",
       "labels": {
         "fr": "MONTRE",
-        "en": "wrist watch"
+        "en": "watch"
       },
       "queries": [
         "wristwatch",
@@ -812,7 +812,7 @@
       "id": "main",
       "labels": {
         "fr": "MAIN",
-        "en": "human hand"
+        "en": "hand"
       },
       "queries": [
         "human hand",
@@ -828,7 +828,7 @@
       "id": "pied",
       "labels": {
         "fr": "PIED",
-        "en": "human foot"
+        "en": "foot"
       },
       "queries": [
         "human foot",
@@ -844,7 +844,7 @@
       "id": "nez",
       "labels": {
         "fr": "NEZ",
-        "en": "human nose"
+        "en": "nose"
       },
       "queries": [
         "human nose",
@@ -860,7 +860,7 @@
       "id": "oeil",
       "labels": {
         "fr": "ŒIL",
-        "en": "human eye"
+        "en": "eye"
       },
       "queries": [
         "human eye",
@@ -876,7 +876,7 @@
       "id": "ecole",
       "labels": {
         "fr": "ÉCOLE",
-        "en": "school building"
+        "en": "school"
       },
       "queries": [
         "school building",
@@ -893,7 +893,7 @@
       "id": "magasin",
       "labels": {
         "fr": "MAGASIN",
-        "en": "shop storefront"
+        "en": "shop"
       },
       "queries": [
         "shop storefront",
@@ -910,7 +910,7 @@
       "id": "pharmacie",
       "labels": {
         "fr": "PHARMACIE",
-        "en": "pharmacy storefront"
+        "en": "pharmacy"
       },
       "queries": [
         "pharmacy storefront",
@@ -927,7 +927,7 @@
       "id": "rue",
       "labels": {
         "fr": "RUE",
-        "en": "city street"
+        "en": "street"
       },
       "queries": [
         "city street",
@@ -943,7 +943,7 @@
       "id": "parc",
       "labels": {
         "fr": "PARC",
-        "en": "public park"
+        "en": "park"
       },
       "queries": [
         "public park",
