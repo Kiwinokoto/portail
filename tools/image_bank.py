@@ -97,6 +97,14 @@ SUSPICIOUS_TITLE_WORDS = {
 }
 
 
+def candidate_requires_review(candidate: Candidate) -> bool:
+    license_key = _license_key(candidate.license)
+    return bool(
+        candidate.review_required
+        or (license_key in {"by", "by-sa"} and not candidate.creator)
+    )
+
+
 def candidate_score(candidate: Candidate, concept: dict) -> int:
     score = 0
     license_key = _license_key(candidate.license)
@@ -105,7 +113,7 @@ def candidate_score(candidate: Candidate, concept: dict) -> int:
         score += 18
     elif candidate.license_confidence == "aggregated-metadata":
         score += 4
-    if not candidate.review_required:
+    if not candidate_requires_review(candidate):
         score += 12
     else:
         score -= 28
@@ -535,12 +543,13 @@ def write_gallery(workspace: Path, concepts: list[dict], candidates: list[Candid
                 ] if part
             )
             badge = '<span class="suggestion">Suggestion automatique</span>' if suggested else ""
+            needs_review = candidate_requires_review(candidate)
             review_badge = (
                 '<span class="review-warning">À vérifier : licence / attribution</span>'
-                if candidate.review_required else ""
+                if needs_review else ""
             )
             items.append(
-                f"""<label class="candidate{' suggested' if suggested else ''}{' review-needed' if candidate.review_required else ''}">
+                f"""<label class="candidate{' suggested' if suggested else ''}{' review-needed' if needs_review else ''}">
 <input type="checkbox" value="{candidate_id}" data-suggested="{'1' if suggested else '0'}">
 {badge}
 {review_badge}
