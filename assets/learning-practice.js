@@ -2,6 +2,7 @@
 
 // ADA foundational practice is deliberately separate from positioning/assessment.
 let learningVocabularyCache = null;
+let literacyBasicsCache = null;
 let practiceRenderId = 0;
 
 function practiceShuffle(items) {
@@ -92,12 +93,26 @@ async function renderLearningPracticeHome() {
             <span>Associer quatre images aux quatre mots correspondants.</span>
             <small>4 paires · aperçu autorisé</small>
           </button>
+          <button id="practice-case" class="practice-module-card" type="button">
+            <span class="practice-module-icon" aria-hidden="true">Aa</span>
+            <strong>Majuscule ↔ minuscule</strong>
+            <span>Associer quatre lettres dans leurs deux formes visuelles.</span>
+            <small>familiarité visuelle · pas décodage</small>
+          </button>
+          <button id="practice-syllables" class="practice-module-card" type="button">
+            <span class="practice-module-icon" aria-hidden="true">ma</span>
+            <strong>Écoute les syllabes</strong>
+            <span>Écouter une syllabe simple puis retrouver sa forme écrite.</span>
+            <small>4 petits tours · entraînement guidé</small>
+          </button>
         </div>
       </div>`;
     $('practice-back-preview').addEventListener('click', renderAdaTeacherPreviewHome);
     $('practice-cards').addEventListener('click', renderLearningCardsPractice);
     $('practice-listen').addEventListener('click', renderLearningListeningPractice);
     $('practice-memory').addEventListener('click', renderLearningMemoryPractice);
+    $('practice-case').addEventListener('click', renderCaseMemoryPractice);
+    $('practice-syllables').addEventListener('click', renderSyllableListeningPractice);
   } catch (error) {
     if (runId !== practiceRenderId) return;
     $('student-session-message').innerHTML = `
@@ -319,6 +334,179 @@ async function renderLearningMemoryPractice() {
         }, match ? 450 : 800);
       });
     });
+  };
+  draw();
+}
+
+async function loadLiteracyBasics() {
+  if (literacyBasicsCache) return literacyBasicsCache;
+  const data = await api('/assets/learning/literacy-basics.json');
+  if (!Array.isArray(data?.letters) || data.letters.length < 4 || !Array.isArray(data?.syllables) || data.syllables.length < 4) {
+    throw new Error("Les données lettres/syllabes ne sont pas disponibles.");
+  }
+  literacyBasicsCache = data;
+  return data;
+}
+
+async function renderCaseMemoryPractice() {
+  const runId = ++practiceRenderId;
+  const basics = await loadLiteracyBasics();
+  if (runId !== practiceRenderId) return;
+  const picked = practiceShuffle(basics.letters).slice(0, 4);
+  const deck = practiceShuffle(picked.flatMap((letter) => [
+    { uid:`${letter}-upper`, pairId:letter, value:letter, kind:'upper', open:false, matched:false, preview:false },
+    { uid:`${letter}-lower`, pairId:letter, value:letter.toLocaleLowerCase('fr-FR'), kind:'lower', open:false, matched:false, preview:false },
+  ]));
+  let opened = [];
+  let locked = false;
+  let moves = 0;
+  let matchedPairs = 0;
+
+  const draw = () => {
+    if (runId !== practiceRenderId) return;
+    $('student-session-message').innerHTML = `
+      <div class="learner-stage practice-stage memory-stage">
+        <div class="practice-heading">
+          <div><p class="eyebrow">Majuscule ↔ minuscule · ${matchedPairs}/4 paires</p><h3>Retrouve les deux formes de la même lettre.</h3></div>
+          <button id="case-back" class="btn ghost" type="button">Activités</button>
+        </div>
+        <div class="memory-toolbar">
+          <span class="pill">Coups : ${moves}</span>
+          <button id="case-preview" class="btn ghost" type="button" ${locked ? 'disabled' : ''}>Aperçu 2 s</button>
+          <button id="case-new" class="btn ghost" type="button">Nouvelle partie</button>
+        </div>
+        <div id="case-memory-grid" class="learning-memory-grid">
+          ${deck.map((card) => {
+            const visible = card.open || card.matched || card.preview;
+            return `<button class="learning-memory-card${card.matched ? ' matched' : ''}${visible ? ' revealed' : ''}" type="button" data-case-card="${esc(card.uid)}" ${card.matched || locked ? 'disabled' : ''} aria-label="${visible ? esc(card.value) : 'Carte cachée'}">
+              <span class="memory-card-hidden" aria-hidden="${visible ? 'true' : 'false'}">?</span>
+              <span class="memory-card-content case-letter" aria-hidden="${visible ? 'false' : 'true'}">${esc(card.value)}</span>
+            </button>`;
+          }).join('')}
+        </div>
+        <p class="learner-help">Cette activité entraîne la reconnaissance visuelle des deux formes. Elle ne prouve pas que la lettre est lue ou décodée.</p>
+        <p class="feedback ${matchedPairs === 4 ? 'good' : ''}" aria-live="polite">${matchedPairs === 4 ? 'Bravo. Les quatre paires sont retrouvées.' : ''}</p>
+      </div>`;
+    $('case-back').addEventListener('click', renderLearningPracticeHome);
+    $('case-new').addEventListener('click', renderCaseMemoryPractice);
+    $('case-preview').addEventListener('click', () => {
+      if (locked) return;
+      locked = true;
+      deck.forEach((card) => { if (!card.matched) card.preview = true; });
+      draw();
+      setTimeout(() => {
+        if (runId !== practiceRenderId) return;
+        deck.forEach((card) => { card.preview = false; });
+        locked = false;
+        draw();
+      }, 2000);
+    });
+    $('case-memory-grid').querySelectorAll('[data-case-card]').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (locked) return;
+        const card = deck.find((item) => item.uid === button.dataset.caseCard);
+        if (!card || card.matched || card.open) return;
+        card.open = true;
+        opened.push(card);
+        if (opened.length < 2) return draw();
+        moves += 1;
+        locked = true;
+        const [first, second] = opened;
+        const match = first.pairId === second.pairId && first.kind !== second.kind;
+        draw();
+        setTimeout(() => {
+          if (runId !== practiceRenderId) return;
+          if (match) {
+            first.matched = true;
+            second.matched = true;
+            matchedPairs += 1;
+          } else {
+            first.open = false;
+            second.open = false;
+          }
+          opened = [];
+          locked = false;
+          draw();
+        }, match ? 400 : 750);
+      });
+    });
+  };
+  draw();
+}
+
+async function renderSyllableListeningPractice() {
+  const runId = ++practiceRenderId;
+  const basics = await loadLiteracyBasics();
+  if (runId !== practiceRenderId) return;
+  const rounds = practiceShuffle(basics.syllables).slice(0, 4);
+  let roundIndex = 0;
+
+  const draw = () => {
+    if (runId !== practiceRenderId) return;
+    if (roundIndex >= rounds.length) {
+      $('student-session-message').innerHTML = `
+        <div class="learner-stage practice-stage">
+          <div class="finish-card">
+            <p class="eyebrow">Syllabes simples</p>
+            <h3>Série terminée.</h3>
+            <p class="muted">On peut recommencer avec d’autres syllabes. Ce résultat n’entre pas dans le positionnement.</p>
+          </div>
+          <div class="practice-actions">
+            <button id="syllable-again" class="btn primary" type="button">Nouvelle série</button>
+            <button id="syllable-back" class="btn ghost" type="button">Activités</button>
+          </div>
+        </div>`;
+      $('syllable-again').addEventListener('click', renderSyllableListeningPractice);
+      $('syllable-back').addEventListener('click', renderLearningPracticeHome);
+      return;
+    }
+    const target = rounds[roundIndex];
+    const choices = practiceShuffle([
+      target,
+      ...practiceShuffle(basics.syllables.filter((value) => value !== target)).slice(0, 3),
+    ]);
+    $('student-session-message').innerHTML = `
+      <div class="learner-stage practice-stage">
+        <div class="practice-heading">
+          <div><p class="eyebrow">Syllabes simples · ${roundIndex + 1}/${rounds.length}</p><h3>Écoute puis retrouve la syllabe.</h3></div>
+          <button id="syllable-back" class="btn ghost" type="button">Activités</button>
+        </div>
+        <div id="syllable-audio"></div>
+        <div id="syllable-choices" class="word-choice-grid learning-listen-grid"></div>
+        <p id="syllable-feedback" class="feedback" aria-live="assertive"></p>
+        <p class="learner-help">La synthèse vocale sert ici de guide d’entraînement. Une future sonothèque enregistrée pourra la remplacer sans changer le jeu.</p>
+      </div>`;
+    $('syllable-audio').appendChild(audioButton('Écouter', target, 'practice-syllable'));
+    const grid = $('syllable-choices');
+    choices.forEach((choice) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'word-choice-button learning-listen-choice syllable-choice';
+      button.textContent = choice.toLocaleUpperCase('fr-FR');
+      button.addEventListener('click', () => {
+        grid.querySelectorAll('.word-choice-button').forEach((node) => node.classList.remove('bad'));
+        if (choice === target) {
+          button.classList.add('good');
+          grid.querySelectorAll('.word-choice-button').forEach((node) => { node.disabled = true; });
+          $('syllable-feedback').className = 'feedback good';
+          $('syllable-feedback').textContent = `Oui. ${target.toLocaleUpperCase('fr-FR')}.`;
+          speakFrench(target);
+          setTimeout(() => {
+            if (runId !== practiceRenderId) return;
+            roundIndex += 1;
+            draw();
+          }, 700);
+        } else {
+          button.classList.add('bad');
+          $('syllable-feedback').className = 'feedback bad';
+          $('syllable-feedback').textContent = 'Réécoute et essaie encore.';
+          speakFrench(target);
+        }
+      });
+      grid.appendChild(button);
+    });
+    $('syllable-back').addEventListener('click', renderLearningPracticeHome);
+    speakFrench(target);
   };
   draw();
 }
