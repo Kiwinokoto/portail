@@ -125,6 +125,92 @@ class PortalHttpTests(unittest.TestCase):
         self.assertEqual(len(basics["syllables"]), len(set(basics["syllables"])))
         self.assertTrue(all(value == value.upper() for value in basics["letters"]))
 
+    def test_fetch_maths_sessions_normalizes_external_contract(self):
+        captured = {}
+        original_urlopen = server.urllib.request.urlopen
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self):
+                return json.dumps({
+                    "sessions": [{
+                        "class_session_id": "external_session_12345",
+                        "session_number": 111,
+                        "session_title": "Test",
+                        "group_label": "Test",
+                        "active": True,
+                        "corrections_unlocked": False,
+                        "created_at": "2026-10-01T12:02:27+00:00",
+                        "updated_at": "2026-10-01T12:02:27+00:00",
+                    }]
+                }).encode()
+
+        def fake_urlopen(request, timeout=0):
+            captured["url"] = request.full_url
+            captured["payload"] = json.loads(request.data.decode())
+            captured["timeout"] = timeout
+            return FakeResponse()
+
+        server.urllib.request.urlopen = fake_urlopen
+        try:
+            sessions = server.fetch_maths_sessions_for_user(self.admin)
+        finally:
+            server.urllib.request.urlopen = original_urlopen
+
+        self.assertEqual(1, len(sessions))
+        session = sessions[0]
+        self.assertEqual("maths:external_session_12345", session["id"])
+        self.assertEqual("psr-maths", session["subject_id"])
+        self.assertEqual("Mathématiques", session["subject_label"])
+        self.assertEqual("Test", session["group_label"])
+        self.assertIn("tab=live", session["manage_url"])
+        self.assertIn("session=external_session_12345", session["manage_url"])
+        self.assertTrue(captured["url"].endswith("/api/portal/session-summaries"))
+        self.assertTrue(captured["payload"]["code"])
+        self.assertGreaterEqual(len(captured["payload"]["verifier"]), 43)
+        self.assertEqual(5, captured["timeout"])
+
+    def test_external_maths_sessions_endpoint_uses_logged_in_identity(self):
+        self.login()
+        original_fetch = server.fetch_maths_sessions_for_user
+        seen = {}
+
+        def fake_fetch(user):
+            seen["user_id"] = user["id"]
+            return [{
+                "id": "maths:external_session_12345",
+                "external_id": "external_session_12345",
+                "source": "maths",
+                "formation_id": "psr",
+                "formation_label": "PSR",
+                "subject_id": "psr-maths",
+                "subject_label": "Mathématiques",
+                "session_number": 111,
+                "title": "Test",
+                "group_label": "Test",
+                "active": True,
+                "corrections_unlocked": False,
+                "created_at": "2026-10-01T12:02:27+00:00",
+                "updated_at": "2026-10-01T12:02:27+00:00",
+                "manage_url": "https://maths.lagrandeclasse.fr/api/sso/start?tab=live&session=external_session_12345",
+            }]
+
+        server.fetch_maths_sessions_for_user = fake_fetch
+        try:
+            status, payload = self.request("/api/external/maths/sessions")
+        finally:
+            server.fetch_maths_sessions_for_user = original_fetch
+
+        self.assertEqual(200, status)
+        self.assertEqual(self.admin["id"], seen["user_id"])
+        self.assertEqual("maths:external_session_12345", payload["sessions"][0]["id"])
+        self.assertEqual("psr-maths", payload["sessions"][0]["subject_id"])
+
     def test_create_session_and_public_join_resolution(self):
         session = self.create_ada_session()
         token = session["join_url"].split("?join=", 1)[1]
