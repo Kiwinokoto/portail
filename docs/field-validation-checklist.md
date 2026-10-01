@@ -1,6 +1,6 @@
 # Validation terrain — Portail LGC / Maths LGC
 
-État au 30 septembre 2026.
+État au 1 octobre 2026.
 
 Ce document sépare volontairement trois niveaux :
 
@@ -16,7 +16,7 @@ Une fonctionnalité n'est **pas** considérée validée terrain tant que la dern
 | --- | --- | --- | --- |
 | SSO Portail → Maths sans recopier de jeton | ✅ | ✅ | ⬜ |
 | Un autre professeur ne peut pas ouvrir la séance | ✅ | ✅ | ⬜ |
-| Une séance créée sous SSO réapparaît après reconnexion sur un autre navigateur/appareil | ✅ | ✅ | ⚠️ revalidation plus tard |
+| Une séance créée sous SSO réapparaît après reconnexion sur un autre navigateur/appareil | ✅ | ✅ | ✅ téléphone → desktop (01/10) |
 | Les anciennes séances restent accessibles par leur ancien secret de gestion | ✅ | ✅ | ⬜ |
 
 ### Test manuel recommandé
@@ -27,9 +27,10 @@ Une fonctionnalité n'est **pas** considérée validée terrain tant que la dern
 4. Dans un navigateur B ou un autre appareil, sans copier le lien de gestion, se connecter au même compte Portail.
 5. Ouvrir PSR → Mathématiques.
 6. Vérifier que la séance réapparaît et que son suivi s'ouvre.
-7. Si un second compte professeur de test existe, vérifier qu'il ne voit pas/ n'ouvre pas cette séance.
+7. Revenir au Portail : vérifier que la séance Maths apparaît dans **Mes séances récentes** et que **Ouvrir le suivi** ouvre cette séance précise.
+8. Si un second compte professeur de test existe, vérifier qu'il ne voit pas/ n'ouvre pas cette séance.
 
-**État actuel : comportement accepté provisoirement pour ne pas bloquer la suite, sur la base de la couverture automatisée et de l'état déployé. Kevin a différé le retest téléphone / second appareil ; il reste donc à refaire plus tard et ne doit pas être présenté comme une validation terrain directement observée.**
+**État actuel : mécanisme d’identité/ownership validé manuellement le 1 octobre. Kevin a créé une séance Maths depuis son téléphone puis l’a retrouvée sur ordinateur avec le même compte Portail. Reste à revalider l’UX du niveau supérieur : la séance doit maintenant remonter directement dans « Mes séances récentes » du Portail sans devoir entrer d’abord dans Maths.**
 
 ## 2. ADA Français V2 — appareil élève réel
 
