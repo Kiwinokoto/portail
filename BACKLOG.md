@@ -47,13 +47,13 @@ Do not add a visible CAP/Bac Pro family level for now.
 ## P1b — foundational practice / learning cards
 
 - [x] Review the existing private `La-Grande-Classe-R-D/memory` prototype as a reuse candidate. It already contains a small matching engine, TTS/audio fallback, responsive cards and offline/service-worker foundations, but its content/data layer is incomplete and it has no meaningful automated tests.
-- [ ] Add a distinct **practice** mode for fragile readers, separate from ADA positioning/assessment. Practice retries must not be interpreted as diagnostic evidence or collapsed into a literacy score.
+- [x] Add a distinct **practice preview** for fragile readers, separate from ADA positioning/assessment. Teacher preview now exposes learning cards, listening practice and a four-pair Memory with no learner writes. Practice retries are not diagnostic evidence and are not collapsed into a literacy score.
 - [ ] First reusable activity families: visual case matching (MAJ ↔ min), heard sound/letter or syllable ↔ written form, image ↔ useful word, and a small Memory-style matching game.
-- [ ] Build a shared **everyday vocabulary pool** for ADA rather than splitting basic words by vocational pathway. It may draw from PSR, AEPE and other contexts when the words are genuinely common/useful in daily life; keep vocational tags only as metadata for later filtering.
+- [x] Build a first shared **everyday vocabulary pool** for ADA rather than splitting basic words by vocational pathway. V1 contains eight local illustrated items; PSR/AEPE/context tags are metadata only.
 - [ ] Keep the visual language adult and non-infantilising. Learning-card / Montessori-inspired image+word presentation is a reference pattern, not a claim that the module implements a full Montessori method.
-- [ ] Start with very small sets (for example 3–4 pairs) and audio-first instructions; increase set size/difficulty progressively rather than defaulting fragile learners to 9+ pairs.
-- [ ] Define a content dataset independent from the game engine so the same vocabulary can be reused by flash cards, listening exercises, image↔word matching and Memory without duplicating content.
-- [ ] Reuse the useful parts of `memory` selectively instead of embedding/copying the whole legacy app into Portail. Preserve Portail identity/session boundaries and semantic feedback rules.
+- [x] Start with very small sets: the V1 Memory uses four image↔word pairs, listening uses four short rounds, and learning cards are audio-first.
+- [x] Define a content dataset independent from the game engine: `assets/learning/vocabulary.json` feeds cards, listening and Memory; illustrations live in one local SVG sprite.
+- [x] Reuse the useful interaction ideas from `memory` selectively instead of embedding/copying the whole legacy app. The new implementation is Portail-native and preserves Portail identity/session boundaries and semantic feedback rules.
 - [ ] Decide later, after classroom observation, whether practice history should remain device-local, record simple completion/repetition signals, or drive adaptive repetition. Do not feed raw practice attempts into positioning reports by default.
 
 ## P2 — maths convergence
