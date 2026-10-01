@@ -25,8 +25,9 @@
         "en": "motorcycle"
       },
       "queries": [
-        "motorcycle",
-        "MOTO"
+        "motorcycle side view",
+        "motorbike",
+        "motorcycle"
       ],
       "tags": [
         "everyday",
@@ -89,8 +90,9 @@
         "en": "apple fruit"
       },
       "queries": [
-        "apple fruit",
-        "POMME"
+        "red apple fruit",
+        "green apple fruit",
+        "apple"
       ],
       "tags": [
         "everyday",
@@ -224,8 +226,9 @@
         "en": "cup mug"
       },
       "queries": [
-        "cup mug",
-        "TASSE"
+        "coffee mug",
+        "ceramic mug",
+        "tasse"
       ],
       "tags": [
         "everyday",
@@ -242,7 +245,8 @@
       },
       "queries": [
         "drinking glass",
-        "VERRE"
+        "water glass",
+        "verre"
       ],
       "tags": [
         "everyday",
@@ -394,8 +398,9 @@
         "en": "kitchen oven"
       },
       "queries": [
-        "kitchen oven",
-        "FOUR"
+        "kitchen oven appliance",
+        "oven kitchen",
+        "four"
       ],
       "tags": [
         "everyday",
@@ -428,8 +433,9 @@
         "en": "bar of soap"
       },
       "queries": [
-        "bar of soap",
-        "SAVON"
+        "bar soap",
+        "soap bar",
+        "savon"
       ],
       "tags": [
         "everyday",
@@ -514,7 +520,8 @@
       },
       "queries": [
         "house key",
-        "CLÉ"
+        "metal key",
+        "clé"
       ],
       "tags": [
         "everyday",
@@ -659,8 +666,9 @@
         "en": "bag backpack"
       },
       "queries": [
-        "bag backpack",
-        "SAC"
+        "backpack bag",
+        "school backpack",
+        "sac"
       ],
       "tags": [
         "everyday",
@@ -756,8 +764,9 @@
         "en": "wrist watch"
       },
       "queries": [
+        "wristwatch",
         "wrist watch",
-        "MONTRE"
+        "montre"
       ],
       "tags": [
         "everyday",
@@ -888,7 +897,8 @@
       },
       "queries": [
         "shop storefront",
-        "MAGASIN"
+        "grocery store exterior",
+        "magasin"
       ],
       "tags": [
         "everyday",
@@ -904,7 +914,8 @@
       },
       "queries": [
         "pharmacy storefront",
-        "PHARMACIE"
+        "pharmacy building",
+        "pharmacie"
       ],
       "tags": [
         "everyday",
