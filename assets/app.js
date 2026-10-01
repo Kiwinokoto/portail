@@ -52,8 +52,13 @@ function teacherPreviewSubject() {
 
 function configureLearnerPath(session) {
   if (session.subject_id === 'ada-francais') {
-    state.positioningItemId = 'positioning-v1';
-    state.learnerStart = () => renderOralComprehensionActivity(0);
+    if (session.pathway_id === 'practice-v1') {
+      state.positioningItemId = 'practice-v1';
+      state.learnerStart = renderLearningPracticeHome;
+    } else {
+      state.positioningItemId = 'positioning-v1';
+      state.learnerStart = () => renderOralComprehensionActivity(0);
+    }
     return true;
   }
   if (session.subject_id === 'ada-maths') {
@@ -997,14 +1002,54 @@ function setWorkspaceAction(id, { disabled = false, description = '', status = '
   }
 }
 
+function sessionPathwayLabel(session) {
+  if (session.subject_id === 'ada-francais' && session.pathway_id === 'practice-v1') return 'Entraînement';
+  if (session.subject_id === 'ada-francais') return 'Positionnement';
+  if (session.subject_id === 'ada-maths') return 'Numératie';
+  return '';
+}
+
+function sessionSupportsCorrections(session) {
+  return !(session.subject_id === 'ada-francais' && session.pathway_id === 'practice-v1');
+}
+
+function sessionSupportsReports(session) {
+  return !(session.subject_id === 'ada-francais' && session.pathway_id === 'practice-v1');
+}
+
+function configureSessionPathwayField() {
+  const field = $('session-pathway-field');
+  const select = $('session-pathway');
+  const help = $('session-pathway-help');
+  if (state.subject?.id === 'ada-francais') {
+    select.innerHTML = `
+      <option value="positioning-v1">Positionnement — observer les acquis</option>
+      <option value="practice-v1">Entraînement — cartes, écoute et Memory</option>`;
+    help.textContent = 'Le positionnement alimente les rapports. L’entraînement reste séparé et sans note.';
+    show('session-pathway-field', true);
+    return;
+  }
+  if (state.subject?.id === 'ada-maths') {
+    select.innerHTML = '<option value="numeracy-v1">Numératie fondamentale</option>';
+  } else {
+    select.innerHTML = '<option value="default">Parcours par défaut</option>';
+  }
+  show('session-pathway-field', false);
+}
+
 function updateWorkspaceActions() {
   if (!state.subject) return;
   const internal = state.subject.mode === 'internal';
   const external = state.subject.mode === 'external';
   const planned = state.subject.mode === 'planned';
   const subjectSessions = state.sessions.filter((session) => session.subject_id === state.subject.id);
+  const correctionSessions = subjectSessions.filter(sessionSupportsCorrections);
+  const reportSessions = subjectSessions.filter(sessionSupportsReports);
   const hasSessions = subjectSessions.length > 0;
   const hasActiveSessions = subjectSessions.some((session) => session.active);
+  const hasCorrectionSessions = correctionSessions.length > 0;
+  const hasActiveCorrectionSessions = correctionSessions.some((session) => session.active);
+  const hasReportSessions = reportSessions.length > 0;
   const hasInternalPreview = ['ada-francais', 'ada-maths'].includes(state.subject.id);
 
   if (planned) {
@@ -1031,16 +1076,18 @@ function updateWorkspaceActions() {
     upcoming: internal && !hasInternalPreview
   });
   setWorkspaceAction('corrections-subject', {
-    disabled: internal && !hasActiveSessions,
+    disabled: internal && !hasActiveCorrectionSessions,
     description: external
       ? 'Verrouiller ou ouvrir les corrigés au moment choisi.'
-      : hasActiveSessions
+      : hasActiveCorrectionSessions
         ? 'Verrouiller ou ouvrir les corrigés séance par séance.'
-        : hasSessions
-          ? 'Réouvre une séance pour modifier ses corrigés.'
-          : 'Crée d’abord une séance pour piloter les corrigés.',
-    status: external || hasActiveSessions ? 'disponible' : hasSessions ? 'séance fermée' : 'après création',
-    upcoming: internal && !hasActiveSessions
+        : hasCorrectionSessions
+          ? 'Réouvre une séance de positionnement pour modifier ses corrigés.'
+          : hasSessions
+            ? 'Les séances d’entraînement n’ont pas de corrigés.'
+            : 'Crée d’abord une séance de positionnement pour piloter les corrigés.',
+    status: external || hasActiveCorrectionSessions ? 'disponible' : hasCorrectionSessions ? 'séance fermée' : hasSessions ? 'non applicable' : 'après création',
+    upcoming: internal && !hasActiveCorrectionSessions
   });
   setWorkspaceAction('show-live-sessions', {
     disabled: internal && !hasActiveSessions,
@@ -1055,10 +1102,12 @@ function updateWorkspaceActions() {
     upcoming: internal && !hasActiveSessions
   });
   setWorkspaceAction('reports-subject', {
-    disabled: internal && !hasSessions,
-    description: 'Synthèse du groupe, détail individuel et comparaison descriptive.',
-    status: external || hasSessions ? 'V1' : 'après création',
-    upcoming: internal && !hasSessions
+    disabled: internal && !hasReportSessions,
+    description: internal && hasSessions && !hasReportSessions
+      ? 'Les entraînements sont volontairement exclus des rapports de positionnement.'
+      : 'Synthèse du groupe, détail individuel et comparaison descriptive.',
+    status: external || hasReportSessions ? 'V1' : hasSessions ? 'positionnement uniquement' : 'après création',
+    upcoming: internal && !hasReportSessions
   });
 }
 
@@ -1100,6 +1149,7 @@ function selectSubject(id) {
 
   show('subject-workspace', true);
   show('session-form', false);
+  configureSessionPathwayField();
   updateWorkspaceActions();
   revealOnNarrowScreen('subject-workspace');
 }
@@ -1124,20 +1174,24 @@ async function loadSessions() {
 
   $('sessions-list').innerHTML = sessions.map((s) => {
     const internalAda = ['ada-francais', 'ada-maths'].includes(s.subject_id);
+    const supportsCorrections = internalAda && sessionSupportsCorrections(s);
+    const supportsReports = internalAda && sessionSupportsReports(s);
+    const pathwayLabel = sessionPathwayLabel(s);
     const lifecycleLabel = s.active ? 'ouverte' : 'fermée';
     return `
     <article class="session-row${s.active ? '' : ' is-closed'}">
       <div class="meta">
         <div class="session-title-line">
           <strong>${esc(s.formation_label)} · ${esc(s.subject_label)} · Séance ${s.session_number}${s.title ? ` · ${esc(s.title)}` : ''}</strong>
+          ${pathwayLabel ? `<span class="pill">${esc(pathwayLabel)}</span>` : ''}
           <span class="pill session-state ${s.active ? 'active' : 'closed'}">Séance ${lifecycleLabel}</span>
         </div>
         <small>${esc(s.group_label)} · créée ${new Date(s.created_at).toLocaleString('fr-FR')}${s.active ? '' : ' · le lien élève est désactivé'}</small>
       </div>
       <div class="session-actions">
-        ${internalAda && s.active ? `<button class="btn primary" data-live="${esc(s.id)}">Suivi en direct</button>
-        <button class="btn secondary" data-corrections="${esc(s.id)}" data-unlocked="${s.corrections_unlocked ? '1' : '0'}">Corrigés : ${s.corrections_unlocked ? 'ouverts' : 'verrouillés'}</button>` : ''}
-        ${internalAda ? `<button class="btn secondary" data-report="${esc(s.id)}">Rapport</button>` : ''}
+        ${internalAda && s.active ? `<button class="btn primary" data-live="${esc(s.id)}">Suivi en direct</button>` : ''}
+        ${supportsCorrections && s.active ? `<button class="btn secondary" data-corrections="${esc(s.id)}" data-unlocked="${s.corrections_unlocked ? '1' : '0'}">Corrigés : ${s.corrections_unlocked ? 'ouverts' : 'verrouillés'}</button>` : ''}
+        ${supportsReports ? `<button class="btn secondary" data-report="${esc(s.id)}">Rapport</button>` : ''}
         ${s.active ? `<button class="btn ghost" data-copy="${esc(s.join_url)}">Copier le lien élève</button>
         <a class="btn secondary" href="/api/sessions/${encodeURIComponent(s.id)}/qr.svg" target="_blank" rel="noopener">QR</a>` : ''}
         <button class="btn ghost ${s.active ? 'danger' : ''}" data-session-active="${esc(s.id)}" data-active="${s.active ? '1' : '0'}">${s.active ? 'Fermer la séance' : 'Réouvrir'}</button>
@@ -1469,7 +1523,7 @@ async function openReports(preferredSessionId = '') {
 
 async function openSessionReport(sessionId) {
   const session = state.sessions.find((item) => item.id === sessionId);
-  if (!session || !['ada-francais', 'ada-maths'].includes(session.subject_id)) return;
+  if (!session || !['ada-francais', 'ada-maths'].includes(session.subject_id) || !sessionSupportsReports(session)) return;
   if (state.formation?.id !== session.formation_id) selectFormation(session.formation_id);
   if (state.subject?.id !== session.subject_id) selectSubject(session.subject_id);
   await openReports(sessionId);
@@ -1486,7 +1540,9 @@ async function openReportCollection(buildReport, renderDetail, preferredSessionI
   state.reportSessionId = null;
   $('reports-dialog').showModal();
 
-  const sessions = state.sessions.filter((session) => session.subject_id === state.subject.id);
+  const sessions = state.sessions.filter(
+    (session) => session.subject_id === state.subject.id && sessionSupportsReports(session)
+  );
   if (!sessions.length) {
     $('reports-status').textContent = 'Crée une première séance pour produire un rapport.';
     return;
@@ -1756,6 +1812,7 @@ $('session-form').addEventListener('submit', async (event) => {
   try {
     await api('/api/sessions', { method:'POST', body:JSON.stringify({
       formation_id: state.formation.id, subject_id: state.subject.id,
+      pathway_id: $('session-pathway').value,
       session_number: Number($('session-number').value), title:$('session-title').value, group_label:$('session-group').value,
     })});
     $('session-status').textContent = ['ada-francais', 'ada-maths'].includes(state.subject.id)
