@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "purpose": "ADA foundational practice vocabulary. Everyday words may carry PSR/AEPE tags without being siloed by training.",
+  "items": [
+    {
+      "id": "bus",
+      "word": "BUS",
+      "spoken": "bus",
+      "visual": "bus",
+      "tags": [
+        "everyday",
+        "transport"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "pomme",
+      "word": "POMME",
+      "spoken": "pomme",
+      "visual": "pomme",
+      "tags": [
+        "everyday",
+        "food",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "tasse",
+      "word": "TASSE",
+      "spoken": "tasse",
+      "visual": "tasse",
+      "tags": [
+        "everyday",
+        "kitchen",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "savon",
+      "word": "SAVON",
+      "spoken": "savon",
+      "visual": "savon",
+      "tags": [
+        "everyday",
+        "hygiene",
+        "psr",
+        "aepe"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "cle",
+      "word": "CLÉ",
+      "spoken": "clé",
+      "visual": "cle",
+      "tags": [
+        "everyday",
+        "home"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "porte",
+      "word": "PORTE",
+      "spoken": "porte",
+      "visual": "porte",
+      "tags": [
+        "everyday",
+        "home"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "verre",
+      "word": "VERRE",
+      "spoken": "verre",
+      "visual": "verre",
+      "tags": [
+        "everyday",
+        "kitchen",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "manteau",
+      "word": "MANTEAU",
+      "spoken": "manteau",
+      "visual": "manteau",
+      "tags": [
+        "everyday",
+        "clothing",
+        "aepe"
+      ],
+      "difficulty": 1
+    }
+  ]
+}

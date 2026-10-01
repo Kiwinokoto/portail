@@ -100,7 +100,8 @@ function showAdaTeacherPreview(subjectId) {
   show('teacher-preview-banner', true);
   $('student-session-title').textContent = `ADA · ${state.joinSession.subject_label} — aperçu professeur`;
   $('student-session-context').textContent = 'Navigation libre · aucune donnée élève enregistrée';
-  state.learnerStart();
+  if (isMaths) state.learnerStart();
+  else renderAdaTeacherPreviewHome();
 }
 
 async function boot() {

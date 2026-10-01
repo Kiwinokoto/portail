@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <symbol id="bus" viewBox="0 0 160 120">
+    <rect x="22" y="28" width="116" height="64" rx="12" fill="#eef0ff" stroke="#453d75" stroke-width="5"/>
+    <rect x="32" y="38" width="34" height="24" rx="3" fill="#ffffff" stroke="#6b63a0" stroke-width="3"/>
+    <rect x="73" y="38" width="34" height="24" rx="3" fill="#ffffff" stroke="#6b63a0" stroke-width="3"/>
+    <rect x="114" y="38" width="14" height="42" rx="2" fill="#ffffff" stroke="#6b63a0" stroke-width="3"/>
+    <circle cx="48" cy="94" r="10" fill="#453d75"/><circle cx="116" cy="94" r="10" fill="#453d75"/>
+  </symbol>
+  <symbol id="pomme" viewBox="0 0 160 120">
+    <path d="M80 39c-13-18-33-8-37 12-7 32 17 52 37 52s44-20 37-52c-4-20-24-30-37-12Z" fill="#f1effb" stroke="#453d75" stroke-width="5"/>
+    <path d="M80 40c0-14 7-24 18-29" fill="none" stroke="#453d75" stroke-width="5" stroke-linecap="round"/>
+    <path d="M90 21c11-6 22-3 27 5-12 5-21 4-27-5Z" fill="#e5e9ff" stroke="#6b63a0" stroke-width="3"/>
+  </symbol>
+  <symbol id="tasse" viewBox="0 0 160 120">
+    <path d="M38 35h72v46c0 16-13 28-28 28H66c-16 0-28-12-28-28V35Z" fill="#f5f3ff" stroke="#453d75" stroke-width="5"/>
+    <path d="M110 47h10c16 0 20 24 3 31h-13" fill="none" stroke="#453d75" stroke-width="5"/>
+    <path d="M57 22c-6 7 5 10 0 17M78 18c-6 7 5 10 0 17" fill="none" stroke="#8b83b9" stroke-width="4" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="savon" viewBox="0 0 160 120">
+    <rect x="30" y="42" width="100" height="58" rx="24" fill="#eef4ff" stroke="#453d75" stroke-width="5"/>
+    <ellipse cx="80" cy="67" rx="30" ry="11" fill="none" stroke="#8b83b9" stroke-width="3"/>
+    <circle cx="118" cy="27" r="10" fill="#ffffff" stroke="#6b63a0" stroke-width="3"/>
+    <circle cx="136" cy="18" r="5" fill="#ffffff" stroke="#6b63a0" stroke-width="2"/>
+  </symbol>
+  <symbol id="cle" viewBox="0 0 160 120">
+    <circle cx="48" cy="55" r="25" fill="#f5f3ff" stroke="#453d75" stroke-width="6"/>
+    <circle cx="48" cy="55" r="9" fill="#ffffff" stroke="#6b63a0" stroke-width="4"/>
+    <path d="M71 69l50 34M103 91l10-15M116 100l10-14" fill="none" stroke="#453d75" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="porte" viewBox="0 0 160 120">
+    <rect x="45" y="14" width="72" height="98" rx="3" fill="#f5f3ff" stroke="#453d75" stroke-width="5"/>
+    <path d="M57 26h48v86H57Z" fill="#ffffff" stroke="#8b83b9" stroke-width="3"/>
+    <circle cx="94" cy="70" r="5" fill="#453d75"/>
+  </symbol>
+  <symbol id="verre" viewBox="0 0 160 120">
+    <path d="M48 18h64l-8 86H56L48 18Z" fill="#f8fbff" stroke="#453d75" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M55 57h50l-4 38H59l-4-38Z" fill="#eef0ff"/>
+    <path d="M55 57h50" stroke="#8b83b9" stroke-width="3"/>
+  </symbol>
+  <symbol id="manteau" viewBox="0 0 160 120">
+    <path d="M61 19c8 9 30 9 38 0l19 17 18 48-24 10-11-25v42H59V69L48 94 24 84l18-48 19-17Z" fill="#f1effb" stroke="#453d75" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M80 29v82M66 52h28" fill="none" stroke="#8b83b9" stroke-width="3"/>
+    <circle cx="86" cy="65" r="3" fill="#453d75"/><circle cx="86" cy="79" r="3" fill="#453d75"/>
+  </symbol>
+</svg>

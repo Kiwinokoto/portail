@@ -28,6 +28,12 @@ Do not add a CAP/Bac Pro family layer to the main navigation unless a real UX ne
 - Do not aggregate these probes into a global mathematics score. Report each signal separately and treat retries as teaching information, not grading.
 - Prefer everyday/adult contexts and audio instructions; introduce formal mathematical vocabulary after the concrete situation.
 
+## Foundational practice / learning cards
+- Keep practice separate from positioning/assessment. Repetition, mistakes and retries in a training game are learning signals, not automatically diagnostic evidence.
+- ADA may use one shared everyday vocabulary pool spanning common words encountered in PSR, AEPE and other contexts when those words are broadly useful in daily life. Vocational context may be metadata/filtering, not a forced partition of basic vocabulary.
+- Prefer audio-first, small-set, adult/non-infantilising activities. Image+word learning cards, case matching, sound/syllable matching and Memory-style games may reuse one content dataset.
+- Reuse the existing LGC `memory` prototype selectively; do not import its unfinished data/test debt wholesale.
+
 ## Visual language
 - Identity/navigation: violet/indigo first, with blue and rose as neutral decorative accents.
 - Semantic colors are reserved across the portal and learning activities: **green = correct/success/completed**, **orange = retry/needs work/attention**, **red = important/to remember/objective** (and destructive/system errors where appropriate).
@@ -84,7 +90,7 @@ Before deployment, also smoke-test `/healthz`, teacher login, admin user creatio
 
 ## Field-validation discipline
 - Distinguish automated validation from field validation. Do not mark a browser/device/classroom behavior as validated merely because unit/smoke tests pass.
-- Current explicit pending check: Maths SSO-owned session recovery across two distinct browsers/devices has automated coverage but has not yet been manually validated by Kevin.
+- Maths SSO-owned session recovery across distinct browsers/devices has automated coverage and is provisionally accepted so product work can continue. Kevin deferred the phone/device retest; keep an explicit later revalidation task and do not describe the behavior as directly field-validated until that check is actually performed.
 - Do not deepen literacy or numeracy inference until the current learner flows have been observed on actual target devices.
 
 ## Handoff

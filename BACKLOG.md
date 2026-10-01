@@ -44,6 +44,18 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] Corrections remain locked by default per class session and now have a usable per-session teacher toggle.
 - [x] Add focused per-item progress detail to ADA Reports V1 (oral comprehension, own-name recognition, first-letter task, completion) without turning the portal into a gradebook.
 
+## P1b — foundational practice / learning cards
+
+- [x] Review the existing private `La-Grande-Classe-R-D/memory` prototype as a reuse candidate. It already contains a small matching engine, TTS/audio fallback, responsive cards and offline/service-worker foundations, but its content/data layer is incomplete and it has no meaningful automated tests.
+- [x] Add a distinct **practice preview** for fragile readers, separate from ADA positioning/assessment. Teacher preview now exposes learning cards, listening practice and a four-pair Memory with no learner writes. Practice retries are not diagnostic evidence and are not collapsed into a literacy score.
+- [x] First reusable activity families in teacher preview: visual case matching (MAJ ↔ min), heard syllable ↔ written form, image ↔ useful word, listening ↔ useful written word, and small Memory-style matching games. An independent sound→letter exercise remains intentionally separate pending pedagogical validation.
+- [x] Build a first shared **everyday vocabulary pool** for ADA rather than splitting basic words by vocational pathway. V1 contains eight local illustrated items; PSR/AEPE/context tags are metadata only.
+- [ ] Keep the visual language adult and non-infantilising. Learning-card / Montessori-inspired image+word presentation is a reference pattern, not a claim that the module implements a full Montessori method.
+- [x] Start with very small sets: the V1 Memory uses four image↔word pairs, listening uses four short rounds, and learning cards are audio-first.
+- [x] Define a content dataset independent from the game engine: `assets/learning/vocabulary.json` feeds cards, listening and Memory; illustrations live in one local SVG sprite.
+- [x] Reuse the useful interaction ideas from `memory` selectively instead of embedding/copying the whole legacy app. The new implementation is Portail-native and preserves Portail identity/session boundaries and semantic feedback rules.
+- [ ] Decide later, after classroom observation, whether practice history should remain device-local, record simple completion/repetition signals, or drive adaptive repetition. Do not feed raw practice attempts into positioning reports by default.
+
 ## P2 — maths convergence
 
 - [x] Define the shared five-workspace teacher model: Séances → Parcours → Corrigés → Suivi en direct → Rapports.
@@ -59,7 +71,7 @@ Do not add a visible CAP/Bac Pro family level for now.
 
 ## Field validation still pending
 
-- [ ] Manually validate Portail → Maths session recovery on two distinct browsers/devices. Automated ownership tests are green; Kevin has not yet completed the field test.
+- [ ] Revalidate Portail → Maths session recovery later on two distinct browsers/devices. Automated ownership tests are green and the behavior is provisionally accepted so work can continue, but Kevin deferred the phone/device recheck; do not describe it as directly field-validated yet.
 - [ ] Validate ADA French V2 on actual learner phones/tablets: TTS, emoji/visual rendering, instruction comprehension and touch targets.
 - [ ] Validate ADA Mathematics V1 on actual learner phones/tablets: quantities, € rendering, TTS and the wording « le plus » / « en tout ».
 - [ ] Run one full teacher loop with real or disposable test learners: roster → QR → learner work → live view → corrections → Reports.
@@ -80,7 +92,7 @@ Production is live on `portail.lagrandeclasse.fr` and `maths.lagrandeclasse.fr`.
 
 Teacher navigation is now harmonised around five shared workspaces: **Séances → Parcours → Corrigés → Suivi en direct → Rapports**. Portail exposes the same vocabulary for internal and external subjects; PSR Maths deep-links each action to the matching Maths workspace. Rapports V1 is active for Maths LGC, ADA French and ADA Mathematics.
 
-The Portail→Maths SSO is in production. New Maths sessions created under SSO are bound to the stable Portail teacher identity and are designed to be listed/reopened after reconnecting on another browser or device. Automated tests cover the ownership boundary, but Kevin has not yet been able to perform the manual two-machine/two-browser validation, so this remains **implemented but not field-validated**. Legacy Maths sessions remain compatible with their existing per-session management secret.
+The Portail→Maths SSO is in production. New Maths sessions created under SSO are bound to the stable Portail teacher identity and are designed to be listed/reopened after reconnecting on another browser or device. Automated tests cover the ownership boundary. For planning purposes the cross-device behavior is now **provisionally accepted**, while an explicit later two-browser/device revalidation remains on the checklist because Kevin deferred the phone retest. Legacy Maths sessions remain compatible with their existing per-session management secret.
 
 Maths live follow-up polls every 4 seconds while visible. Reports V1 exists for Maths and ADA French. ADA teacher controls include safe roster correction/removal, per-session correction locking and per-item report detail. ADA French positioning V2 now extends the probe sequence through visual discrimination, guided sound→letter association, useful-word recognition and an unscored writing gesture, with an authenticated teacher preview that records no learner activity. Next validation should happen on real learner devices before adding stronger literacy inferences. ADA Mathematics now has its own narrow numeracy V1 and must likewise be field-tested before its probes are expanded.
 

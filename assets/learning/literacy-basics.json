@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "letters": [
+    "A",
+    "E",
+    "I",
+    "O",
+    "U",
+    "M",
+    "N",
+    "P",
+    "T",
+    "L",
+    "R",
+    "S"
+  ],
+  "syllables": [
+    "ma",
+    "mi",
+    "mo",
+    "mu",
+    "pa",
+    "pi",
+    "po",
+    "pu",
+    "ta",
+    "ti",
+    "to",
+    "tu",
+    "la",
+    "li",
+    "lo",
+    "lu",
+    "ra",
+    "ri",
+    "ro",
+    "ru",
+    "sa",
+    "si",
+    "so",
+    "su"
+  ]
+}
