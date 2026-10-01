@@ -13,6 +13,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import unicodedata
 import zipfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -56,6 +57,38 @@ def _slug(value: str) -> str:
 def _strip_html(value: str) -> str:
     value = re.sub(r"<[^>]+>", " ", value or "")
     return " ".join(html.unescape(value).split())
+
+
+def _fold_text(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value or "")
+    return "".join(ch for ch in normalized if not unicodedata.combining(ch)).casefold()
+
+
+def concept_keywords(concept: dict) -> list[str]:
+    labels = concept.get("labels") or {}
+    values = [
+        str(labels.get("en") or ""),
+        str(labels.get("fr") or ""),
+        str(concept.get("id") or "").replace("_", " "),
+    ]
+    keywords: list[str] = []
+    for value in values:
+        for token in re.findall(r"[a-zA-ZÀ-ÿ]+", value):
+            folded = _fold_text(token)
+            if len(folded) >= 3 and folded not in keywords:
+                keywords.append(folded)
+    return keywords
+
+
+def title_relevant(title: str, concept: dict) -> bool:
+    text = _fold_text(title)
+    for token in concept_keywords(concept):
+        if len(token) <= 3:
+            if re.search(rf"(?<![a-z0-9]){re.escape(token)}s?(?![a-z0-9])", text):
+                return True
+        elif token in text:
+            return True
+    return False
 
 
 def _json_get(url: str, params: dict[str, object], *, timeout: int = 20) -> dict:
@@ -221,6 +254,10 @@ def search_wikimedia(concept: dict, limit: int) -> list[Candidate]:
         for page in (payload.get("query") or {}).get("pages") or []:
             candidate = normalize_wikimedia(page, concept["id"], query)
             if not candidate or _license_key(candidate.license) not in DEFAULT_LICENSES:
+                continue
+            if candidate.title.casefold().endswith(".gif"):
+                continue
+            if not title_relevant(candidate.title, concept):
                 continue
             if candidate.candidate_id in seen:
                 continue
