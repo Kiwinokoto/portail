@@ -111,6 +111,22 @@ class ImageBankTests(unittest.TestCase):
             self.assertEqual(1, len(manifest["selected"]))
             self.assertEqual([], image_bank.audit_selected(root / "selected"))
 
+    def test_wikimedia_title_relevance_filters_obvious_homonyms(self):
+        pomme = {
+            "id": "pomme",
+            "labels": {"fr": "pomme", "en": "apple"},
+            "queries": ["red apple fruit", "apple"],
+        }
+        tasse = {
+            "id": "tasse",
+            "labels": {"fr": "tasse", "en": "mug"},
+            "queries": ["coffee mug", "mug"],
+        }
+        self.assertFalse(image_bank.title_relevant("Tomato je.jpg", pomme))
+        self.assertTrue(image_bank.title_relevant("Red Apple.jpg", pomme))
+        self.assertTrue(image_bank.title_relevant("Wikipedia mug.jpg", tasse))
+        self.assertFalse(image_bank.title_relevant("StanleyCup.jpg", tasse))
+
     def test_collect_resumes_completed_provider_without_network(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
