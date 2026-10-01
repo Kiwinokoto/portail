@@ -173,6 +173,48 @@ class ImageBankTests(unittest.TestCase):
             self.assertEqual(1, len(manifest["selected"]))
             self.assertEqual([], image_bank.audit_selected(root / "selected"))
 
+    def test_candidate_score_rewards_full_query_title_overlap(self):
+        concept = {
+            "id": "stylo",
+            "labels": {"fr": "stylo", "en": "pen"},
+            "queries": ["pen writing"],
+        }
+        base = {
+            "concept_id": "stylo",
+            "provider": "wikimedia",
+            "query": "pen writing",
+            "creator": "Alice",
+            "source_name": "Wikimedia Commons",
+            "license": "CC BY 2.0",
+            "license_url": "https://creativecommons.org/licenses/by/2.0/",
+            "width": 640,
+            "height": 480,
+            "license_confidence": "source-metadata",
+            "review_required": False,
+        }
+        accessory = image_bank.Candidate(
+            candidate_id="wikimedia:bible",
+            provider_id="bible",
+            title="Open Bible with pen.jpg",
+            source_url="https://example.test/bible",
+            asset_url="https://example.test/bible.jpg",
+            **base,
+        )
+        focused = image_bank.Candidate(
+            candidate_id="wikimedia:writing",
+            provider_id="writing",
+            title="Fountain pen writing.jpg",
+            source_url="https://example.test/writing",
+            asset_url="https://example.test/writing.jpg",
+            **base,
+        )
+        self.assertEqual(1, image_bank.query_title_overlap(accessory))
+        self.assertEqual(2, image_bank.query_title_overlap(focused))
+        self.assertGreater(
+            image_bank.candidate_score(focused, concept),
+            image_bank.candidate_score(accessory, concept),
+        )
+
     def test_candidate_score_penalizes_missing_required_attribution(self):
         concept = {
             "id": "stylo",
