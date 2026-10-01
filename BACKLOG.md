@@ -19,7 +19,7 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] Bootstrap the new GitHub repository after the owner explicitly confirmed no concurrent agent work.
 - [x] Merge the tested foundation branch into `main` (PR #1, `9c9ab71`).
 - [x] Merge ADA French positioning V1 into `main` (PR #2, `45951f9`).
-- [ ] Register `Kiwinokoto/portail` in AgentCtl when the admin broker is available, before shared/automated mutation becomes possible.
+- [x] Register `Kiwinokoto/portail` in AgentCtl as project `portail` with the narrow scope `repo:Kiwinokoto/portail` (1 October 2026).
 - [x] Configure deployment secrets and deploy `portail.lagrandeclasse.fr` through the LGC Traefik network (PR #7, workflow run #1 successful).
 
 ## P1 — first real teaching vertical
@@ -104,4 +104,4 @@ The Portail→Maths SSO is in production. New Maths sessions created under SSO a
 
 Maths live follow-up polls every 4 seconds while visible. Reports V1 exists for Maths and ADA French. ADA teacher controls include safe roster correction/removal, per-session correction locking and per-item report detail. ADA French positioning V2 now extends the probe sequence through visual discrimination, guided sound→letter association, useful-word recognition and an unscored writing gesture, with an authenticated teacher preview that records no learner activity. Next validation should happen on real learner devices before adding stronger literacy inferences. ADA Mathematics now has its own narrow numeracy V1 and must likewise be field-tested before its probes are expanded.
 
-AgentCtl registration for Portail is still pending. RDC is back, but the checked LGC VPS does not currently expose the `agentctl` CLI; the owner explicitly confirmed there is no other active agent or unpushed local work for this pass.
+AgentCtl registration for Portail is complete. Project id: `portail`; canonical repo: `Kiwinokoto/portail`; current allowed scope: `repo:Kiwinokoto/portail`. The routine CLI is available on the Mint workstation; the LGC VPS does not need it for ordinary GitHub Actions deployment.
