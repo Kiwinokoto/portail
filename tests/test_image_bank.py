@@ -40,6 +40,30 @@ class ImageBankTests(unittest.TestCase):
         self.assertEqual("aggregated-metadata", candidate.license_confidence)
         self.assertTrue(candidate.review_required)
 
+    def test_wikimedia_attribution_without_creator_requires_review(self):
+        candidate = image_bank.normalize_wikimedia(
+            {
+                "pageid": 77,
+                "title": "File:Many colored pens.jpg",
+                "imageinfo": [{
+                    "thumburl": "https://upload.wikimedia.org/pens.jpg",
+                    "descriptionurl": "https://commons.wikimedia.org/wiki/File:Many_colored_pens.jpg",
+                    "thumbwidth": 480,
+                    "thumbheight": 320,
+                    "extmetadata": {
+                        "LicenseShortName": {"value": "CC BY 2.0"},
+                        "LicenseUrl": {"value": "https://creativecommons.org/licenses/by/2.0/"},
+                        "Artist": {"value": ""},
+                    },
+                }],
+            },
+            "stylo",
+            "pen writing",
+        )
+        self.assertIsNotNone(candidate)
+        self.assertEqual("", candidate.creator)
+        self.assertTrue(candidate.review_required)
+
     def test_wikimedia_normalization_can_be_source_verified(self):
         candidate = image_bank.normalize_wikimedia(
             {
@@ -96,6 +120,7 @@ class ImageBankTests(unittest.TestCase):
             self.assertIn("Suggestion automatique", gallery)
             self.assertIn("Sélectionner les suggestions", gallery)
             self.assertIn('data-suggested="1"', gallery)
+            self.assertNotIn("À vérifier : licence / attribution", gallery)
 
             (root / "candidates.json").write_text(
                 json.dumps({"version": 1, "candidates": [image_bank.asdict(candidate)]}),
@@ -113,6 +138,53 @@ class ImageBankTests(unittest.TestCase):
             manifest = json.loads((root / "selected" / "manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(1, len(manifest["selected"]))
             self.assertEqual([], image_bank.audit_selected(root / "selected"))
+
+    def test_candidate_score_penalizes_missing_required_attribution(self):
+        concept = {
+            "id": "stylo",
+            "labels": {"fr": "stylo", "en": "pen"},
+            "queries": ["pen writing"],
+        }
+        complete = image_bank.Candidate(
+            candidate_id="wikimedia:good",
+            concept_id="stylo",
+            provider="wikimedia",
+            provider_id="good",
+            query="pen writing",
+            title="Writing pen.jpg",
+            creator="Alice",
+            source_name="Wikimedia Commons",
+            source_url="https://example.test/good",
+            asset_url="https://example.test/good.jpg",
+            license="CC BY 2.0",
+            license_url="https://creativecommons.org/licenses/by/2.0/",
+            width=480,
+            height=320,
+            license_confidence="source-metadata",
+            review_required=False,
+        )
+        incomplete = image_bank.Candidate(
+            candidate_id="wikimedia:bad",
+            concept_id="stylo",
+            provider="wikimedia",
+            provider_id="bad",
+            query="pen writing",
+            title="Many colored pens.jpg",
+            creator="",
+            source_name="Wikimedia Commons",
+            source_url="https://example.test/bad",
+            asset_url="https://example.test/bad.jpg",
+            license="CC BY 2.0",
+            license_url="https://creativecommons.org/licenses/by/2.0/",
+            width=480,
+            height=320,
+            license_confidence="source-metadata",
+            review_required=True,
+        )
+        self.assertGreater(
+            image_bank.candidate_score(complete, concept),
+            image_bank.candidate_score(incomplete, concept),
+        )
 
     def test_candidate_score_prefers_verified_simple_source(self):
         concept = {
