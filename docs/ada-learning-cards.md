@@ -12,7 +12,7 @@ The first teacher-preview slice is implemented on `dev/ada-learning-cards-backlo
 - ADA French teacher preview now opens a small choice between **Positionnement** and **S’entraîner**;
 - practice preview performs no learner writes and does not feed positioning reports.
 
-This does **not** yet expose practice as a learner-session choice. Wiring a practice pathway into signed class sessions should be a separate change because it needs an explicit session/pathway discriminator and therefore a small database migration.
+A follow-up stacked branch, `dev/ada-practice-sessions-v1`, now adds that learner-session choice through an additive `pathway_id` migration. Existing ADA French sessions backfill to `positioning-v1`, ADA Mathematics to `numeracy-v1`, and new ADA French sessions may explicitly use `practice-v1`. Practice sessions reuse roster/join/live infrastructure but are excluded from positioning Reports and Corrigés.
 
 ## Purpose
 
