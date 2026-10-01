@@ -99,11 +99,24 @@ Après collecte, ouvrir :
 .image-bank/gallery.html
 ```
 
-La galerie montre les candidats regroupés par concept, avec source, auteur et licence. Cocher les images retenues puis cliquer **Exporter la sélection** : le navigateur télécharge un `selection.json`.
+La galerie montre les candidats regroupés par concept, avec source, auteur, licence et un **score heuristique**. Le meilleur candidat calculé pour chaque concept porte le badge **Suggestion automatique**.
 
-Cette étape remplace le travail manuel « télécharger → enregistrer sous → renommer → noter la licence ».
+Le bouton **Sélectionner les suggestions** coche d’un coup une proposition par concept. Tu peux ensuite corriger uniquement les cas douteux, ajouter plusieurs variantes ou tout décocher. Cliquer **Exporter la sélection** télécharge ensuite un `selection.json`.
 
-Plusieurs images peuvent être retenues pour un même concept si l’on veut plus tard varier les cartes.
+La suggestion favorise notamment les métadonnées de licence issues directement de la source, les licences simples, les titres cohérents avec le concept et des dimensions exploitables. Elle pénalise certains indices de faux positifs (poster, logo, diagramme, trophée, etc.). **Ce score n’est ni une validation pédagogique ni une validation juridique.**
+
+La même présélection peut être produite en ligne de commande :
+
+```bash
+python tools/image_bank.py suggest-selection \
+  --workspace .image-bank
+```
+
+Cela écrit `.image-bank/selection-suggested.json`, avec le candidat et le score retenus par concept.
+
+Cette étape remplace le travail manuel « télécharger → enregistrer sous → renommer → noter la licence », et réduit la revue de centaines de concepts à une correction des exceptions.
+
+Plusieurs images peuvent toujours être retenues pour un même concept si l’on veut varier les cartes.
 
 ## Construire le corpus sélectionné
 
