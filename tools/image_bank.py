@@ -42,6 +42,8 @@ class Candidate:
     width: int | None = None
     height: int | None = None
     local_file: str = ""
+    file_sha256: str = ""
+    file_bytes: int = 0
     license_confidence: str = "unknown"
     review_required: bool = True
 
@@ -157,65 +159,80 @@ def _int_or_none(value: object) -> int | None:
         return None
 
 
-def search_openverse(concept: dict, limit: int) -> list[Candidate]:
-    query = preferred_query(concept)
-    payload = _json_get(
-        OPENVERSE_API,
-        {"q": query, "page_size": min(max(limit * 4, 20), 80)},
+def concept_queries(concept: dict) -> list[str]:
+    queries = concept.get("queries")
+    values: list[str] = []
+    if isinstance(queries, list):
+        values.extend(str(item).strip() for item in queries if str(item).strip())
+    labels = concept.get("labels") or {}
+    values.extend(
+        str(labels.get(key) or "").strip()
+        for key in ("en", "fr")
+        if str(labels.get(key) or "").strip()
     )
+    values.append(str(concept["id"]).replace("_", " "))
+    unique: list[str] = []
+    for value in values:
+        if value and value.casefold() not in {item.casefold() for item in unique}:
+            unique.append(value)
+    return unique
+
+
+def search_openverse(concept: dict, limit: int) -> list[Candidate]:
     found: list[Candidate] = []
-    for result in payload.get("results") or []:
-        candidate = normalize_openverse(result, concept["id"], query)
-        if not candidate:
-            continue
-        if _license_key(candidate.license) not in DEFAULT_LICENSES:
-            continue
-        if candidate.candidate_id in {item.candidate_id for item in found}:
-            continue
-        found.append(candidate)
-        if len(found) >= limit:
-            break
+    seen: set[str] = set()
+    for query in concept_queries(concept):
+        payload = _json_get(
+            OPENVERSE_API,
+            {"q": query, "page_size": min(max(limit * 5, 20), 80)},
+        )
+        for result in payload.get("results") or []:
+            candidate = normalize_openverse(result, concept["id"], query)
+            if not candidate or _license_key(candidate.license) not in DEFAULT_LICENSES:
+                continue
+            if candidate.candidate_id in seen:
+                continue
+            seen.add(candidate.candidate_id)
+            found.append(candidate)
+            if len(found) >= limit:
+                return found
     return found
 
 
 def search_wikimedia(concept: dict, limit: int) -> list[Candidate]:
-    query = preferred_query(concept)
-    payload = _json_get(
-        WIKIMEDIA_API,
-        {
-            "action": "query",
-            "format": "json",
-            "formatversion": "2",
-            "generator": "search",
-            "gsrsearch": query,
-            "gsrnamespace": 6,
-            "gsrlimit": min(max(limit * 4, 20), 50),
-            "prop": "imageinfo",
-            "iiprop": "url|size|extmetadata",
-            "iiurlwidth": 480,
-        },
-    )
     found: list[Candidate] = []
-    for page in (payload.get("query") or {}).get("pages") or []:
-        candidate = normalize_wikimedia(page, concept["id"], query)
-        if not candidate:
-            continue
-        if _license_key(candidate.license) not in DEFAULT_LICENSES:
-            continue
-        if candidate.candidate_id in {item.candidate_id for item in found}:
-            continue
-        found.append(candidate)
-        if len(found) >= limit:
-            break
+    seen: set[str] = set()
+    for query in concept_queries(concept):
+        payload = _json_get(
+            WIKIMEDIA_API,
+            {
+                "action": "query",
+                "format": "json",
+                "formatversion": "2",
+                "generator": "search",
+                "gsrsearch": query,
+                "gsrnamespace": 6,
+                "gsrlimit": min(max(limit * 5, 20), 50),
+                "prop": "imageinfo",
+                "iiprop": "url|size|extmetadata",
+                "iiurlwidth": 480,
+            },
+        )
+        for page in (payload.get("query") or {}).get("pages") or []:
+            candidate = normalize_wikimedia(page, concept["id"], query)
+            if not candidate or _license_key(candidate.license) not in DEFAULT_LICENSES:
+                continue
+            if candidate.candidate_id in seen:
+                continue
+            seen.add(candidate.candidate_id)
+            found.append(candidate)
+            if len(found) >= limit:
+                return found
     return found
 
 
 def preferred_query(concept: dict) -> str:
-    queries = concept.get("queries")
-    if isinstance(queries, list) and queries:
-        return str(queries[0]).strip()
-    labels = concept.get("labels") or {}
-    return str(labels.get("en") or labels.get("fr") or concept["id"]).strip()
+    return concept_queries(concept)[0]
 
 
 def load_concepts(path: Path) -> list[dict]:
@@ -264,38 +281,19 @@ def download_asset(candidate: Candidate, workspace: Path) -> bool:
     target = folder / f"{_slug(candidate.provider_id)}-{digest}{ext}"
     target.write_bytes(data)
     candidate.local_file = target.relative_to(workspace).as_posix()
+    candidate.file_sha256 = hashlib.sha256(data).hexdigest()
+    candidate.file_bytes = len(data)
     return True
 
 
-def collect(args: argparse.Namespace) -> int:
-    manifest = Path(args.manifest)
-    workspace = Path(args.output)
-    workspace.mkdir(parents=True, exist_ok=True)
-    concepts = load_concepts(manifest)
-    if args.ids:
-        requested = set(args.ids.split(","))
-        concepts = [item for item in concepts if item["id"] in requested]
-    providers = [item.strip() for item in args.providers.split(",") if item.strip()]
-    unknown = set(providers) - {"openverse", "wikimedia"}
-    if unknown:
-        raise ValueError(f"Provider(s) inconnu(s): {', '.join(sorted(unknown))}")
-
-    candidates: list[Candidate] = []
-    failures: list[dict] = []
-    searchers = {"openverse": search_openverse, "wikimedia": search_wikimedia}
-    for concept in concepts:
-        for provider in providers:
-            try:
-                found = searchers[provider](concept, args.per_provider)
-            except Exception as exc:  # network/provider errors are recorded, not fatal to other words
-                failures.append({"concept_id": concept["id"], "provider": provider, "error": str(exc)})
-                continue
-            for candidate in found:
-                if args.no_download or download_asset(candidate, workspace):
-                    candidates.append(candidate)
-            if args.delay:
-                time.sleep(args.delay)
-
+def write_workspace_state(
+    workspace: Path,
+    manifest: Path,
+    providers: list[str],
+    concepts: list[dict],
+    candidates: list[Candidate],
+    failures: list[dict],
+) -> None:
     payload = {
         "version": 1,
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -308,6 +306,67 @@ def collect(args: argparse.Namespace) -> int:
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     write_gallery(workspace, concepts, candidates)
+
+
+def collect(args: argparse.Namespace) -> int:
+    manifest = Path(args.manifest)
+    workspace = Path(args.output)
+    if args.fresh and workspace.exists():
+        shutil.rmtree(workspace)
+    workspace.mkdir(parents=True, exist_ok=True)
+    concepts = load_concepts(manifest)
+    if args.ids:
+        requested = {item.strip() for item in args.ids.split(",") if item.strip()}
+        concepts = [item for item in concepts if item["id"] in requested]
+    providers = [item.strip() for item in args.providers.split(",") if item.strip()]
+    unknown = set(providers) - {"openverse", "wikimedia"}
+    if unknown:
+        raise ValueError(f"Provider(s) inconnu(s): {', '.join(sorted(unknown))}")
+
+    candidates: list[Candidate] = []
+    failures: list[dict] = []
+    state_path = workspace / "candidates.json"
+    if state_path.exists() and not args.fresh:
+        previous = json.loads(state_path.read_text(encoding="utf-8"))
+        for raw in previous.get("candidates") or []:
+            try:
+                candidates.append(Candidate(**raw))
+            except TypeError:
+                continue
+        failures.extend(previous.get("failures") or [])
+
+    searchers = {"openverse": search_openverse, "wikimedia": search_wikimedia}
+    known_ids = {item.candidate_id for item in candidates}
+    for concept in concepts:
+        for provider in providers:
+            existing = [
+                item for item in candidates
+                if item.concept_id == concept["id"] and item.provider == provider
+            ]
+            if len(existing) >= args.per_provider:
+                continue
+            needed = args.per_provider - len(existing)
+            try:
+                found = searchers[provider](concept, max(needed * 2, needed))
+            except Exception as exc:  # provider errors are checkpointed, not fatal to other words
+                failures.append({"concept_id": concept["id"], "provider": provider, "error": str(exc)})
+                write_workspace_state(workspace, manifest, providers, concepts, candidates, failures)
+                continue
+            added = 0
+            for candidate in found:
+                if candidate.candidate_id in known_ids:
+                    continue
+                if args.no_download or download_asset(candidate, workspace):
+                    candidates.append(candidate)
+                    known_ids.add(candidate.candidate_id)
+                    added += 1
+                if added >= needed:
+                    break
+            write_workspace_state(workspace, manifest, providers, concepts, candidates, failures)
+            if args.delay:
+                time.sleep(args.delay)
+
+    write_workspace_state(workspace, manifest, providers, concepts, candidates, failures)
     print(f"{len(candidates)} candidats enregistrés dans {workspace}")
     if failures:
         print(f"{len(failures)} recherches ont échoué; voir candidates.json", file=sys.stderr)
@@ -477,6 +536,11 @@ def build_parser() -> argparse.ArgumentParser:
     collect_p.add_argument("--ids", default="", help="liste d’identifiants de concepts séparés par des virgules")
     collect_p.add_argument("--delay", type=float, default=0.15)
     collect_p.add_argument("--no-download", action="store_true")
+    collect_p.add_argument(
+        "--fresh",
+        action="store_true",
+        help="effacer le workspace avant collecte; par défaut une collecte reprend les checkpoints existants",
+    )
     collect_p.set_defaults(func=collect)
 
     apply_p = sub.add_parser("apply-selection", help="copier/ranger les candidats cochés")
