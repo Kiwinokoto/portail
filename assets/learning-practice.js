@@ -71,7 +71,7 @@ async function renderLearningPracticeHome() {
             <p class="eyebrow">S’entraîner · vocabulaire courant</p>
             <h3>Choisir une activité</h3>
           </div>
-          <button id="practice-back-preview" class="btn ghost" type="button">Retour au parcours</button>
+          ${state.previewMode ? '<button id="practice-back-preview" class="btn ghost" type="button">Retour au parcours</button>' : ''}
         </div>
         <p class="learner-help">${items.length} mots communs disponibles. Les étiquettes PSR / AEPE servent seulement à réutiliser le vocabulaire dans d’autres contextes.</p>
         <div class="practice-module-grid practice-module-grid-three">
@@ -107,7 +107,7 @@ async function renderLearningPracticeHome() {
           </button>
         </div>
       </div>`;
-    $('practice-back-preview').addEventListener('click', renderAdaTeacherPreviewHome);
+    if (state.previewMode) $('practice-back-preview').addEventListener('click', renderAdaTeacherPreviewHome);
     $('practice-cards').addEventListener('click', renderLearningCardsPractice);
     $('practice-listen').addEventListener('click', renderLearningListeningPractice);
     $('practice-memory').addEventListener('click', renderLearningMemoryPractice);
