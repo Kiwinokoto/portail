@@ -111,6 +111,72 @@ class ImageBankTests(unittest.TestCase):
             self.assertEqual(1, len(manifest["selected"]))
             self.assertEqual([], image_bank.audit_selected(root / "selected"))
 
+    def test_collect_resumes_completed_provider_without_network(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = root / "concepts.json"
+            manifest.write_text(
+                json.dumps({
+                    "concepts": [{
+                        "id": "pomme",
+                        "labels": {"fr": "pomme", "en": "apple"},
+                        "queries": ["red apple fruit", "apple"],
+                    }]
+                }),
+                encoding="utf-8",
+            )
+            existing = image_bank.Candidate(
+                candidate_id="openverse:existing",
+                concept_id="pomme",
+                provider="openverse",
+                provider_id="existing",
+                query="red apple fruit",
+                title="Apple",
+                creator="Alice",
+                source_name="flickr",
+                source_url="https://example.test/source",
+                asset_url="https://example.test/apple.jpg",
+                license="CC0 1.0",
+                license_url="https://creativecommons.org/publicdomain/zero/1.0/",
+            )
+            (root / "candidates.json").write_text(
+                json.dumps({
+                    "version": 1,
+                    "candidates": [image_bank.asdict(existing)],
+                    "failures": [],
+                }),
+                encoding="utf-8",
+            )
+            called = []
+            original = image_bank.search_openverse
+            image_bank.search_openverse = lambda *_args, **_kwargs: called.append(True) or []
+            try:
+                status = image_bank.collect(Namespace(
+                    manifest=str(manifest),
+                    output=str(root),
+                    providers="openverse",
+                    per_provider=1,
+                    ids="",
+                    delay=0,
+                    no_download=True,
+                    fresh=False,
+                ))
+            finally:
+                image_bank.search_openverse = original
+            self.assertEqual(0, status)
+            self.assertEqual([], called)
+            self.assertTrue((root / "gallery.html").exists())
+
+    def test_concept_queries_keep_language_fallbacks(self):
+        queries = image_bank.concept_queries({
+            "id": "pomme",
+            "labels": {"fr": "pomme", "en": "apple"},
+            "queries": ["red apple fruit", "apple"],
+        })
+        self.assertEqual("red apple fruit", queries[0])
+        self.assertIn("apple", queries)
+        self.assertIn("pomme", queries)
+
     def test_load_concepts_rejects_duplicate_ids(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "manifest.json"
