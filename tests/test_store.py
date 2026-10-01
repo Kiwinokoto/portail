@@ -148,7 +148,7 @@ class PortalStoreTests(unittest.TestCase):
         token = created["join_url"].split("?join=", 1)[1]
         self.assertEqual(created["id"], server.verify_join_token(token))
 
-    def test_ada_french_practice_pathway_is_explicit_and_preserved(self):
+    def test_ada_french_practice_pathway_is_explicit_and_survives_init(self):
         teacher, _ = self.store.create_user("Kevin practice", "teacher")
         practice = self.store.create_class_session(
             teacher_id=teacher["id"],
@@ -160,12 +160,9 @@ class PortalStoreTests(unittest.TestCase):
             group_label="ADA pratique",
         )
         self.assertEqual("practice-v1", practice["pathway_id"])
-
-        with self.store.connect() as db:
-            db.execute("UPDATE class_sessions SET pathway_id='default' WHERE id=?", (practice["id"],))
         self.store.init()
-        migrated = self.store.get_class_session(practice["id"], teacher_id=teacher["id"])
-        self.assertEqual("positioning-v1", migrated["pathway_id"])
+        reloaded = self.store.get_class_session(practice["id"], teacher_id=teacher["id"])
+        self.assertEqual("practice-v1", reloaded["pathway_id"])
 
         with self.assertRaisesRegex(ValueError, "Parcours inconnu"):
             self.store.create_class_session(
@@ -177,6 +174,22 @@ class PortalStoreTests(unittest.TestCase):
                 title="",
                 group_label="ADA pratique",
             )
+
+    def test_init_backfills_default_ada_french_pathway(self):
+        teacher, _ = self.store.create_user("Kevin legacy pathway", "teacher")
+        session = self.store.create_class_session(
+            teacher_id=teacher["id"],
+            formation_id="ada",
+            subject_id="ada-francais",
+            session_number=4,
+            title="Ancienne séance",
+            group_label="ADA legacy",
+        )
+        with self.store.connect() as db:
+            db.execute("UPDATE class_sessions SET pathway_id='default' WHERE id=?", (session["id"],))
+        self.store.init()
+        migrated = self.store.get_class_session(session["id"], teacher_id=teacher["id"])
+        self.assertEqual("positioning-v1", migrated["pathway_id"])
 
     def test_session_close_reopen_is_reversible_and_relocks_corrections(self):
         teacher, _ = self.store.create_user("Kevin lifecycle", "teacher")
