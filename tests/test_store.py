@@ -1,4 +1,5 @@
 import os
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -56,6 +57,30 @@ class PortalStoreTests(unittest.TestCase):
         maths = next(subject for subject in ada["subjects"] if subject["id"] == "ada-maths")
         self.assertEqual("internal", maths["mode"])
         self.assertIn("Numératie fondamentale", maths["description"])
+
+    def test_init_migrates_legacy_class_sessions_pathway_column(self):
+        legacy_path = Path(self.tmp.name) / "legacy.sqlite3"
+        with sqlite3.connect(legacy_path) as db:
+            db.execute(
+                """CREATE TABLE class_sessions (
+                    id TEXT PRIMARY KEY,
+                    teacher_id INTEGER NOT NULL,
+                    formation_id TEXT NOT NULL,
+                    subject_id TEXT NOT NULL,
+                    session_number INTEGER NOT NULL,
+                    title TEXT NOT NULL DEFAULT '',
+                    group_label TEXT NOT NULL,
+                    corrections_unlocked INTEGER NOT NULL DEFAULT 0,
+                    active INTEGER NOT NULL DEFAULT 1,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )"""
+            )
+        legacy_store = server.PortalStore(legacy_path)
+        legacy_store.init()
+        with legacy_store.connect() as db:
+            columns = {row["name"] for row in db.execute("PRAGMA table_info(class_sessions)")}
+        self.assertIn("pathway_id", columns)
 
     def test_sso_code_is_pkce_bound_and_single_use(self):
         import base64
@@ -117,9 +142,54 @@ class PortalStoreTests(unittest.TestCase):
         own = self.store.list_class_sessions(teacher["id"])
         foreign = self.store.list_class_sessions(other["id"])
         self.assertEqual(created["id"], own[0]["id"])
+        self.assertEqual("positioning-v1", created["pathway_id"])
+        self.assertEqual("positioning-v1", own[0]["pathway_id"])
         self.assertEqual([], foreign)
         token = created["join_url"].split("?join=", 1)[1]
         self.assertEqual(created["id"], server.verify_join_token(token))
+
+    def test_ada_french_practice_pathway_is_explicit_and_survives_init(self):
+        teacher, _ = self.store.create_user("Kevin practice", "teacher")
+        practice = self.store.create_class_session(
+            teacher_id=teacher["id"],
+            formation_id="ada",
+            subject_id="ada-francais",
+            pathway_id="practice-v1",
+            session_number=2,
+            title="Cartes et Memory",
+            group_label="ADA pratique",
+        )
+        self.assertEqual("practice-v1", practice["pathway_id"])
+        self.store.init()
+        reloaded = self.store.get_class_session(practice["id"], teacher_id=teacher["id"])
+        self.assertEqual("practice-v1", reloaded["pathway_id"])
+
+        with self.assertRaisesRegex(ValueError, "Parcours inconnu"):
+            self.store.create_class_session(
+                teacher_id=teacher["id"],
+                formation_id="ada",
+                subject_id="ada-francais",
+                pathway_id="unknown-v1",
+                session_number=3,
+                title="",
+                group_label="ADA pratique",
+            )
+
+    def test_init_backfills_default_ada_french_pathway(self):
+        teacher, _ = self.store.create_user("Kevin legacy pathway", "teacher")
+        session = self.store.create_class_session(
+            teacher_id=teacher["id"],
+            formation_id="ada",
+            subject_id="ada-francais",
+            session_number=4,
+            title="Ancienne séance",
+            group_label="ADA legacy",
+        )
+        with self.store.connect() as db:
+            db.execute("UPDATE class_sessions SET pathway_id='default' WHERE id=?", (session["id"],))
+        self.store.init()
+        migrated = self.store.get_class_session(session["id"], teacher_id=teacher["id"])
+        self.assertEqual("positioning-v1", migrated["pathway_id"])
 
     def test_session_close_reopen_is_reversible_and_relocks_corrections(self):
         teacher, _ = self.store.create_user("Kevin lifecycle", "teacher")

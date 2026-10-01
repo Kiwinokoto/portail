@@ -69,6 +69,7 @@ Long term, identities/groups move to Moodle, pathway orchestration to Roads, ord
 - A signed learner link remains valid only while its class session is active. Closing a session is the normal reversible revocation mechanism; it must preserve learner history/reports and relock corrections.
 - Never commit `.env`, SQLite data, tokens, deployment credentials or learner data.
 - New teachers are created by an administrator and receive a generated token shown once.
+- During the current small trusted-team phase, teacher catalogue access stays broad by default. `teacher_subjects` may later power optional personal filtering or explicit restrictions, but do not introduce rigid subject silos unless a real governance need appears; colleagues may intervene across courses.
 - Deactivation must be reversible; do not delete users as the normal offboarding path.
 
 ## Architecture
@@ -90,7 +91,7 @@ Before deployment, also smoke-test `/healthz`, teacher login, admin user creatio
 
 ## Field-validation discipline
 - Distinguish automated validation from field validation. Do not mark a browser/device/classroom behavior as validated merely because unit/smoke tests pass.
-- Maths SSO-owned session recovery across distinct browsers/devices has automated coverage and is provisionally accepted so product work can continue. Kevin deferred the phone/device retest; keep an explicit later revalidation task and do not describe the behavior as directly field-validated until that check is actually performed.
+- Maths SSO-owned session recovery across distinct devices is manually validated at the ownership/backend level: on 1 October 2026, Kevin created an SSO-owned Maths session on his phone and recovered it on desktop under the same Portail identity. The remaining field check is UX-level: Portail's own recent-session surface must show those external Maths sessions without first entering Maths.
 - Do not deepen literacy or numeracy inference until the current learner flows have been observed on actual target devices.
 
 ## Handoff

@@ -5,10 +5,20 @@ import secrets
 from .core import clean_text, iso, signed_join_url
 
 
+_DEFAULT_PATHWAY_BY_SUBJECT = {
+    "ada-francais": "positioning-v1",
+    "ada-maths": "numeracy-v1",
+}
+_ALLOWED_PATHWAYS_BY_SUBJECT = {
+    "ada-francais": {"positioning-v1", "practice-v1"},
+    "ada-maths": {"numeracy-v1"},
+}
+
+
 class SessionsMixin:
     def create_class_session(
         self, *, teacher_id: int, formation_id: str, subject_id: str,
-        session_number: int, title: str, group_label: str,
+        session_number: int, title: str, group_label: str, pathway_id: str = "",
     ) -> dict:
         if not self.subject_exists(formation_id, subject_id):
             raise ValueError("Matière inconnue pour cette formation.")
@@ -16,14 +26,26 @@ class SessionsMixin:
             raise ValueError("Numéro de séance invalide.")
         title = clean_text(title, label="Titre", max_len=120, required=False)
         group_label = clean_text(group_label, label="Groupe", max_len=80)
+        pathway_id = clean_text(
+            pathway_id, label="Parcours", max_len=48, required=False
+        ) or _DEFAULT_PATHWAY_BY_SUBJECT.get(subject_id, "default")
+        allowed = _ALLOWED_PATHWAYS_BY_SUBJECT.get(subject_id)
+        if allowed is not None and pathway_id not in allowed:
+            raise ValueError("Parcours inconnu pour cette matière.")
+        if allowed is None and pathway_id != "default":
+            raise ValueError("Cette matière ne propose pas de parcours interne.")
         session_id = secrets.token_urlsafe(15)
         now = iso()
         with self.connect() as db:
             db.execute(
                 """INSERT INTO class_sessions(
-                    id,teacher_id,formation_id,subject_id,session_number,title,group_label,created_at,updated_at
-                ) VALUES(?,?,?,?,?,?,?,?,?)""",
-                (session_id, teacher_id, formation_id, subject_id, int(session_number), title, group_label, now, now),
+                    id,teacher_id,formation_id,subject_id,pathway_id,
+                    session_number,title,group_label,created_at,updated_at
+                ) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    session_id, teacher_id, formation_id, subject_id, pathway_id,
+                    int(session_number), title, group_label, now, now,
+                ),
             )
         return self.get_class_session(session_id, teacher_id=teacher_id)
 

@@ -115,6 +115,10 @@
           <label>Numéro de séance<input id="session-number" class="input" type="number" min="1" max="999" value="1" required /></label>
           <label>Titre <small>(facultatif)</small><input id="session-title" class="input" maxlength="120" placeholder="Ex. Prénom et premières lettres" /></label>
           <label class="wide">Groupe / classe<input id="session-group" class="input" maxlength="80" placeholder="Ex. ADA 1" required /></label>
+          <label id="session-pathway-field" class="wide hidden">Parcours
+            <select id="session-pathway" class="input"></select>
+            <small id="session-pathway-help">Choisis ce que les élèves feront avec ce lien.</small>
+          </label>
           <div class="wide row"><button class="btn primary" type="submit">Créer la séance</button><span id="session-status" class="status"></span></div>
         </form>
       </section>

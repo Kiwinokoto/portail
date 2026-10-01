@@ -22,8 +22,8 @@ The portal intentionally does not recreate Moodle. It focuses on teacher session
 1. Open `portail.lagrandeclasse.fr` and enter the personal teacher token once.
 2. The server creates a secure browser session; the teacher name/role come from the account, not from a form field.
 3. Choose a formation, then a subject.
-4. Create a class session with a group and optional title.
-5. For ADA French or ADA Mathematics, open **Suivi en direct** and preload the roster (one learner per line, optional `Prénom; Nom`).
+4. Create a class session with a group and optional title. For ADA French, choose **Positionnement** or **Entraînement**; the choice is stored on the session and follows its signed learner link.
+5. For ADA French or ADA Mathematics, open **Suivi en direct** and preload the roster (one learner per line, optional `Prénom; Nom`). Practice sessions use the same prepared-roster identity flow but remain excluded from positioning reports/corrections.
 6. Share the signed learner URL or QR code.
 7. Learners select their prepared identity; they do not type their name.
 8. When a session is finished, close it from **Mes séances récentes**. The learner link/QR stops working immediately; results and Reports remain available.
@@ -56,7 +56,7 @@ Open:
 
 ## Field validation
 
-Automated tests do not replace classroom/device checks. The current manual checklist lives in `docs/field-validation-checklist.md`. In particular, cross-device recovery of Maths sessions is implemented and covered automatically but has **not yet been manually validated by Kevin on two distinct browsers/devices**.
+Automated tests do not replace classroom/device checks. The current manual checklist lives in `docs/field-validation-checklist.md`. Maths SSO ownership/recovery has now been manually validated phone → desktop; the remaining check is that Portail's aggregated **Mes séances récentes** surface exposes the remote Maths session and deep-links to the intended follow-up.
 
 ## Tests
 

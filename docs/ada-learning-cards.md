@@ -12,7 +12,7 @@ The first teacher-preview slice is implemented on `dev/ada-learning-cards-backlo
 - ADA French teacher preview now opens a small choice between **Positionnement** and **S’entraîner**;
 - practice preview performs no learner writes and does not feed positioning reports.
 
-This does **not** yet expose practice as a learner-session choice. Wiring a practice pathway into signed class sessions should be a separate change because it needs an explicit session/pathway discriminator and therefore a small database migration.
+A follow-up stacked branch, `dev/ada-practice-sessions-v1`, now adds that learner-session choice through an additive `pathway_id` migration. Existing ADA French sessions backfill to `positioning-v1`, ADA Mathematics to `numeracy-v1`, and new ADA French sessions may explicitly use `practice-v1`. Practice sessions reuse roster/join/live infrastructure but are excluded from positioning Reports and Corrigés.
 
 ## Purpose
 
@@ -75,6 +75,28 @@ Possible pair types:
 - identical useful words for pure visual reinforcement when appropriate.
 
 Preview/reveal is allowed because this is practice, not assessment.
+
+## Image sourcing strategy
+
+Do not generate hundreds of bespoke pictures one by one. Keep vocabulary independent from the visual source and curate a local asset library with explicit provenance.
+
+Preferred sourcing order:
+
+1. **Openverse / Wikimedia Commons** for final manual curation of a specific everyday word. Prefer public-domain, CC0 or CC BY assets when possible, and verify the license on each selected work.
+2. **Open Images V7** as a bulk candidate pool when object annotations/bounding boxes can help isolate a clear object. Treat it as discovery material rather than importing a corpus blindly; verify the selected image license.
+3. **ARASAAC** only when a pictogram is pedagogically preferable to a photo and its more restrictive licence is acceptable for the intended distribution.
+
+Avoid **ImageNet** as the default production source because its access/use terms are awkward for redistributable product assets. Avoid **COCO** as the primary source because licensing of the underlying Flickr images must be checked image by image even though COCO annotations have their own open licence.
+
+A future curation tool should:
+
+- accept Portail vocabulary IDs/words as input;
+- gather several candidates per word;
+- reject embedded text, visible watermarks, avoidable brands, cluttered scenes and ambiguous objects;
+- crop around the annotated target when useful;
+- optimize selected assets for local phone-friendly delivery;
+- persist source URL, author, licence, licence URL and crop/modification notes alongside the vocabulary item;
+- never require a runtime third-party image request.
 
 ## Audio and accessibility
 
