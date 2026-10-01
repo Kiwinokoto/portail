@@ -60,7 +60,7 @@ Automated tests do not replace classroom/device checks. The current manual check
 
 ## Image bank tooling
 
-The offline curation pipeline for learning-card/Memory visuals lives in `tools/image_bank.py`. It searches Wikimedia Commons and Openverse, downloads candidate previews with provenance/licence metadata, generates a local selection gallery, applies a downloaded selection manifest, audits the selected corpus and packages it as a ZIP.
+The offline curation pipeline for learning-card/Memory visuals lives in `tools/image_bank.py`. It searches Wikimedia Commons and Openverse, downloads candidate previews with provenance/licence metadata, ranks candidates heuristically, generates a local selection gallery with one-click suggestions, applies a selection manifest, audits the selected corpus and packages it as a ZIP.
 
 Start with:
 
