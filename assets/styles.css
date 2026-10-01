@@ -249,3 +249,6 @@ h2,h3{margin:.15rem 0 .4rem}.muted{color:var(--muted);line-height:1.55}.status{c
 .memory-card-content{opacity:0;padding:9px}.learning-memory-card.revealed .memory-card-hidden{opacity:0}.learning-memory-card.revealed .memory-card-content{opacity:1}
 .memory-visual{width:100%;max-height:126px}.memory-word{font-size:clamp(1.05rem,4vw,1.55rem);font-weight:950;letter-spacing:.04em;overflow-wrap:anywhere}
 @media(max-width:760px){.practice-module-grid,.practice-module-grid-three{grid-template-columns:1fr}.learning-memory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.practice-heading{flex-direction:column}.learning-memory-card{min-height:138px}}
+
+.case-letter{font-size:clamp(3rem,12vw,5.6rem);font-weight:950;line-height:1;text-transform:none}
+.syllable-choice{text-transform:uppercase;letter-spacing:.05em}
