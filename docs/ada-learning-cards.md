@@ -1,5 +1,19 @@
 # ADA foundational practice — learning cards and Memory
 
+## Implementation status — 1 October 2026
+
+The first teacher-preview slice is implemented on `dev/ada-learning-cards-backlog`:
+
+- shared JSON vocabulary with eight everyday items and optional PSR/AEPE/context tags;
+- one local SVG illustration sprite, with no CDN/runtime dependency;
+- learning cards: image → listen → reveal written word;
+- listening practice: hear a word and find its written form across four short rounds;
+- four-pair image↔word Memory with a two-second preview and unlimited retries;
+- ADA French teacher preview now opens a small choice between **Positionnement** and **S’entraîner**;
+- practice preview performs no learner writes and does not feed positioning reports.
+
+This does **not** yet expose practice as a learner-session choice. Wiring a practice pathway into signed class sessions should be a separate change because it needs an explicit session/pathway discriminator and therefore a small database migration.
+
 ## Purpose
 
 Add a lightweight **practice** layer for learners who need repeated exposure to letters, syllables and useful written words.
