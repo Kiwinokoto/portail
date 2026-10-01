@@ -58,6 +58,22 @@ Open:
 
 Automated tests do not replace classroom/device checks. The current manual checklist lives in `docs/field-validation-checklist.md`. Maths SSO ownership/recovery has now been manually validated phone → desktop; the remaining check is that Portail's aggregated **Mes séances récentes** surface exposes the remote Maths session and deep-links to the intended follow-up.
 
+## Image bank tooling
+
+The offline curation pipeline for learning-card/Memory visuals lives in `tools/image_bank.py`. It searches Wikimedia Commons and Openverse, downloads candidate previews with provenance/licence metadata, generates a local selection gallery, applies a downloaded selection manifest, audits the selected corpus and packages it as a ZIP.
+
+Start with:
+
+```bash
+python tools/image_bank.py collect \
+  --manifest tools/image-bank-seed-fr.json \
+  --output .image-bank \
+  --providers wikimedia,openverse \
+  --per-provider 4
+```
+
+See `docs/image-bank-pipeline.md` for the full workflow and licence-review boundary.
+
 ## Tests
 
 ```bash
