@@ -113,7 +113,41 @@ class ImageBankTests(unittest.TestCase):
                 review_required=False,
             )
             concepts = [{"id": "pomme", "labels": {"fr": "pomme", "en": "apple"}}]
-            image_bank.write_gallery(root, concepts, [candidate])
+            weaker_verified = [
+                image_bank.Candidate(
+                    candidate_id="wikimedia:43",
+                    concept_id="pomme",
+                    provider="wikimedia",
+                    provider_id="43",
+                    query="apple",
+                    title="Apple poster.jpg",
+                    creator="Bob",
+                    source_name="Wikimedia Commons",
+                    source_url="https://commons.wikimedia.org/wiki/File:Apple_poster.jpg",
+                    asset_url="https://upload.wikimedia.org/apple-poster.jpg",
+                    license="CC BY-SA 4.0",
+                    license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+                    license_confidence="source-metadata",
+                    review_required=False,
+                ),
+                image_bank.Candidate(
+                    candidate_id="wikimedia:44",
+                    concept_id="pomme",
+                    provider="wikimedia",
+                    provider_id="44",
+                    query="apple",
+                    title="Apple logo.jpg",
+                    creator="Carol",
+                    source_name="Wikimedia Commons",
+                    source_url="https://commons.wikimedia.org/wiki/File:Apple_logo.jpg",
+                    asset_url="https://upload.wikimedia.org/apple-logo.jpg",
+                    license="CC BY-SA 4.0",
+                    license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+                    license_confidence="source-metadata",
+                    review_required=False,
+                ),
+            ]
+            image_bank.write_gallery(root, concepts, [candidate, *weaker_verified])
             gallery = (root / "gallery.html").read_text(encoding="utf-8")
             self.assertIn("wikimedia:42", gallery)
             self.assertIn("selection.json", gallery)
@@ -234,8 +268,28 @@ class ImageBankTests(unittest.TestCase):
             image_bank.candidate_score(verified, concept),
             image_bank.candidate_score(aggregated, concept),
         )
+        self.assertEqual(
+            {},
+            image_bank.recommended_candidates([concept], [aggregated, verified]),
+        )
+        verified_2 = image_bank.Candidate(**{
+            **image_bank.asdict(verified),
+            "candidate_id": "wikimedia:3",
+            "provider_id": "3",
+            "title": "Apple poster.jpg",
+            "license": "CC BY-SA 4.0",
+            "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+        })
+        verified_3 = image_bank.Candidate(**{
+            **image_bank.asdict(verified),
+            "candidate_id": "wikimedia:4",
+            "provider_id": "4",
+            "title": "Apple logo.jpg",
+            "license": "CC BY-SA 4.0",
+            "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+        })
         recommendation = image_bank.recommended_candidates(
-            [concept], [aggregated, verified]
+            [concept], [aggregated, verified, verified_2, verified_3]
         )
         self.assertEqual("wikimedia:1", recommendation["pomme"][0])
 
@@ -261,6 +315,42 @@ class ImageBankTests(unittest.TestCase):
                     asset_url="https://upload.wikimedia.org/apple.jpg",
                     license="CC0 1.0",
                     license_url="https://creativecommons.org/publicdomain/zero/1.0/",
+                    width=600,
+                    height=600,
+                    license_confidence="source-metadata",
+                    review_required=False,
+                ),
+                image_bank.Candidate(
+                    candidate_id="wikimedia:3",
+                    concept_id="pomme",
+                    provider="wikimedia",
+                    provider_id="3",
+                    query="red apple fruit",
+                    title="Apple poster.jpg",
+                    creator="Carol",
+                    source_name="Wikimedia Commons",
+                    source_url="https://commons.wikimedia.org/wiki/File:Apple_poster.jpg",
+                    asset_url="https://upload.wikimedia.org/apple-poster.jpg",
+                    license="CC BY-SA 4.0",
+                    license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+                    width=600,
+                    height=600,
+                    license_confidence="source-metadata",
+                    review_required=False,
+                ),
+                image_bank.Candidate(
+                    candidate_id="wikimedia:4",
+                    concept_id="pomme",
+                    provider="wikimedia",
+                    provider_id="4",
+                    query="red apple fruit",
+                    title="Apple logo.jpg",
+                    creator="Dave",
+                    source_name="Wikimedia Commons",
+                    source_url="https://commons.wikimedia.org/wiki/File:Apple_logo.jpg",
+                    asset_url="https://upload.wikimedia.org/apple-logo.jpg",
+                    license="CC BY-SA 4.0",
+                    license_url="https://creativecommons.org/licenses/by-sa/4.0/",
                     width=600,
                     height=600,
                     license_confidence="source-metadata",
