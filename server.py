@@ -2,9 +2,15 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import hashlib
 import json
 import mimetypes
+import os
+import secrets
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime
 from http import HTTPStatus
 from http.cookies import SimpleCookie
@@ -19,6 +25,68 @@ from portal.store import PortalStore
 
 ROOT = PROJECT_ROOT
 STORE = PortalStore()
+MATHS_BASE_URL = os.environ.get("PORTAIL_MATHS_URL", "https://maths.lagrandeclasse.fr").rstrip("/")
+
+
+def _pkce_challenge(verifier: str) -> str:
+    digest = hashlib.sha256(verifier.encode("utf-8")).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+
+
+def fetch_maths_sessions_for_user(user: dict) -> list[dict]:
+    verifier = secrets.token_urlsafe(48)
+    code = STORE.create_sso_code(
+        user["id"],
+        target="maths",
+        challenge=_pkce_challenge(verifier),
+    )
+    body = json.dumps(
+        {"code": code, "verifier": verifier},
+        separators=(",", ":"),
+    ).encode("utf-8")
+    request = urllib.request.Request(
+        MATHS_BASE_URL + "/api/portal/session-summaries",
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=5) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    sessions = payload.get("sessions") if isinstance(payload, dict) else None
+    if not isinstance(sessions, list):
+        raise ValueError("Réponse Maths LGC invalide.")
+
+    normalized = []
+    for raw in sessions:
+        if not isinstance(raw, dict):
+            continue
+        session_id = str(raw.get("class_session_id") or "").strip()
+        if not session_id:
+            continue
+        session_number = int(raw.get("session_number") or 1)
+        title = str(raw.get("session_title") or "").strip()
+        normalized.append({
+            "id": f"maths:{session_id}",
+            "external_id": session_id,
+            "source": "maths",
+            "formation_id": "psr",
+            "formation_label": "PSR",
+            "subject_id": "psr-maths",
+            "subject_label": "Mathématiques",
+            "session_number": session_number,
+            "title": title,
+            "group_label": str(raw.get("group_label") or "").strip(),
+            "active": bool(raw.get("active", True)),
+            "corrections_unlocked": bool(raw.get("corrections_unlocked", False)),
+            "created_at": str(raw.get("created_at") or ""),
+            "updated_at": str(raw.get("updated_at") or raw.get("created_at") or ""),
+            "manage_url": (
+                MATHS_BASE_URL
+                + "/api/sso/start?"
+                + urlencode({"tab": "live", "session": session_id})
+            ),
+        })
+    return normalized
 
 
 class ClosedSessionError(ValueError):
@@ -151,6 +219,31 @@ class Handler(BaseHTTPRequestHandler):
                     HTTPStatus.OK,
                     {"sessions": STORE.list_class_sessions(user["id"], include_inactive=True)},
                 )
+            if path == "/api/external/maths/sessions":
+                user = self._require_user()
+                has_maths = any(
+                    subject["id"] == "psr-maths"
+                    for formation in STORE.catalog_for(user)
+                    for subject in formation["subjects"]
+                )
+                if not has_maths:
+                    return self._json(
+                        HTTPStatus.FORBIDDEN,
+                        {"error": "Accès Maths LGC non autorisé."},
+                    )
+                try:
+                    sessions = fetch_maths_sessions_for_user(user)
+                except urllib.error.HTTPError as exc:
+                    return self._json(
+                        HTTPStatus.BAD_GATEWAY,
+                        {"error": f"Maths LGC a refusé la synchronisation ({exc.code})."},
+                    )
+                except (OSError, ValueError, json.JSONDecodeError, urllib.error.URLError):
+                    return self._json(
+                        HTTPStatus.BAD_GATEWAY,
+                        {"error": "Maths LGC est temporairement indisponible."},
+                    )
+                return self._json(HTTPStatus.OK, {"sessions": sessions})
             if path == "/api/admin/users":
                 self._require_admin()
                 return self._json(HTTPStatus.OK, {"users": STORE.list_users()})
