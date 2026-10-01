@@ -114,6 +114,15 @@ class PortalHttpTests(unittest.TestCase):
         self.assertIn("renderAdaTeacherPreviewHome", practice_js)
         self.assertIn("renderLearningMemoryPractice", practice_js)
 
+        with urllib.request.urlopen(self.base + "/assets/learning/literacy-basics.json", timeout=3) as response:
+            self.assertEqual(200, response.status)
+            basics = json.loads(response.read())
+        self.assertGreaterEqual(len(basics["letters"]), 12)
+        self.assertGreaterEqual(len(basics["syllables"]), 20)
+        self.assertEqual(len(basics["letters"]), len(set(basics["letters"])))
+        self.assertEqual(len(basics["syllables"]), len(set(basics["syllables"])))
+        self.assertTrue(all(value == value.upper() for value in basics["letters"]))
+
     def test_create_session_and_public_join_resolution(self):
         session = self.create_ada_session()
         token = session["join_url"].split("?join=", 1)[1]
