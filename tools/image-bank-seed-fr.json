@@ -1,0 +1,1017 @@
+{
+  "version": 1,
+  "purpose": "Seed concepts for automated image-bank curation. Labels are separated from source queries so the same visual bank can later support multiple languages.",
+  "concepts": [
+    {
+      "id": "bus",
+      "labels": {
+        "fr": "BUS",
+        "en": "bus"
+      },
+      "queries": [
+        "bus",
+        "BUS"
+      ],
+      "tags": [
+        "everyday",
+        "transport"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "moto",
+      "labels": {
+        "fr": "MOTO",
+        "en": "motorcycle"
+      },
+      "queries": [
+        "motorcycle",
+        "MOTO"
+      ],
+      "tags": [
+        "everyday",
+        "transport"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "voiture",
+      "labels": {
+        "fr": "VOITURE",
+        "en": "car"
+      },
+      "queries": [
+        "car",
+        "VOITURE"
+      ],
+      "tags": [
+        "everyday",
+        "transport"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "velo",
+      "labels": {
+        "fr": "VÉLO",
+        "en": "bicycle"
+      },
+      "queries": [
+        "bicycle",
+        "VÉLO"
+      ],
+      "tags": [
+        "everyday",
+        "transport"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "train",
+      "labels": {
+        "fr": "TRAIN",
+        "en": "train"
+      },
+      "queries": [
+        "train",
+        "TRAIN"
+      ],
+      "tags": [
+        "everyday",
+        "transport"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "pomme",
+      "labels": {
+        "fr": "POMME",
+        "en": "apple fruit"
+      },
+      "queries": [
+        "apple fruit",
+        "POMME"
+      ],
+      "tags": [
+        "everyday",
+        "food",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "banane",
+      "labels": {
+        "fr": "BANANE",
+        "en": "banana fruit"
+      },
+      "queries": [
+        "banana fruit",
+        "BANANE"
+      ],
+      "tags": [
+        "everyday",
+        "food",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "tomate",
+      "labels": {
+        "fr": "TOMATE",
+        "en": "tomato"
+      },
+      "queries": [
+        "tomato",
+        "TOMATE"
+      ],
+      "tags": [
+        "everyday",
+        "food",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "pain",
+      "labels": {
+        "fr": "PAIN",
+        "en": "bread loaf"
+      },
+      "queries": [
+        "bread loaf",
+        "PAIN"
+      ],
+      "tags": [
+        "everyday",
+        "food",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "lait",
+      "labels": {
+        "fr": "LAIT",
+        "en": "milk glass"
+      },
+      "queries": [
+        "milk glass",
+        "LAIT"
+      ],
+      "tags": [
+        "everyday",
+        "food",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "oeuf",
+      "labels": {
+        "fr": "ŒUF",
+        "en": "chicken egg"
+      },
+      "queries": [
+        "chicken egg",
+        "ŒUF"
+      ],
+      "tags": [
+        "everyday",
+        "food",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "riz",
+      "labels": {
+        "fr": "RIZ",
+        "en": "rice food"
+      },
+      "queries": [
+        "rice food",
+        "RIZ"
+      ],
+      "tags": [
+        "everyday",
+        "food",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "eau",
+      "labels": {
+        "fr": "EAU",
+        "en": "glass of water"
+      },
+      "queries": [
+        "glass of water",
+        "EAU"
+      ],
+      "tags": [
+        "everyday",
+        "food"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "tasse",
+      "labels": {
+        "fr": "TASSE",
+        "en": "cup mug"
+      },
+      "queries": [
+        "cup mug",
+        "TASSE"
+      ],
+      "tags": [
+        "everyday",
+        "kitchen",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "verre",
+      "labels": {
+        "fr": "VERRE",
+        "en": "drinking glass"
+      },
+      "queries": [
+        "drinking glass",
+        "VERRE"
+      ],
+      "tags": [
+        "everyday",
+        "kitchen",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "assiette",
+      "labels": {
+        "fr": "ASSIETTE",
+        "en": "plate dish"
+      },
+      "queries": [
+        "plate dish",
+        "ASSIETTE"
+      ],
+      "tags": [
+        "everyday",
+        "kitchen",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "bol",
+      "labels": {
+        "fr": "BOL",
+        "en": "bowl"
+      },
+      "queries": [
+        "bowl",
+        "BOL"
+      ],
+      "tags": [
+        "everyday",
+        "kitchen",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "cuillere",
+      "labels": {
+        "fr": "CUILLÈRE",
+        "en": "spoon"
+      },
+      "queries": [
+        "spoon",
+        "CUILLÈRE"
+      ],
+      "tags": [
+        "everyday",
+        "kitchen",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "fourchette",
+      "labels": {
+        "fr": "FOURCHETTE",
+        "en": "fork utensil"
+      },
+      "queries": [
+        "fork utensil",
+        "FOURCHETTE"
+      ],
+      "tags": [
+        "everyday",
+        "kitchen",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "couteau",
+      "labels": {
+        "fr": "COUTEAU",
+        "en": "table knife utensil"
+      },
+      "queries": [
+        "table knife utensil",
+        "COUTEAU"
+      ],
+      "tags": [
+        "everyday",
+        "kitchen",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "casserole",
+      "labels": {
+        "fr": "CASSEROLE",
+        "en": "cooking pot"
+      },
+      "queries": [
+        "cooking pot",
+        "CASSEROLE"
+      ],
+      "tags": [
+        "everyday",
+        "kitchen",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "poele",
+      "labels": {
+        "fr": "POÊLE",
+        "en": "frying pan"
+      },
+      "queries": [
+        "frying pan",
+        "POÊLE"
+      ],
+      "tags": [
+        "everyday",
+        "kitchen",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "frigo",
+      "labels": {
+        "fr": "FRIGO",
+        "en": "refrigerator"
+      },
+      "queries": [
+        "refrigerator",
+        "FRIGO"
+      ],
+      "tags": [
+        "everyday",
+        "kitchen",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "four",
+      "labels": {
+        "fr": "FOUR",
+        "en": "kitchen oven"
+      },
+      "queries": [
+        "kitchen oven",
+        "FOUR"
+      ],
+      "tags": [
+        "everyday",
+        "kitchen",
+        "psr"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "robinet",
+      "labels": {
+        "fr": "ROBINET",
+        "en": "water faucet"
+      },
+      "queries": [
+        "water faucet",
+        "ROBINET"
+      ],
+      "tags": [
+        "everyday",
+        "home",
+        "hygiene"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "savon",
+      "labels": {
+        "fr": "SAVON",
+        "en": "bar of soap"
+      },
+      "queries": [
+        "bar of soap",
+        "SAVON"
+      ],
+      "tags": [
+        "everyday",
+        "hygiene",
+        "psr",
+        "aepe"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "serviette",
+      "labels": {
+        "fr": "SERVIETTE",
+        "en": "towel"
+      },
+      "queries": [
+        "towel",
+        "SERVIETTE"
+      ],
+      "tags": [
+        "everyday",
+        "hygiene",
+        "psr",
+        "aepe"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "brosse_dents",
+      "labels": {
+        "fr": "BROSSE À DENTS",
+        "en": "toothbrush"
+      },
+      "queries": [
+        "toothbrush",
+        "BROSSE À DENTS"
+      ],
+      "tags": [
+        "everyday",
+        "hygiene",
+        "aepe"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "douche",
+      "labels": {
+        "fr": "DOUCHE",
+        "en": "shower bathroom"
+      },
+      "queries": [
+        "shower bathroom",
+        "DOUCHE"
+      ],
+      "tags": [
+        "everyday",
+        "hygiene"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "toilette",
+      "labels": {
+        "fr": "TOILETTES",
+        "en": "toilet bathroom"
+      },
+      "queries": [
+        "toilet bathroom",
+        "TOILETTES"
+      ],
+      "tags": [
+        "everyday",
+        "hygiene"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "cle",
+      "labels": {
+        "fr": "CLÉ",
+        "en": "house key"
+      },
+      "queries": [
+        "house key",
+        "CLÉ"
+      ],
+      "tags": [
+        "everyday",
+        "home"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "porte",
+      "labels": {
+        "fr": "PORTE",
+        "en": "door"
+      },
+      "queries": [
+        "door",
+        "PORTE"
+      ],
+      "tags": [
+        "everyday",
+        "home"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "table",
+      "labels": {
+        "fr": "TABLE",
+        "en": "table furniture"
+      },
+      "queries": [
+        "table furniture",
+        "TABLE"
+      ],
+      "tags": [
+        "everyday",
+        "home"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "chaise",
+      "labels": {
+        "fr": "CHAISE",
+        "en": "chair"
+      },
+      "queries": [
+        "chair",
+        "CHAISE"
+      ],
+      "tags": [
+        "everyday",
+        "home"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "lit",
+      "labels": {
+        "fr": "LIT",
+        "en": "bed furniture"
+      },
+      "queries": [
+        "bed furniture",
+        "LIT"
+      ],
+      "tags": [
+        "everyday",
+        "home",
+        "aepe"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "lampe",
+      "labels": {
+        "fr": "LAMPE",
+        "en": "table lamp"
+      },
+      "queries": [
+        "table lamp",
+        "LAMPE"
+      ],
+      "tags": [
+        "everyday",
+        "home"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "maison",
+      "labels": {
+        "fr": "MAISON",
+        "en": "house exterior"
+      },
+      "queries": [
+        "house exterior",
+        "MAISON"
+      ],
+      "tags": [
+        "everyday",
+        "home"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "livre",
+      "labels": {
+        "fr": "LIVRE",
+        "en": "book"
+      },
+      "queries": [
+        "book",
+        "LIVRE"
+      ],
+      "tags": [
+        "everyday",
+        "school",
+        "aepe"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "stylo",
+      "labels": {
+        "fr": "STYLO",
+        "en": "pen writing"
+      },
+      "queries": [
+        "pen writing",
+        "STYLO"
+      ],
+      "tags": [
+        "everyday",
+        "school"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "sac",
+      "labels": {
+        "fr": "SAC",
+        "en": "bag backpack"
+      },
+      "queries": [
+        "bag backpack",
+        "SAC"
+      ],
+      "tags": [
+        "everyday",
+        "clothing"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "manteau",
+      "labels": {
+        "fr": "MANTEAU",
+        "en": "coat clothing"
+      },
+      "queries": [
+        "coat clothing",
+        "MANTEAU"
+      ],
+      "tags": [
+        "everyday",
+        "clothing",
+        "aepe"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "chaussure",
+      "labels": {
+        "fr": "CHAUSSURE",
+        "en": "shoe"
+      },
+      "queries": [
+        "shoe",
+        "CHAUSSURE"
+      ],
+      "tags": [
+        "everyday",
+        "clothing"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "chemise",
+      "labels": {
+        "fr": "CHEMISE",
+        "en": "shirt clothing"
+      },
+      "queries": [
+        "shirt clothing",
+        "CHEMISE"
+      ],
+      "tags": [
+        "everyday",
+        "clothing"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "pantalon",
+      "labels": {
+        "fr": "PANTALON",
+        "en": "trousers pants"
+      },
+      "queries": [
+        "trousers pants",
+        "PANTALON"
+      ],
+      "tags": [
+        "everyday",
+        "clothing"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "telephone",
+      "labels": {
+        "fr": "TÉLÉPHONE",
+        "en": "smartphone"
+      },
+      "queries": [
+        "smartphone",
+        "TÉLÉPHONE"
+      ],
+      "tags": [
+        "everyday",
+        "object"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "montre",
+      "labels": {
+        "fr": "MONTRE",
+        "en": "wrist watch"
+      },
+      "queries": [
+        "wrist watch",
+        "MONTRE"
+      ],
+      "tags": [
+        "everyday",
+        "object"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "bebe",
+      "labels": {
+        "fr": "BÉBÉ",
+        "en": "baby"
+      },
+      "queries": [
+        "baby",
+        "BÉBÉ"
+      ],
+      "tags": [
+        "everyday",
+        "people",
+        "aepe"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "enfant",
+      "labels": {
+        "fr": "ENFANT",
+        "en": "child"
+      },
+      "queries": [
+        "child",
+        "ENFANT"
+      ],
+      "tags": [
+        "everyday",
+        "people",
+        "aepe"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "main",
+      "labels": {
+        "fr": "MAIN",
+        "en": "human hand"
+      },
+      "queries": [
+        "human hand",
+        "MAIN"
+      ],
+      "tags": [
+        "everyday",
+        "body"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "pied",
+      "labels": {
+        "fr": "PIED",
+        "en": "human foot"
+      },
+      "queries": [
+        "human foot",
+        "PIED"
+      ],
+      "tags": [
+        "everyday",
+        "body"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "nez",
+      "labels": {
+        "fr": "NEZ",
+        "en": "human nose"
+      },
+      "queries": [
+        "human nose",
+        "NEZ"
+      ],
+      "tags": [
+        "everyday",
+        "body"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "oeil",
+      "labels": {
+        "fr": "ŒIL",
+        "en": "human eye"
+      },
+      "queries": [
+        "human eye",
+        "ŒIL"
+      ],
+      "tags": [
+        "everyday",
+        "body"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "ecole",
+      "labels": {
+        "fr": "ÉCOLE",
+        "en": "school building"
+      },
+      "queries": [
+        "school building",
+        "ÉCOLE"
+      ],
+      "tags": [
+        "everyday",
+        "place",
+        "aepe"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "magasin",
+      "labels": {
+        "fr": "MAGASIN",
+        "en": "shop storefront"
+      },
+      "queries": [
+        "shop storefront",
+        "MAGASIN"
+      ],
+      "tags": [
+        "everyday",
+        "place"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "pharmacie",
+      "labels": {
+        "fr": "PHARMACIE",
+        "en": "pharmacy storefront"
+      },
+      "queries": [
+        "pharmacy storefront",
+        "PHARMACIE"
+      ],
+      "tags": [
+        "everyday",
+        "place"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "rue",
+      "labels": {
+        "fr": "RUE",
+        "en": "city street"
+      },
+      "queries": [
+        "city street",
+        "RUE"
+      ],
+      "tags": [
+        "everyday",
+        "place"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "parc",
+      "labels": {
+        "fr": "PARC",
+        "en": "public park"
+      },
+      "queries": [
+        "public park",
+        "PARC"
+      ],
+      "tags": [
+        "everyday",
+        "place",
+        "aepe"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "arbre",
+      "labels": {
+        "fr": "ARBRE",
+        "en": "tree"
+      },
+      "queries": [
+        "tree",
+        "ARBRE"
+      ],
+      "tags": [
+        "everyday",
+        "nature",
+        "aepe"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "fleur",
+      "labels": {
+        "fr": "FLEUR",
+        "en": "flower"
+      },
+      "queries": [
+        "flower",
+        "FLEUR"
+      ],
+      "tags": [
+        "everyday",
+        "nature",
+        "aepe"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "chien",
+      "labels": {
+        "fr": "CHIEN",
+        "en": "dog"
+      },
+      "queries": [
+        "dog",
+        "CHIEN"
+      ],
+      "tags": [
+        "everyday",
+        "animal",
+        "aepe"
+      ],
+      "difficulty": 1
+    },
+    {
+      "id": "chat",
+      "labels": {
+        "fr": "CHAT",
+        "en": "cat"
+      },
+      "queries": [
+        "cat",
+        "CHAT"
+      ],
+      "tags": [
+        "everyday",
+        "animal",
+        "aepe"
+      ],
+      "difficulty": 1
+    }
+  ]
+}
