@@ -52,12 +52,15 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] Build a first shared **everyday vocabulary pool** for ADA rather than splitting basic words by vocational pathway. V1 contains eight local illustrated items; PSR/AEPE/context tags are metadata only.
 - [ ] Keep the visual language adult and non-infantilising. Learning-card / Montessori-inspired image+word presentation is a reference pattern, not a claim that the module implements a full Montessori method.
 - [ ] Replace/extend hand-drawn V1 placeholders with a curated local image library rather than mass-generating assets. Prefer individually verified open-license sources, with a bulk candidate source only as an aid; keep source/author/license metadata and no runtime CDN dependency.
-- [ ] Add a small image-curation pipeline: start from vocabulary IDs, gather candidates, reject text/watermarks/ambiguous crops, optimize selected local assets and emit attribution/provenance metadata.
+- [x] Add a first scalable image-curation pipeline: source-agnostic concept manifest, Wikimedia/Openverse collection, resumable checkpoints, local candidate downloads, HTML gallery selection, automatic renaming, provenance/licence manifest, audit and ZIP packaging. Seed contains ~60 familiar concepts; Open Images cropping and automatic visual-quality ranking remain later extensions.
 - [x] Start with very small sets: the V1 Memory uses four image↔word pairs, listening uses four short rounds, and learning cards are audio-first.
 - [x] Define a content dataset independent from the game engine: `assets/learning/vocabulary.json` feeds cards, listening and Memory; illustrations live in one local SVG sprite.
 - [x] Reuse the useful interaction ideas from `memory` selectively instead of embedding/copying the whole legacy app. The new implementation is Portail-native and preserves Portail identity/session boundaries and semantic feedback rules.
 - [x] Add an explicit ADA French session pathway discriminator so a teacher can create either `positioning-v1` or `practice-v1`; existing ADA French/Maths sessions are backfilled to their historical pathways by an additive SQLite migration.
 - [x] Route `practice-v1` signed learner sessions into the same prepared-roster identity flow and training menu while excluding them from positioning Reports and Corrigés.
+- [ ] Generate the first curated production image batch from the seed manifest, review it in `gallery.html`, then replace selected V1 SVG placeholders only after the visual style is accepted.
+- [ ] Grow the concept manifest progressively toward roughly 500–2,000 familiar concepts; keep concept IDs language-neutral so later translations do not duplicate image assets.
+- [ ] Add an Open Images adapter for boxable concepts and optional automatic crops after the Wikimedia/Openverse workflow has been field-reviewed.
 - [ ] Decide later, after classroom observation, whether practice history should remain coarse (started/audio only), record simple completion/repetition signals, or drive adaptive repetition. Do not feed raw practice attempts into positioning reports by default.
 
 ## P2 — maths convergence
