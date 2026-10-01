@@ -91,6 +91,81 @@ def title_relevant(title: str, concept: dict) -> bool:
     return False
 
 
+SUSPICIOUS_TITLE_WORDS = {
+    "logo", "poster", "diagram", "map", "chart", "screenshot",
+    "painting", "artwork", "trophy", "award", "sign", "banner",
+}
+
+
+def candidate_score(candidate: Candidate, concept: dict) -> int:
+    score = 0
+    license_key = _license_key(candidate.license)
+    score += {"cc0": 18, "pdm": 18, "by": 13, "by-sa": 9}.get(license_key, 0)
+    if candidate.license_confidence == "source-metadata":
+        score += 18
+    elif candidate.license_confidence == "aggregated-metadata":
+        score += 4
+    if not candidate.review_required:
+        score += 12
+    if candidate.provider == "wikimedia":
+        score += 3
+    if title_relevant(candidate.title, concept):
+        score += 12
+
+    width = candidate.width or 0
+    height = candidate.height or 0
+    if width >= 400 and height >= 300:
+        score += 7
+    if width and height:
+        ratio = width / height
+        if 0.55 <= ratio <= 1.8:
+            score += 4
+        if min(width, height) < 180:
+            score -= 8
+
+    title_folded = _fold_text(candidate.title)
+    if any(word in title_folded for word in SUSPICIOUS_TITLE_WORDS):
+        score -= 12
+    if candidate.creator:
+        score += 2
+    if candidate.source_url:
+        score += 2
+    if candidate.local_file:
+        score += 2
+    return score
+
+
+def recommended_candidates(
+    concepts: list[dict], candidates: list[Candidate]
+) -> dict[str, tuple[str, int]]:
+    concept_map = {item["id"]: item for item in concepts}
+    grouped: dict[str, list[Candidate]] = {}
+    for candidate in candidates:
+        grouped.setdefault(candidate.concept_id, []).append(candidate)
+    recommendations: dict[str, tuple[str, int]] = {}
+    for concept_id, items in grouped.items():
+        concept = concept_map.get(
+            concept_id,
+            {"id": concept_id, "labels": {"fr": concept_id, "en": concept_id}},
+        )
+        ranked = sorted(
+            items,
+            key=lambda item: (
+                candidate_score(item, concept),
+                item.provider == "wikimedia",
+                item.candidate_id,
+            ),
+            reverse=True,
+        )
+        if ranked:
+            best = ranked[0]
+            recommendations[concept_id] = (
+                best.candidate_id,
+                candidate_score(best, concept),
+            )
+    return recommendations
+
+
 def _json_get(url: str, params: dict[str, object], *, timeout: int = 20) -> dict:
     query = urllib.parse.urlencode(params, doseq=True)
     request = urllib.request.Request(
@@ -336,6 +411,7 @@ def write_workspace_state(
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "manifest": str(manifest),
         "providers": providers,
+        "concepts": concepts,
         "candidates": [asdict(item) for item in candidates],
         "failures": failures,
     }
@@ -415,15 +491,31 @@ def write_gallery(workspace: Path, concepts: list[dict], candidates: list[Candid
     for candidate in candidates:
         grouped.setdefault(candidate.concept_id, []).append(candidate)
     concept_map = {item["id"]: item for item in concepts}
+    recommendations = recommended_candidates(concepts, candidates)
 
     cards: list[str] = []
     for concept_id in sorted(grouped):
-        concept = concept_map.get(concept_id, {"labels": {"fr": concept_id}})
+        concept = concept_map.get(
+            concept_id,
+            {"id": concept_id, "labels": {"fr": concept_id, "en": concept_id}},
+        )
         label = (concept.get("labels") or {}).get("fr") or concept_id
+        ranked = sorted(
+            grouped[concept_id],
+            key=lambda item: (
+                candidate_score(item, concept),
+                item.provider == "wikimedia",
+                item.candidate_id,
+            ),
+            reverse=True,
+        )
+        suggested_id = recommendations.get(concept_id, ("", 0))[0]
         items: list[str] = []
-        for candidate in grouped[concept_id]:
+        for candidate in ranked:
             image_src = html.escape(candidate.local_file or candidate.asset_url, quote=True)
             candidate_id = html.escape(candidate.candidate_id, quote=True)
+            score = candidate_score(candidate, concept)
+            suggested = candidate.candidate_id == suggested_id
             meta = " · ".join(
                 part for part in [
                     candidate.provider,
@@ -432,12 +524,15 @@ def write_gallery(workspace: Path, concepts: list[dict], candidates: list[Candid
                     candidate.creator,
                 ] if part
             )
+            badge = '<span class="suggestion">Suggestion automatique</span>' if suggested else ""
             items.append(
-                f"""<label class="candidate">
-<input type="checkbox" value="{candidate_id}">
+                f"""<label class="candidate{' suggested' if suggested else ''}">
+<input type="checkbox" value="{candidate_id}" data-suggested="{'1' if suggested else '0'}">
+{badge}
 <img loading="lazy" src="{image_src}" alt="{html.escape(candidate.title or label)}">
 <strong>{html.escape(candidate.title or label)}</strong>
 <small>{html.escape(meta)}</small>
+<small>score heuristique : {score}</small>
 <a href="{html.escape(candidate.source_url, quote=True)}" target="_blank" rel="noopener">source</a>
 </label>"""
             )
@@ -452,19 +547,31 @@ def write_gallery(workspace: Path, concepts: list[dict], candidates: list[Candid
 <style>
 body{{font-family:system-ui,sans-serif;margin:24px;background:#f7f5fb;color:#241f32}} h1{{margin-bottom:4px}}
 .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}}
-.candidate{{display:grid;gap:6px;background:white;border:1px solid #ddd5ee;border-radius:14px;padding:10px}}
-.candidate:has(input:checked){{outline:3px solid #6b57d9}} img{{width:100%;height:150px;object-fit:contain;background:#fafafa}}
-small{{color:#655e70}} code{{font-size:.7em;color:#6657aa}} .toolbar{{position:sticky;top:0;background:#f7f5fb;padding:12px 0;z-index:2}}
+.candidate{{position:relative;display:grid;gap:6px;background:white;border:1px solid #ddd5ee;border-radius:14px;padding:10px}}
+.candidate.suggested{{border-color:#8f7ce8}} .candidate:has(input:checked){{outline:3px solid #6b57d9}}
+.suggestion{{font-size:.72rem;font-weight:800;color:#5544ba;background:#eeeaff;border-radius:999px;padding:4px 8px;width:max-content}}
+img{{width:100%;height:150px;object-fit:contain;background:#fafafa}}
+small{{color:#655e70}} code{{font-size:.7em;color:#6657aa}}
+.toolbar{{position:sticky;top:0;background:#f7f5fb;padding:12px 0;z-index:2;display:flex;gap:8px;align-items:center;flex-wrap:wrap}}
 button{{padding:10px 14px;font-weight:700}}
 </style>
 <h1>Banque d’images LGC — candidats</h1>
-<p>Coche une ou plusieurs images par concept. La sélection n’écrit rien sur le disque : elle télécharge un fichier <code>selection.json</code>.</p>
-<div class="toolbar"><button id="export">Exporter la sélection</button> <span id="count"></span></div>
+<p>La suggestion est un tri heuristique, pas une validation pédagogique ni juridique. Tu peux tout modifier avant export.</p>
+<div class="toolbar">
+<button id="suggest">Sélectionner les suggestions</button>
+<button id="clear">Tout décocher</button>
+<button id="export">Exporter la sélection</button>
+<span id="count"></span>
+</div>
 {''.join(cards)}
 <script>
 const boxes=[...document.querySelectorAll('input[type=checkbox]')];
 function refresh(){{document.querySelector('#count').textContent=boxes.filter(x=>x.checked).length+' image(s) sélectionnée(s)';}}
 boxes.forEach(x=>x.addEventListener('change',refresh));refresh();
+document.querySelector('#suggest').addEventListener('click',()=>{{
+ boxes.forEach(x=>{{x.checked=x.dataset.suggested==='1';}});refresh();
+}});
+document.querySelector('#clear').addEventListener('click',()=>{{boxes.forEach(x=>{{x.checked=false;}});refresh();}});
 document.querySelector('#export').addEventListener('click',()=>{{
  const selected=boxes.filter(x=>x.checked).map(x=>x.value);
  const blob=new Blob([JSON.stringify({{version:1,selected}},null,2)],{{type:'application/json'}});
@@ -473,6 +580,44 @@ document.querySelector('#export').addEventListener('click',()=>{{
 }});
 </script></html>"""
     (workspace / "gallery.html").write_text(document, encoding="utf-8")
+
+
+def suggest_selection(args: argparse.Namespace) -> int:
+    workspace = Path(args.workspace)
+    data = json.loads((workspace / "candidates.json").read_text(encoding="utf-8"))
+    concepts = data.get("concepts")
+    if not isinstance(concepts, list):
+        concepts = []
+    candidates: list[Candidate] = []
+    for raw in data.get("candidates") or []:
+        try:
+            candidates.append(Candidate(**raw))
+        except TypeError:
+            continue
+    recommendations = recommended_candidates(concepts, candidates)
+    selected = [
+        candidate_id
+        for candidate_id, _score in recommendations.values()
+    ]
+    output = Path(args.output) if args.output else workspace / "selection-suggested.json"
+    output.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "selection_type": "heuristic-suggestion",
+                "selected": selected,
+                "scores": {
+                    concept_id: {"candidate_id": candidate_id, "score": score}
+                    for concept_id, (candidate_id, score) in recommendations.items()
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        ) + "\n",
+        encoding="utf-8",
+    )
+    print(f"{len(selected)} suggestion(s) écrite(s) dans {output}")
+    return 0 if selected else 2
 
 
 def apply_selection(args: argparse.Namespace) -> int:
@@ -579,6 +724,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="effacer le workspace avant collecte; par défaut une collecte reprend les checkpoints existants",
     )
     collect_p.set_defaults(func=collect)
+
+    suggest_p = sub.add_parser(
+        "suggest-selection",
+        help="proposer automatiquement un candidat par concept pour accélérer la revue",
+    )
+    suggest_p.add_argument("--workspace", required=True)
+    suggest_p.add_argument("--output", default="")
+    suggest_p.set_defaults(func=suggest_selection)
 
     apply_p = sub.add_parser("apply-selection", help="copier/ranger les candidats cochés")
     apply_p.add_argument("--workspace", required=True)

@@ -93,6 +93,9 @@ class ImageBankTests(unittest.TestCase):
             gallery = (root / "gallery.html").read_text(encoding="utf-8")
             self.assertIn("wikimedia:42", gallery)
             self.assertIn("selection.json", gallery)
+            self.assertIn("Suggestion automatique", gallery)
+            self.assertIn("Sélectionner les suggestions", gallery)
+            self.assertIn('data-suggested="1"', gallery)
 
             (root / "candidates.json").write_text(
                 json.dumps({"version": 1, "candidates": [image_bank.asdict(candidate)]}),
@@ -110,6 +113,125 @@ class ImageBankTests(unittest.TestCase):
             manifest = json.loads((root / "selected" / "manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(1, len(manifest["selected"]))
             self.assertEqual([], image_bank.audit_selected(root / "selected"))
+
+    def test_candidate_score_prefers_verified_simple_source(self):
+        concept = {
+            "id": "pomme",
+            "labels": {"fr": "pomme", "en": "apple"},
+            "queries": ["red apple fruit"],
+        }
+        verified = image_bank.Candidate(
+            candidate_id="wikimedia:1",
+            concept_id="pomme",
+            provider="wikimedia",
+            provider_id="1",
+            query="red apple fruit",
+            title="Red Apple.jpg",
+            creator="Alice",
+            source_name="Wikimedia Commons",
+            source_url="https://commons.wikimedia.org/wiki/File:Red_Apple.jpg",
+            asset_url="https://upload.wikimedia.org/apple.jpg",
+            license="CC0 1.0",
+            license_url="https://creativecommons.org/publicdomain/zero/1.0/",
+            width=600,
+            height=600,
+            local_file="candidates/pomme/wikimedia/apple.jpg",
+            license_confidence="source-metadata",
+            review_required=False,
+        )
+        aggregated = image_bank.Candidate(
+            candidate_id="openverse:2",
+            concept_id="pomme",
+            provider="openverse",
+            provider_id="2",
+            query="red apple fruit",
+            title="Red apple fruit",
+            creator="Bob",
+            source_name="flickr",
+            source_url="https://example.test/apple",
+            asset_url="https://example.test/apple.jpg",
+            license="BY 2.0",
+            license_url="https://creativecommons.org/licenses/by/2.0/",
+            width=1200,
+            height=800,
+            local_file="candidates/pomme/openverse/apple.jpg",
+            license_confidence="aggregated-metadata",
+            review_required=True,
+        )
+        self.assertGreater(
+            image_bank.candidate_score(verified, concept),
+            image_bank.candidate_score(aggregated, concept),
+        )
+        recommendation = image_bank.recommended_candidates(
+            [concept], [aggregated, verified]
+        )
+        self.assertEqual("wikimedia:1", recommendation["pomme"][0])
+
+    def test_suggest_selection_writes_one_candidate_per_concept(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            concept = {
+                "id": "pomme",
+                "labels": {"fr": "pomme", "en": "apple"},
+                "queries": ["red apple fruit"],
+            }
+            candidates = [
+                image_bank.Candidate(
+                    candidate_id="wikimedia:1",
+                    concept_id="pomme",
+                    provider="wikimedia",
+                    provider_id="1",
+                    query="red apple fruit",
+                    title="Red Apple.jpg",
+                    creator="Alice",
+                    source_name="Wikimedia Commons",
+                    source_url="https://commons.wikimedia.org/wiki/File:Red_Apple.jpg",
+                    asset_url="https://upload.wikimedia.org/apple.jpg",
+                    license="CC0 1.0",
+                    license_url="https://creativecommons.org/publicdomain/zero/1.0/",
+                    width=600,
+                    height=600,
+                    license_confidence="source-metadata",
+                    review_required=False,
+                ),
+                image_bank.Candidate(
+                    candidate_id="openverse:2",
+                    concept_id="pomme",
+                    provider="openverse",
+                    provider_id="2",
+                    query="apple",
+                    title="Apple poster",
+                    creator="Bob",
+                    source_name="flickr",
+                    source_url="https://example.test/poster",
+                    asset_url="https://example.test/poster.jpg",
+                    license="BY-SA 2.0",
+                    license_url="https://creativecommons.org/licenses/by-sa/2.0/",
+                    width=600,
+                    height=600,
+                    license_confidence="aggregated-metadata",
+                    review_required=True,
+                ),
+            ]
+            (root / "candidates.json").write_text(
+                json.dumps({
+                    "version": 1,
+                    "concepts": [concept],
+                    "candidates": [image_bank.asdict(item) for item in candidates],
+                }),
+                encoding="utf-8",
+            )
+            output = root / "suggested.json"
+            status = image_bank.suggest_selection(
+                Namespace(workspace=str(root), output=str(output))
+            )
+            self.assertEqual(0, status)
+            payload = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(["wikimedia:1"], payload["selected"])
+            self.assertEqual(
+                "wikimedia:1",
+                payload["scores"]["pomme"]["candidate_id"],
+            )
 
     def test_wikimedia_title_relevance_filters_obvious_homonyms(self):
         pomme = {
