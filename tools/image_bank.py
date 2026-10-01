@@ -24,6 +24,7 @@ WIKIMEDIA_API = "https://commons.wikimedia.org/w/api.php"
 USER_AGENT = "LGC-Portail-ImageBank/1.0 (educational image curation)"
 DEFAULT_LICENSES = {"cc0", "pdm", "by", "by-sa", "public domain"}
 MAX_DOWNLOAD_BYTES = 12 * 1024 * 1024
+MIN_VERIFIED_POOL_FOR_SUGGESTION = 3
 
 
 @dataclass
@@ -160,6 +161,13 @@ def recommended_candidates(
             concept_id,
             {"id": concept_id, "labels": {"fr": concept_id, "en": concept_id}},
         )
+        verified_pool = [
+            item for item in items
+            if item.license_confidence == "source-metadata"
+            and not candidate_requires_review(item)
+        ]
+        if len(verified_pool) < MIN_VERIFIED_POOL_FOR_SUGGESTION:
+            continue
         ranked = sorted(
             items,
             key=lambda item: (
