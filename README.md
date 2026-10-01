@@ -22,8 +22,8 @@ The portal intentionally does not recreate Moodle. It focuses on teacher session
 1. Open `portail.lagrandeclasse.fr` and enter the personal teacher token once.
 2. The server creates a secure browser session; the teacher name/role come from the account, not from a form field.
 3. Choose a formation, then a subject.
-4. Create a class session with a group and optional title.
-5. For ADA French or ADA Mathematics, open **Suivi en direct** and preload the roster (one learner per line, optional `Prénom; Nom`).
+4. Create a class session with a group and optional title. For ADA French, choose **Positionnement** or **Entraînement**; the choice is stored on the session and follows its signed learner link.
+5. For ADA French or ADA Mathematics, open **Suivi en direct** and preload the roster (one learner per line, optional `Prénom; Nom`). Practice sessions use the same prepared-roster identity flow but remain excluded from positioning reports/corrections.
 6. Share the signed learner URL or QR code.
 7. Learners select their prepared identity; they do not type their name.
 8. When a session is finished, close it from **Mes séances récentes**. The learner link/QR stops working immediately; results and Reports remain available.
