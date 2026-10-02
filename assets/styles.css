@@ -366,3 +366,34 @@ body[data-teacher-workspace="reports"] #session-form{display:none!important}
   .teacher-focused-context{display:grid}
   .teacher-focused-context .btn{justify-self:start}
 }
+
+.psr-module-context-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.psr-module-context{
+  display:grid;gap:7px;padding:14px;border:1px solid var(--line);
+  border-radius:15px;background:#fff
+}
+.psr-module-context>span{font-size:1.55rem}
+.psr-module-context strong{font-size:.95rem}
+.psr-module-context p{margin:0;color:var(--muted);font-size:.8rem;line-height:1.45}
+.psr-learning-lab,.psr-method-card,.psr-module-practice{
+  display:grid;gap:12px;padding:15px;border:1px solid var(--line);
+  border-radius:17px;background:#fbfaff
+}
+.psr-learning-lab h4,.psr-method-card h4,.psr-module-practice h4{margin:.3rem 0}
+.psr-time-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.psr-time-controls label{display:grid;gap:7px;padding:11px;border:1px solid var(--line);border-radius:13px;background:#fff}
+.psr-time-controls label>span{color:var(--muted);font-size:.75rem;font-weight:800}
+.psr-time-equation{
+  display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+  padding:14px;border-radius:14px;background:#fff;border:1px solid var(--line);font-size:1.05rem
+}
+.psr-time-equation strong{color:var(--accent-strong);font-size:1.25rem}
+.psr-method-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.psr-method-steps>div{display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:start;padding:10px;border-radius:13px;background:#fff;border:1px solid var(--line)}
+.psr-method-steps span{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent-strong);font-weight:900;font-size:.76rem}
+.psr-method-steps p{margin:2px 0 0;color:var(--muted);font-size:.78rem;line-height:1.4}
+.psr-recipe-lab{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:14px;align-items:center}
+.feedback-lines{display:grid;gap:5px;margin-top:7px}
+@media (max-width:760px){
+  .psr-module-context-grid,.psr-time-controls,.psr-method-steps,.psr-recipe-lab{grid-template-columns:1fr}
+}
