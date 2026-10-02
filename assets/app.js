@@ -1222,7 +1222,11 @@ function psrMathsSequenceStatus(stepId) {
   if (stepId === 'challenge') return psrMathsChallengeDone() ? 'terminé / refaire' : psrMathsDiagnosticDone() ? 'disponible' : 'après diagnostic';
   if (stepId === 'correction') return psrMathsDiagnosticDone() ? 'après diagnostic' : 'verrouillé';
   if (stepId === 'bilan') return psrMathsChallengeDone() ? 'disponible' : 'après défi';
-  if (PSR_MATHS_MODULES.some((module) => module.id === stepId)) return psrMathsChallengeDone() ? 'suite du CAP' : 'après défi';
+  if (PSR_MATHS_MODULES.some((module) => module.id === stepId)) {
+    if (psrMathsModuleDone(stepId)) return 'terminé';
+    if (!psrMathsChallengeDone()) return 'après défi';
+    return ['durees','recettes'].includes(stepId) ? 'disponible' : 'migration en cours';
+  }
   return '';
 }
 
@@ -2883,10 +2887,12 @@ PSR_MATHS_ITEM_LABELS['psr-challenge-factor'] = 'Défi · coefficient de proport
 PSR_MATHS_ITEM_LABELS['psr-challenge-time'] = 'Défi · heure de départ';
 PSR_MATHS_ITEM_LABELS['psr-challenge-revenue'] = 'Défi · chiffre d’affaires';
 PSR_MATHS_ITEM_LABELS['psr-maths-challenge-v1'] = 'Défi PSR terminé';
+PSR_MATHS_ITEM_LABELS['psr-module-durees-v1'] = 'Module Durées terminé';
+PSR_MATHS_ITEM_LABELS['psr-module-recettes-v1'] = 'Module Recettes terminé';
 
 function renderPsrMathsReportDetail(report) {
   state.reportSessionId = report.session.id;
-  setReportLearnerHeaders(['Élève','Diagnostic','Je ne sais pas','Défi PSR','État']);
+  setReportLearnerHeaders(['Élève','Diagnostic','Je ne sais pas','Défi PSR','Modules','État']);
   const challengeFinishedCount = report.learners.filter((learner) =>
     learnerItem(learner, 'psr-maths-challenge-v1').completed
   ).length;
@@ -2903,7 +2909,8 @@ function renderPsrMathsReportDetail(report) {
   const ids = [
     ...PSR_MATHS_DIAGNOSTIC.map((item) => item.id),
     'psr-maths-rentree-v1',
-    'psr-challenge-factor','psr-challenge-time','psr-challenge-revenue','psr-maths-challenge-v1'
+    'psr-challenge-factor','psr-challenge-time','psr-challenge-revenue','psr-maths-challenge-v1',
+    'psr-module-durees-v1','psr-module-recettes-v1'
   ];
   const items = (report.items || []).filter((item) => ids.includes(item.item_id));
   $('report-item-summary').innerHTML = items.map((item) => `
@@ -2920,13 +2927,17 @@ function renderPsrMathsReportDetail(report) {
     const challengeCorrect = challengeItems.reduce((sum, id) => sum + learnerItem(learner, id).correct_answers, 0);
     const diagnosticDone = learnerItem(learner, 'psr-maths-rentree-v1').completed;
     const challengeDone = learnerItem(learner, 'psr-maths-challenge-v1').completed;
+    const moduleDone = ['durees','recettes'].filter((id) =>
+      learnerItem(learner, `psr-module-${id}-v1`).completed
+    ).length;
     return `
       <tr>
         <td>${esc(learner.first_name)}${learner.last_name ? ` ${esc(learner.last_name)}` : ''}</td>
         <td>${diagnosticDone ? 'Terminé' : learner.started ? 'En cours' : '—'}</td>
         <td>${learner.unknown_answers || 0}</td>
         <td>${challengeAttempts ? `${challengeCorrect}/${challengeAttempts}` : '—'}</td>
-        <td>${challengeDone ? 'Défi terminé' : diagnosticDone ? 'Diagnostic terminé' : learner.started ? 'En cours' : '—'}</td>
+        <td>${moduleDone ? `${moduleDone}/2` : '—'}</td>
+        <td>${moduleDone ? 'Modules en cours' : challengeDone ? 'Défi terminé' : diagnosticDone ? 'Diagnostic terminé' : learner.started ? 'En cours' : '—'}</td>
       </tr>`;
   }).join('');
   show('report-detail', true);
