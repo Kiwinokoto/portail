@@ -1145,7 +1145,7 @@ const PSR_MATHS_MODULES = [
   { id:'commerce', label:'Prix & commerce', description:'Lire une facture, calculer une réduction et distinguer coût, prix et marge.' },
   { id:'probabilites', label:'Probabilités', description:'Comprendre le hasard, comparer fréquence et probabilité, puis simuler.' },
 ];
-const PSR_MATHS_NATIVE_MODULE_IDS = ['durees','recettes','pourcentages','donnees'];
+const PSR_MATHS_NATIVE_MODULE_IDS = ['durees','recettes','pourcentages','donnees','equations','fonctions'];
 
 const PSR_MATHS_SEQUENCE = [
   { id:'overview', label:'Vue d’ensemble', phase:'Séquence' },
@@ -1261,6 +1261,8 @@ function openPsrMathsSequenceStep(stepId) {
   if (stepId === 'recettes') return renderPsrMathsRecipesModule();
   if (stepId === 'pourcentages') return renderPsrMathsPercentModule();
   if (stepId === 'donnees') return renderPsrMathsDataModule();
+  if (stepId === 'equations') return renderPsrMathsEquationModule();
+  if (stepId === 'fonctions') return renderPsrMathsFunctionModule();
   return renderPsrMathsModulePreview(stepId);
 }
 
@@ -1974,6 +1976,241 @@ function renderPsrMathsDataModule() {
     $('psr-data-q2').value = '30';
     $('psr-data-q3').value = '30';
     $('psr-data-q4').value = '22';
+    await check();
+  });
+}
+
+
+function renderPsrMathsEquationModule() {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      ${renderPsrMathsSequenceNav('equations')}
+      <div>
+        <p class="eyebrow">Module · Équations</p>
+        <h3>Trouver le nombre caché.</h3>
+        <p class="learner-help">Parfois, on connaît le résultat mais pas la quantité de départ. La lettre <strong>x</strong> remplace simplement le nombre qu’on cherche.</p>
+      </div>
+      <div class="psr-module-context-grid">
+        <article class="psr-module-context"><span>📦</span><strong>Barquettes</strong><p>3 lots identiques donnent 24 barquettes. Combien y en a-t-il dans un lot ?</p></article>
+        <article class="psr-module-context"><span>💶</span><strong>Prix</strong><p>Après avoir ajouté 5 €, on obtient 17 €. Quel était le prix de départ ?</p></article>
+        <article class="psr-module-context"><span>🥤</span><strong>Quantité</strong><p>4 bouteilles identiques coûtent 36 €. Quel est le prix d’une bouteille ?</p></article>
+      </div>
+      <div class="callout"><strong>L’idée avant le mot :</strong> on cherche le nombre qui rend l’égalité vraie. En maths, une égalité avec un nombre inconnu s’appelle une <strong>équation</strong>.</div>
+
+      <section class="psr-learning-lab">
+        <div><span class="pill">Manipule</span><h4>Fais équilibrer l’égalité</h4><p class="muted">On cherche x dans 3 × x = 24. Bouge le curseur jusqu’à ce que les deux côtés donnent la même chose.</p></div>
+        <div class="psr-equation-lab">
+          <div id="psr-equation-balance" class="psr-equation-balance">
+            <div class="psr-equation-side"><span>3 × x</span><strong id="psr-equation-left">12</strong></div>
+            <div id="psr-equation-sign" class="psr-balance-sign">≠</div>
+            <div class="psr-equation-side target"><span>Résultat</span><strong>24</strong></div>
+          </div>
+          <div>
+            <label for="psr-equation-x"><strong>Valeur de x</strong></label>
+            <div class="psr-big-number"><span id="psr-equation-x-value">4</span></div>
+            <input id="psr-equation-x" type="range" min="1" max="12" step="1" value="4">
+            <div id="psr-equation-live" class="psr-equation-live">3 × 4 = 12</div>
+            <p id="psr-equation-status" class="muted">Le côté gauche est encore trop petit.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="psr-method-card">
+        <p class="eyebrow">Une méthode simple</p>
+        <div class="psr-method-steps">
+          <div><span>1</span><p>Repère le nombre que tu cherches.</p></div>
+          <div><span>2</span><p>Regarde l’opération faite avec ce nombre.</p></div>
+          <div><span>3</span><p>Fais l’opération inverse pour revenir au nombre caché.</p></div>
+        </div>
+        <div class="callout"><strong>3 × x = 24</strong> → on fait l’inverse de × 3 → 24 ÷ 3 → <strong>x = 8</strong>.</div>
+      </section>
+
+      <section class="psr-module-practice">
+        <p class="eyebrow">À toi · 4 situations</p>
+        <div class="psr-challenge-questions">
+          <div class="psr-challenge-question"><label for="psr-equation-q1">1 · 3 × x = 24. Quelle est la valeur de x ?</label><input id="psr-equation-q1" class="input" inputmode="decimal" type="text"></div>
+          <div class="psr-challenge-question"><label for="psr-equation-q2">2 · x + 7 = 19. Quel nombre manque ?</label><input id="psr-equation-q2" class="input" inputmode="decimal" type="text"></div>
+          <div class="psr-challenge-question"><label for="psr-equation-q3">3 · 4 menus identiques coûtent 36 €. Quel est le prix d’un menu ?</label><div class="session-link-row"><input id="psr-equation-q3" class="input" inputmode="decimal" type="text"><strong>€</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-equation-q4">4 · x − 4 = 11. Quelle est la valeur de x ?</label><select id="psr-equation-q4" class="input"><option value="">Choisir…</option><option value="7">7</option><option value="15">15</option><option value="44">44</option><option value="4">4</option></select></div>
+        </div>
+        <div id="psr-equation-feedback" class="callout hidden" aria-live="polite"></div>
+        <div class="practice-actions">
+          <button id="psr-check-equation" class="btn primary" type="button">Vérifier</button>
+          ${state.previewMode ? '<button id="psr-equation-answers" class="btn secondary" type="button">Voir les réponses</button>' : ''}
+          <button class="btn secondary" type="button" data-open-psr="fonctions">Module suivant · Graphiques</button>
+          <button class="btn ghost" type="button" data-open-psr="overview">Retour au parcours</button>
+        </div>
+      </section>
+    </div>`;
+
+  bindPsrMathsSequenceNav();
+  document.querySelectorAll('[data-open-psr]').forEach((button) => button.addEventListener('click', () => openPsrMathsSequenceStep(button.dataset.openPsr)));
+
+  const slider = $('psr-equation-x');
+  const updateLab = () => {
+    const x = Number(slider.value);
+    const left = 3 * x;
+    const solved = left === 24;
+    $('psr-equation-x-value').textContent = String(x);
+    $('psr-equation-left').textContent = String(left);
+    $('psr-equation-sign').textContent = solved ? '=' : '≠';
+    $('psr-equation-live').textContent = `3 × ${x} = ${left}`;
+    $('psr-equation-status').textContent = solved
+      ? 'Équilibre trouvé : x = 8.'
+      : left < 24 ? 'Le côté gauche est encore trop petit.' : 'Le côté gauche est maintenant trop grand.';
+    $('psr-equation-balance').classList.toggle('balanced', solved);
+  };
+  slider.addEventListener('input', updateLab);
+  updateLab();
+
+  const check = async () => {
+    const checks = [
+      { id:'psr-equation-q1', domain:'Division inverse', correct:Math.abs(parsePsrMathsNumber($('psr-equation-q1').value) - 8) < 0.001 },
+      { id:'psr-equation-q2', domain:'Soustraction inverse', correct:Math.abs(parsePsrMathsNumber($('psr-equation-q2').value) - 12) < 0.001 },
+      { id:'psr-equation-q3', domain:'Situation vers équation', correct:Math.abs(parsePsrMathsNumber($('psr-equation-q3').value) - 9) < 0.001 },
+      { id:'psr-equation-q4', domain:'Addition inverse', correct:$('psr-equation-q4').value === '15' },
+    ];
+    const count = checks.filter((item) => item.correct).length;
+    await recordPsrModuleChecks('equations', checks);
+    show('psr-equation-feedback', true);
+    $('psr-equation-feedback').innerHTML = `<strong>${count}/4 situations réussies.</strong><div class="feedback-lines">
+      <span>${checks[0].correct ? '✓' : '↻'} 3 × x = 24 → 24 ÷ 3 = <b>8</b></span>
+      <span>${checks[1].correct ? '✓' : '↻'} x + 7 = 19 → 19 − 7 = <b>12</b></span>
+      <span>${checks[2].correct ? '✓' : '↻'} 36 € ÷ 4 menus = <b>9 €</b> par menu</span>
+      <span>${checks[3].correct ? '✓' : '↻'} x − 4 = 11 → 11 + 4 = <b>15</b></span>
+    </div>`;
+  };
+  $('psr-check-equation').addEventListener('click', check);
+  $('psr-equation-answers')?.addEventListener('click', async () => {
+    $('psr-equation-q1').value = '8';
+    $('psr-equation-q2').value = '12';
+    $('psr-equation-q3').value = '9';
+    $('psr-equation-q4').value = '15';
+    await check();
+  });
+}
+
+function renderPsrMathsFunctionModule() {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      ${renderPsrMathsSequenceNav('fonctions')}
+      <div>
+        <p class="eyebrow">Module · Graphiques & fonctions</p>
+        <h3>Quand une quantité change, l’autre change aussi.</h3>
+        <p class="learner-help">Si chaque menu est vendu au même prix, plus on vend de menus, plus le montant total augmente. Un graphique permet de voir ce lien d’un coup d’œil.</p>
+      </div>
+      <div class="psr-module-context-grid">
+        <article class="psr-module-context"><span>🍽️</span><strong>Menus vendus</strong><p>Nombre de menus ↔ montant encaissé.</p></article>
+        <article class="psr-module-context"><span>🥣</span><strong>Production</strong><p>Nombre de portions ↔ quantité d’ingrédients.</p></article>
+        <article class="psr-module-context"><span>⏱️</span><strong>Cadence</strong><p>Temps de production ↔ nombre de barquettes produites.</p></article>
+      </div>
+      <div class="callout"><strong>L’idée avant le mot :</strong> une quantité dépend d’une autre. En maths, cette relation peut s’appeler une <strong>fonction</strong>.</div>
+
+      <section class="psr-learning-lab">
+        <div><span class="pill">Manipule</span><h4>Menus vendus à 8 € l’unité</h4><p class="muted">Bouge le curseur. Le point se déplace sur la droite et le montant total change.</p></div>
+        <div class="psr-function-lab">
+          <div class="psr-function-chart-card">
+            <svg class="psr-function-chart" viewBox="0 0 440 280" role="img" aria-label="Graphique reliant le nombre de menus au montant encaissé">
+              <defs><pattern id="psr-function-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(102,86,242,.10)" stroke-width="1"/></pattern></defs>
+              <rect x="50" y="20" width="360" height="220" rx="10" fill="url(#psr-function-grid)"/>
+              <line x1="50" y1="240" x2="410" y2="240" class="psr-chart-axis"/>
+              <line x1="50" y1="240" x2="50" y2="20" class="psr-chart-axis"/>
+              <line x1="50" y1="240" x2="410" y2="20" class="psr-function-line"/>
+              <circle id="psr-function-point" cx="194" cy="152" r="8" class="psr-function-point"/>
+              <text x="220" y="270" text-anchor="middle" class="psr-chart-label">menus vendus</text>
+              <text x="15" y="130" text-anchor="middle" transform="rotate(-90 15 130)" class="psr-chart-label">montant (€)</text>
+              <text x="45" y="256" text-anchor="end" class="psr-chart-tick">0</text>
+              <text x="230" y="256" text-anchor="middle" class="psr-chart-tick">10</text>
+              <text x="410" y="256" text-anchor="middle" class="psr-chart-tick">20</text>
+              <text x="42" y="135" text-anchor="end" class="psr-chart-tick">80</text>
+              <text x="42" y="25" text-anchor="end" class="psr-chart-tick">160</text>
+            </svg>
+          </div>
+          <div>
+            <label for="psr-function-menus"><strong>Menus vendus</strong></label>
+            <div class="psr-big-number"><span id="psr-function-menu-count">8</span><small>menus</small></div>
+            <input id="psr-function-menus" type="range" min="0" max="20" step="1" value="8">
+            <div class="psr-function-relation"><span id="psr-function-x">8 menus</span><b>× 8 €</b><strong id="psr-function-y">64 €</strong></div>
+            <div class="psr-mini-stats">
+              <div class="psr-mini-stat">x = menus<strong id="psr-function-x-card">8</strong></div>
+              <div class="psr-mini-stat">y = montant<strong id="psr-function-y-card">64 €</strong></div>
+              <div class="psr-mini-stat">Relation<strong>y = 8 × x</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="psr-method-card">
+        <p class="eyebrow">Lire un graphique</p>
+        <div class="psr-method-steps">
+          <div><span>1</span><p>Regarde ce que représente l’axe horizontal.</p></div>
+          <div><span>2</span><p>Regarde ce que représente l’axe vertical et les unités.</p></div>
+          <div><span>3</span><p>Pars d’une valeur sur un axe et lis la valeur correspondante sur l’autre.</p></div>
+        </div>
+        <div class="callout"><strong>10 menus</strong> à 8 € chacun → 10 × 8 € → <strong>80 €</strong>.</div>
+      </section>
+
+      <section class="psr-module-practice">
+        <p class="eyebrow">À toi · 4 situations</p>
+        <div class="psr-challenge-questions">
+          <div class="psr-challenge-question"><label for="psr-function-q1">1 · Un menu coûte 8 €. Quel montant pour 6 menus ?</label><div class="session-link-row"><input id="psr-function-q1" class="input" inputmode="decimal" type="text"><strong>€</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-function-q2">2 · Avec la relation y = 8 × x, quel montant correspond à 10 menus ?</label><div class="session-link-row"><input id="psr-function-q2" class="input" inputmode="decimal" type="text"><strong>€</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-function-q3">3 · On a encaissé 96 € avec des menus à 8 €. Combien de menus ont été vendus ?</label><div class="session-link-row"><input id="psr-function-q3" class="input" inputmode="decimal" type="text"><strong>menus</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-function-q4">4 · Quand le nombre de menus est multiplié par 2, que devient le montant si le prix unitaire ne change pas ?</label><select id="psr-function-q4" class="input"><option value="">Choisir…</option><option value="same">Il reste pareil</option><option value="double">Il est multiplié par 2</option><option value="half">Il est divisé par 2</option><option value="plus8">On ajoute seulement 8 €</option></select></div>
+        </div>
+        <div id="psr-function-feedback" class="callout hidden" aria-live="polite"></div>
+        <div class="practice-actions">
+          <button id="psr-check-function" class="btn primary" type="button">Vérifier</button>
+          ${state.previewMode ? '<button id="psr-function-answers" class="btn secondary" type="button">Voir les réponses</button>' : ''}
+          <button class="btn secondary" type="button" data-open-psr="commerce">Module suivant · Prix & commerce</button>
+          <button class="btn ghost" type="button" data-open-psr="overview">Retour au parcours</button>
+        </div>
+      </section>
+    </div>`;
+
+  bindPsrMathsSequenceNav();
+  document.querySelectorAll('[data-open-psr]').forEach((button) => button.addEventListener('click', () => openPsrMathsSequenceStep(button.dataset.openPsr)));
+
+  const slider = $('psr-function-menus');
+  const updateLab = () => {
+    const menus = Number(slider.value);
+    const revenue = menus * 8;
+    const x = 50 + menus / 20 * 360;
+    const y = 240 - revenue / 160 * 220;
+    $('psr-function-menu-count').textContent = String(menus);
+    $('psr-function-x').textContent = `${menus} menu${menus > 1 ? 's' : ''}`;
+    $('psr-function-y').textContent = `${formatPsrNumber(revenue)} €`;
+    $('psr-function-x-card').textContent = String(menus);
+    $('psr-function-y-card').textContent = `${formatPsrNumber(revenue)} €`;
+    $('psr-function-point').setAttribute('cx', String(x));
+    $('psr-function-point').setAttribute('cy', String(y));
+  };
+  slider.addEventListener('input', updateLab);
+  updateLab();
+
+  const check = async () => {
+    const checks = [
+      { id:'psr-function-q1', domain:'Calculer une image', correct:Math.abs(parsePsrMathsNumber($('psr-function-q1').value) - 48) < 0.001 },
+      { id:'psr-function-q2', domain:'Lire une relation', correct:Math.abs(parsePsrMathsNumber($('psr-function-q2').value) - 80) < 0.001 },
+      { id:'psr-function-q3', domain:'Retrouver l’entrée', correct:Math.abs(parsePsrMathsNumber($('psr-function-q3').value) - 12) < 0.001 },
+      { id:'psr-function-q4', domain:'Comprendre la relation', correct:$('psr-function-q4').value === 'double' },
+    ];
+    const count = checks.filter((item) => item.correct).length;
+    await recordPsrModuleChecks('fonctions', checks);
+    show('psr-function-feedback', true);
+    $('psr-function-feedback').innerHTML = `<strong>${count}/4 situations réussies.</strong><div class="feedback-lines">
+      <span>${checks[0].correct ? '✓' : '↻'} 6 × 8 € = <b>48 €</b></span>
+      <span>${checks[1].correct ? '✓' : '↻'} y = 8 × 10 = <b>80 €</b></span>
+      <span>${checks[2].correct ? '✓' : '↻'} 96 € ÷ 8 € = <b>12 menus</b></span>
+      <span>${checks[3].correct ? '✓' : '↻'} À prix fixe, si les menus doublent, le montant <b>double aussi</b></span>
+    </div>`;
+  };
+  $('psr-check-function').addEventListener('click', check);
+  $('psr-function-answers')?.addEventListener('click', async () => {
+    $('psr-function-q1').value = '48';
+    $('psr-function-q2').value = '80';
+    $('psr-function-q3').value = '12';
+    $('psr-function-q4').value = 'double';
     await check();
   });
 }
@@ -3125,6 +3362,8 @@ PSR_MATHS_ITEM_LABELS['psr-module-durees-v1'] = 'Module Durées terminé';
 PSR_MATHS_ITEM_LABELS['psr-module-recettes-v1'] = 'Module Recettes terminé';
 PSR_MATHS_ITEM_LABELS['psr-module-pourcentages-v1'] = 'Module Pourcentages terminé';
 PSR_MATHS_ITEM_LABELS['psr-module-donnees-v1'] = 'Module Données terminé';
+PSR_MATHS_ITEM_LABELS['psr-module-equations-v1'] = 'Module Équations terminé';
+PSR_MATHS_ITEM_LABELS['psr-module-fonctions-v1'] = 'Module Graphiques terminé';
 
 function renderPsrMathsReportDetail(report) {
   state.reportSessionId = report.session.id;
