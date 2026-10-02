@@ -42,8 +42,7 @@ La Séance 1 ne s'ouvre plus directement sur la première question. Portail expo
 La première tranche ne prétend pas remplacer tout le site legacy. Restent notamment :
 
 - enrichissements visuels de la correction guidée, notamment fractions/pourcentages (la correction textuelle V1 est déjà migrée) ;
-- **Durées**, **Recettes & proportionnalité**, **Pourcentages**, **Données & statistiques**, **Équations** et **Graphiques & fonctions** sont maintenant natifs : contextes PSR, laboratoire manipulable, méthode et quatre situations d'entraînement chacun ;
-- restent à porter intégralement : Prix & commerce, Probabilités ;
+- les **huit modules post-diagnostic** sont maintenant natifs : Durées, Recettes & proportionnalité, Pourcentages, Données & statistiques, Équations, Graphiques & fonctions, Prix & commerce et Probabilités ; chacun conserve ses contextes PSR, son laboratoire manipulable, sa méthode et ses quatre situations d'entraînement ;
 - remédiation/ordre de parcours à réévaluer avec les observations terrain.
 
 Le suivi live, les rapports (diagnostic + défi) et le verrou **Corrigés** sont maintenant disponibles dans Portail pour cette Séance 1 native.
@@ -78,3 +77,12 @@ Le module reprend les trois situations concrètes du legacy (barquettes, prix, q
 ### Graphiques & fonctions
 
 Le module conserve la relation concrète du legacy : menus vendus à 8 € l’unité. Le curseur déplace un point sur la droite `y = 8 × x`, puis les quatre situations demandent 6 menus, 10 menus, retrouver le nombre de menus pour 96 € et comprendre l’effet d’un doublement.
+
+
+### Prix & commerce
+
+Le module conserve la commande de menus à 8,50 € et les deux curseurs du legacy : quantité (1 à 20) et remise (0 à 30 %). La facture recalcule sous-total, remise, net, coût estimé et marge simple. Les quatre situations attendent 51 €, 36 €, 4,50 € et une taxe de 5 €.
+
+### Probabilités
+
+Le module conserve le sac de 10 jetons (3 violets, 7 gris), la probabilité théorique de 30 % et la simulation avec remise par lots de 1, 20 ou 100 tirages. Il distingue fréquence observée et probabilité, puis vérifie 20 %, 0 pour un événement impossible, 70 % pour l’événement contraire et la possibilité d’observer 40 % sur seulement 10 tirages.
