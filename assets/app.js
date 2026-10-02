@@ -237,6 +237,178 @@ function audioButton(label, text, itemId = '') {
   return button;
 }
 
+const ADMIN_AUDIO_TEST_WORDS = [
+  'bus', 'moto', 'voiture', 'vélo', 'train', 'pomme', 'banane', 'tomate', 'pain', 'lait',
+  'œuf', 'riz', 'eau', 'tasse', 'verre', 'assiette', 'bol', 'cuillère', 'fourchette', 'couteau',
+  'casserole', 'poêle', 'frigo', 'four', 'robinet', 'savon', 'serviette', 'brosse à dents',
+  'douche', 'toilettes', 'clé', 'porte', 'table', 'chaise', 'lit', 'lampe', 'maison', 'livre',
+  'stylo', 'sac', 'manteau', 'chaussure', 'chemise', 'pantalon', 'téléphone', 'montre', 'bébé',
+  'enfant', 'main', 'pied', 'nez', 'œil', 'école', 'magasin', 'pharmacie', 'rue', 'parc',
+  'arbre', 'fleur', 'chien', 'chat'
+];
+const adminAudioCandidateCache = new Map();
+const adminAudioMetadataCache = new Map();
+let adminAudioPlayer = null;
+
+function frenchWiktionarySection(wikitext) {
+  const header = wikitext.match(/^==\s*\{\{langue\|fr(?:\|[^}]*)?\}\}\s*==\s*$/m);
+  if (!header) return '';
+  const start = header.index + header[0].length;
+  const rest = wikitext.slice(start);
+  const nextLanguage = rest.match(/^==[^=].*?==\s*$/m);
+  return nextLanguage ? rest.slice(0, nextLanguage.index) : rest;
+}
+
+function wiktionaryAudioFiles(wikitext) {
+  const section = frenchWiktionarySection(wikitext);
+  const files = [];
+  const patterns = [
+    /(?:audio|prononciation|son)\s*=\s*([^|}\n<>\[\]]+\.(?:ogg|oga|wav|mp3|flac|opus))/gi,
+    /\[\[(?:fichier|file):([^|\]\n]+\.(?:ogg|oga|wav|mp3|flac|opus))/gi,
+  ];
+  patterns.forEach((pattern) => {
+    let match;
+    while ((match = pattern.exec(section)) !== null) {
+      const file = match[1].trim().replaceAll('_', ' ');
+      if (file && !files.includes(file)) files.push(file);
+    }
+  });
+  return files;
+}
+
+async function fetchWiktionaryAudioFiles(word) {
+  const key = word.trim().toLocaleLowerCase('fr-FR');
+  if (!key) throw new Error('Entre un mot français.');
+  if (adminAudioCandidateCache.has(key)) return adminAudioCandidateCache.get(key);
+  const params = new URLSearchParams({
+    action:'query',
+    prop:'revisions',
+    rvprop:'content',
+    rvslots:'main',
+    format:'json',
+    formatversion:'2',
+    redirects:'1',
+    titles:key,
+    origin:'*',
+  });
+  const response = await fetch(`https://fr.wiktionary.org/w/api.php?${params}`);
+  if (!response.ok) throw new Error(`Wiktionary répond ${response.status}.`);
+  const data = await response.json();
+  const page = data?.query?.pages?.[0];
+  const wikitext = page?.revisions?.[0]?.slots?.main?.content || '';
+  const files = wiktionaryAudioFiles(wikitext);
+  adminAudioCandidateCache.set(key, files);
+  return files;
+}
+
+function pickAdminAudioFile(files, source) {
+  if (source === 'sartus85') {
+    return files.find((file) => /LL-Q150 \(fra\)-Sartus85-/i.test(file)) || null;
+  }
+  return files.find((file) => /^Fr-/i.test(file) && !/Sartus85/i.test(file))
+    || files.find((file) => !/Sartus85/i.test(file))
+    || files[0]
+    || null;
+}
+
+function plainMetadataText(value = '') {
+  const node = document.createElement('div');
+  node.innerHTML = value;
+  return node.textContent?.replace(/\s+/g, ' ').trim() || '';
+}
+
+async function fetchCommonsAudioMetadata(file) {
+  if (adminAudioMetadataCache.has(file)) return adminAudioMetadataCache.get(file);
+  const params = new URLSearchParams({
+    action:'query',
+    prop:'imageinfo',
+    iiprop:'url|extmetadata',
+    format:'json',
+    formatversion:'2',
+    titles:`File:${file}`,
+    origin:'*',
+  });
+  const response = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`);
+  if (!response.ok) throw new Error(`Wikimedia Commons répond ${response.status}.`);
+  const data = await response.json();
+  const info = data?.query?.pages?.[0]?.imageinfo?.[0];
+  if (!info?.url) throw new Error('Le fichier audio Commons est introuvable.');
+  const metadata = info.extmetadata || {};
+  const result = {
+    url:info.url,
+    license:plainMetadataText(metadata.LicenseShortName?.value || ''),
+    artist:plainMetadataText(metadata.Artist?.value || ''),
+  };
+  adminAudioMetadataCache.set(file, result);
+  return result;
+}
+
+function stopAdminAudio() {
+  if (adminAudioPlayer) {
+    adminAudioPlayer.pause();
+    adminAudioPlayer.currentTime = 0;
+    adminAudioPlayer = null;
+  }
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+}
+
+async function playAdminAudioSample() {
+  const word = $('admin-audio-word').value.trim();
+  const source = $('admin-audio-source').value;
+  const status = $('admin-audio-status');
+  const meta = $('admin-audio-meta');
+  stopAdminAudio();
+  status.textContent = 'Préparation…';
+  meta.textContent = '';
+
+  try {
+    if (source === 'browser') {
+      const voices = ('speechSynthesis' in window) ? window.speechSynthesis.getVoices() : [];
+      if (!voices.length) throw new Error('Le navigateur expose Web Speech mais aucune voix n’est disponible.');
+      const frenchVoices = voices.filter((voice) => /^fr(?:-|$)/i.test(voice.lang || ''));
+      speakFrench(word);
+      status.textContent = 'Lecture via le navigateur.';
+      meta.textContent = frenchVoices.length
+        ? `${frenchVoices.length} voix française(s) détectée(s) sur ${voices.length} voix.`
+        : `Aucune voix explicitement française parmi ${voices.length} voix ; le navigateur choisit le fallback.`;
+      return;
+    }
+
+    const files = await fetchWiktionaryAudioFiles(word);
+    if (!files.length) throw new Error(`Aucun audio français trouvé sur Wiktionary pour « ${word} ».`);
+    const file = pickAdminAudioFile(files, source);
+    if (!file) {
+      throw new Error(source === 'sartus85'
+        ? `Sartus85 n’a pas d’enregistrement trouvé pour « ${word} ».`
+        : `Aucun candidat Wiki exploitable pour « ${word} ».`);
+    }
+    const info = await fetchCommonsAudioMetadata(file);
+    adminAudioPlayer = new Audio(info.url);
+    adminAudioPlayer.preload = 'auto';
+    adminAudioPlayer.addEventListener('ended', () => {
+      if (adminAudioPlayer) status.textContent = 'Lecture terminée.';
+    }, { once:true });
+    await adminAudioPlayer.play();
+    status.textContent = source === 'sartus85' ? 'Lecture Sartus85.' : 'Lecture Wiki automatique.';
+    const bits = [file, info.license, info.artist].filter(Boolean);
+    meta.textContent = bits.join(' · ');
+  } catch (error) {
+    status.textContent = error.message;
+  }
+}
+
+function setupAdminAudioLab() {
+  const list = $('admin-audio-words');
+  if (!list.dataset.ready) {
+    list.innerHTML = ADMIN_AUDIO_TEST_WORDS.map((word) => `<option value="${esc(word)}"></option>`).join('');
+    list.dataset.ready = 'true';
+  }
+  const savedSource = localStorage.getItem('portail.adminAudioSource');
+  if (['wiktionary', 'sartus85', 'browser'].includes(savedSource)) {
+    $('admin-audio-source').value = savedSource;
+  }
+}
+
 function renderRosterMissing() {
   $('student-session-message').innerHTML = `
     <div class="learner-stage">
@@ -1921,7 +2093,21 @@ $('session-form').addEventListener('submit', async (event) => {
     await loadSessions();
   } catch (error) { $('session-status').textContent = error.message; }
 });
-$('admin-open').addEventListener('click', async () => { show('new-token-box', false); await loadUsers(); $('admin-dialog').showModal(); });
+$('admin-open').addEventListener('click', async () => {
+  show('new-token-box', false);
+  setupAdminAudioLab();
+  await loadUsers();
+  $('admin-dialog').showModal();
+});
+$('admin-audio-source').addEventListener('change', () => {
+  localStorage.setItem('portail.adminAudioSource', $('admin-audio-source').value);
+});
+$('admin-audio-play').addEventListener('click', playAdminAudioSample);
+$('admin-audio-stop').addEventListener('click', () => {
+  stopAdminAudio();
+  $('admin-audio-status').textContent = 'Lecture arrêtée.';
+});
+$('admin-dialog').addEventListener('close', stopAdminAudio);
 $('create-user').addEventListener('click', async () => {
   $('admin-status').textContent = '';
   try {
