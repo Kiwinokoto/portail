@@ -2618,37 +2618,56 @@ const PSR_MATHS_ITEM_LABELS = Object.fromEntries(
   PSR_MATHS_DIAGNOSTIC.map((item, index) => [item.id, `${index + 1}. ${item.domain}`])
 );
 PSR_MATHS_ITEM_LABELS['psr-maths-rentree-v1'] = 'Diagnostic terminé';
+PSR_MATHS_ITEM_LABELS['psr-challenge-factor'] = 'Défi · coefficient de proportionnalité';
+PSR_MATHS_ITEM_LABELS['psr-challenge-time'] = 'Défi · heure de départ';
+PSR_MATHS_ITEM_LABELS['psr-challenge-revenue'] = 'Défi · chiffre d’affaires';
+PSR_MATHS_ITEM_LABELS['psr-maths-challenge-v1'] = 'Défi PSR terminé';
 
 function renderPsrMathsReportDetail(report) {
   state.reportSessionId = report.session.id;
-  setReportLearnerHeaders(['Élève','Réponses justes','Je ne sais pas','Terminé']);
+  setReportLearnerHeaders(['Élève','Diagnostic','Je ne sais pas','Défi PSR','État']);
+  const challengeFinishedCount = report.learners.filter((learner) =>
+    learnerItem(learner, 'psr-maths-challenge-v1').completed
+  ).length;
   $('report-detail-title').textContent = report.session.group_label;
   $('report-detail-meta').textContent = `Séance ${report.session.session_number}${report.session.title ? ` · ${report.session.title}` : ''}`;
   $('report-detail-metrics').innerHTML = [
     reportMetric('Liste', String(report.rosterCount)),
     reportMetric('Commencé', `${report.startedCount}/${report.rosterCount}`),
     reportMetric('Diagnostic terminé', `${report.finishedCount}/${report.rosterCount}`),
-    reportMetric('Réponses justes', report.attempts ? `${report.correct}/${report.attempts}` : '—'),
+    reportMetric('Défi terminé', `${challengeFinishedCount}/${report.rosterCount}`),
     reportMetric('Je ne sais pas', String(report.unknown || 0)),
   ].join('');
 
-  const ids = [...PSR_MATHS_DIAGNOSTIC.map((item) => item.id), 'psr-maths-rentree-v1'];
+  const ids = [
+    ...PSR_MATHS_DIAGNOSTIC.map((item) => item.id),
+    'psr-maths-rentree-v1',
+    'psr-challenge-factor','psr-challenge-time','psr-challenge-revenue','psr-maths-challenge-v1'
+  ];
   const items = (report.items || []).filter((item) => ids.includes(item.item_id));
   $('report-item-summary').innerHTML = items.map((item) => `
     <div class="report-item-row">
       <strong>${esc(PSR_MATHS_ITEM_LABELS[item.item_id] || item.item_id)}</strong>
-      <span>${item.completed_count}/${report.rosterCount} répondu</span>
+      <span>${item.completed_count}/${report.rosterCount} terminé</span>
       <span>${item.attempts ? `${item.correct_answers}/${item.attempts} justes` : 'pas de réponse'}</span>
       <span>${item.unknown_answers ? `${item.unknown_answers} « je ne sais pas »` : ''}</span>
     </div>`).join('');
 
-  $('report-learner-rows').innerHTML = report.learners.map((learner) => `
-    <tr>
-      <td>${esc(learner.first_name)}${learner.last_name ? ` ${esc(learner.last_name)}` : ''}</td>
-      <td>${learner.attempts ? `${learner.correct_answers}/${learner.attempts}` : '—'}</td>
-      <td>${learner.unknown_answers || 0}</td>
-      <td>${learnerItem(learner, 'psr-maths-rentree-v1').completed ? 'Oui' : '—'}</td>
-    </tr>`).join('');
+  $('report-learner-rows').innerHTML = report.learners.map((learner) => {
+    const challengeItems = ['psr-challenge-factor','psr-challenge-time','psr-challenge-revenue'];
+    const challengeAttempts = challengeItems.reduce((sum, id) => sum + learnerItem(learner, id).attempts, 0);
+    const challengeCorrect = challengeItems.reduce((sum, id) => sum + learnerItem(learner, id).correct_answers, 0);
+    const diagnosticDone = learnerItem(learner, 'psr-maths-rentree-v1').completed;
+    const challengeDone = learnerItem(learner, 'psr-maths-challenge-v1').completed;
+    return `
+      <tr>
+        <td>${esc(learner.first_name)}${learner.last_name ? ` ${esc(learner.last_name)}` : ''}</td>
+        <td>${diagnosticDone ? 'Terminé' : learner.started ? 'En cours' : '—'}</td>
+        <td>${learner.unknown_answers || 0}</td>
+        <td>${challengeAttempts ? `${challengeCorrect}/${challengeAttempts}` : '—'}</td>
+        <td>${challengeDone ? 'Défi terminé' : diagnosticDone ? 'Diagnostic terminé' : learner.started ? 'En cours' : '—'}</td>
+      </tr>`;
+  }).join('');
   show('report-detail', true);
   $('report-detail').scrollIntoView({ behavior:'smooth', block:'start' });
 }
