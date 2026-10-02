@@ -145,6 +145,8 @@ class PortalHttpTests(unittest.TestCase):
         self.assertIn("renderPsrMathsDataModule", app_js)
         self.assertIn("renderPsrMathsEquationModule", app_js)
         self.assertIn("renderPsrMathsFunctionModule", app_js)
+        self.assertIn("renderPsrMathsCommerceModule", app_js)
+        self.assertIn("renderPsrMathsProbabilityModule", app_js)
         self.assertIn("PSR_MATHS_NATIVE_MODULE_IDS", app_js)
         self.assertIn("psrMathsLiveProgressLabel", app_js)
         self.assertIn("PSR_MATHS_MODULES", app_js)

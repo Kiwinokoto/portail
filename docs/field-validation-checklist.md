@@ -40,6 +40,8 @@ Une fonctionnalité n'est **pas** considérée validée terrain tant que la dern
 - [ ] **Données** : les 5 barres restent lisibles, le curseur vendredi recalcule total/max/min/moyenne ; mardi, 30, 30 % et 22 sont reconnus.
 - [ ] **Équations** : le curseur atteint l’équilibre à x = 8 ; les réponses 8, 12, 9 € et 15 sont reconnues.
 - [ ] **Graphiques & fonctions** : le point suit le curseur de 0 à 20 menus sans débordement mobile ; 48 €, 80 €, 12 menus et « multiplié par 2 » sont reconnus.
+- [ ] **Prix & commerce** : quantité et remise recalculent toute la facture sans débordement mobile ; 51 €, 36 €, 4,50 € et 5 € sont reconnus.
+- [ ] **Probabilités** : les tirages 1/20/100 et le reset fonctionnent, la fréquence/marque 30 % restent lisibles ; 20 %, 0, 70 % et « oui, la fréquence peut varier » sont reconnus.
 - [ ] En Suivi en direct, un élève ayant terminé ces modules affiche une progression par phases (Diagnostic / Défi / modules) et jamais un score global trompeur.
 
 ### Compatibilité legacy

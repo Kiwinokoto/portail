@@ -1145,7 +1145,7 @@ const PSR_MATHS_MODULES = [
   { id:'commerce', label:'Prix & commerce', description:'Lire une facture, calculer une réduction et distinguer coût, prix et marge.' },
   { id:'probabilites', label:'Probabilités', description:'Comprendre le hasard, comparer fréquence et probabilité, puis simuler.' },
 ];
-const PSR_MATHS_NATIVE_MODULE_IDS = ['durees','recettes','pourcentages','donnees','equations','fonctions'];
+const PSR_MATHS_NATIVE_MODULE_IDS = ['durees','recettes','pourcentages','donnees','equations','fonctions','commerce','probabilites'];
 
 const PSR_MATHS_SEQUENCE = [
   { id:'overview', label:'Vue d’ensemble', phase:'Séquence' },
@@ -1263,6 +1263,8 @@ function openPsrMathsSequenceStep(stepId) {
   if (stepId === 'donnees') return renderPsrMathsDataModule();
   if (stepId === 'equations') return renderPsrMathsEquationModule();
   if (stepId === 'fonctions') return renderPsrMathsFunctionModule();
+  if (stepId === 'commerce') return renderPsrMathsCommerceModule();
+  if (stepId === 'probabilites') return renderPsrMathsProbabilityModule();
   return renderPsrMathsModulePreview(stepId);
 }
 
@@ -2211,6 +2213,273 @@ function renderPsrMathsFunctionModule() {
     $('psr-function-q2').value = '80';
     $('psr-function-q3').value = '12';
     $('psr-function-q4').value = 'double';
+    await check();
+  });
+}
+
+
+function renderPsrMathsCommerceModule() {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      ${renderPsrMathsSequenceNav('commerce')}
+      <div>
+        <p class="eyebrow">Module · Prix & commerce</p>
+        <h3>Comprendre ce qu’on paie et ce qu’on gagne.</h3>
+        <p class="learner-help">En restauration, on rencontre des prix, des coûts, des remises et des factures. On va apprendre à distinguer ces nombres avant de les calculer.</p>
+      </div>
+      <div class="psr-module-context-grid">
+        <article class="psr-module-context"><span>🧾</span><strong>Commande</strong><p>Calculer le montant de plusieurs menus et vérifier une facture.</p></article>
+        <article class="psr-module-context"><span>🏷️</span><strong>Remise</strong><p>Calculer ce qu’on enlève, puis le nouveau prix à payer.</p></article>
+        <article class="psr-module-context"><span>💶</span><strong>Marge simple</strong><p>Comparer un prix de vente et un coût pour voir ce qu’il reste avant les autres charges.</p></article>
+      </div>
+      <div class="callout"><strong>Trois mots à distinguer :</strong> le <strong>coût</strong> correspond à ce que le produit coûte ; le <strong>prix de vente</strong> est ce que paie le client ; dans nos exercices simples, la <strong>marge</strong> est la différence entre les deux.</div>
+
+      <section class="psr-learning-lab">
+        <div><span class="pill">Manipule</span><h4>Une commande de menus à 8,50 €</h4><p class="muted">Change le nombre de menus et la remise. La petite facture se recalcule immédiatement.</p></div>
+        <div class="psr-commerce-lab">
+          <div class="psr-invoice-card">
+            <div class="psr-invoice-heading"><strong>Commande</strong><span id="psr-commerce-qty-label">8 menus</span></div>
+            <div class="psr-invoice-line"><span>Sous-total</span><strong id="psr-commerce-subtotal">68,00 €</strong></div>
+            <div class="psr-invoice-line discount"><span>Remise <b id="psr-commerce-discount-label">10 %</b></span><strong id="psr-commerce-discount">− 6,80 €</strong></div>
+            <div class="psr-invoice-line total"><span>À payer</span><strong id="psr-commerce-net">61,20 €</strong></div>
+            <div class="psr-invoice-line muted"><span>Coût estimé des menus</span><strong id="psr-commerce-cost">41,60 €</strong></div>
+            <div class="psr-invoice-line margin"><span>Marge simple après remise</span><strong id="psr-commerce-margin">19,60 €</strong></div>
+          </div>
+          <div class="psr-commerce-controls">
+            <label for="psr-commerce-qty"><strong>Nombre de menus</strong></label>
+            <div class="psr-big-number"><span id="psr-commerce-qty-value">8</span><small>menus</small></div>
+            <input id="psr-commerce-qty" type="range" min="1" max="20" step="1" value="8">
+            <label for="psr-commerce-discount-rate"><strong>Remise</strong></label>
+            <div class="psr-big-number"><span id="psr-commerce-discount-value">10</span><small>%</small></div>
+            <input id="psr-commerce-discount-rate" type="range" min="0" max="30" step="5" value="10">
+          </div>
+        </div>
+      </section>
+
+      <section class="psr-method-card">
+        <p class="eyebrow">Une méthode simple</p>
+        <div class="psr-method-steps">
+          <div><span>1</span><p>Calcule d’abord le prix avant remise : quantité × prix unitaire.</p></div>
+          <div><span>2</span><p>Calcule la remise, puis enlève-la au prix de départ.</p></div>
+          <div><span>3</span><p>Pour une marge simple : prix de vente − coût.</p></div>
+        </div>
+        <div class="callout"><strong>40 € avec 10 % de remise</strong> → 10 % de 40 € = 4 € → 40 € − 4 € → <strong>36 €</strong>.</div>
+      </section>
+
+      <section class="psr-module-practice">
+        <p class="eyebrow">À toi · 4 situations</p>
+        <div class="psr-challenge-questions">
+          <div class="psr-challenge-question"><label for="psr-commerce-q1">1 · 6 menus coûtent 8,50 € chacun. Quel est le montant total ?</label><div class="session-link-row"><input id="psr-commerce-q1" class="input" inputmode="decimal" type="text"><strong>€</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-commerce-q2">2 · Un total de 40 € bénéficie d’une remise de 10 %. Combien reste-t-il à payer ?</label><div class="session-link-row"><input id="psr-commerce-q2" class="input" inputmode="decimal" type="text"><strong>€</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-commerce-q3">3 · Un produit coûte 7,50 € et est vendu 12 €. Quelle est la marge simple de cet exercice ?</label><div class="session-link-row"><input id="psr-commerce-q3" class="input" inputmode="decimal" type="text"><strong>€</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-commerce-q4">4 · Dans cet exercice, une taxe de 10 % s’applique à 50 €. Quel est le montant de la taxe ?</label><select id="psr-commerce-q4" class="input"><option value="">Choisir…</option><option value="5">5 €</option><option value="10">10 €</option><option value="45">45 €</option><option value="55">55 €</option></select></div>
+        </div>
+        <p class="learner-help">Le taux de taxe est donné ici uniquement pour faire le calcul : il n’est pas à mémoriser.</p>
+        <div id="psr-commerce-feedback" class="callout hidden" aria-live="polite"></div>
+        <div class="practice-actions">
+          <button id="psr-check-commerce" class="btn primary" type="button">Vérifier</button>
+          ${state.previewMode ? '<button id="psr-commerce-answers" class="btn secondary" type="button">Voir les réponses</button>' : ''}
+          <button class="btn secondary" type="button" data-open-psr="probabilites">Module suivant · Probabilités</button>
+          <button class="btn ghost" type="button" data-open-psr="overview">Retour au parcours</button>
+        </div>
+      </section>
+    </div>`;
+
+  bindPsrMathsSequenceNav();
+  document.querySelectorAll('[data-open-psr]').forEach((button) => button.addEventListener('click', () => openPsrMathsSequenceStep(button.dataset.openPsr)));
+
+  const qty = $('psr-commerce-qty');
+  const discountRate = $('psr-commerce-discount-rate');
+  const updateLab = () => {
+    const quantity = Number(qty.value);
+    const rate = Number(discountRate.value);
+    const unitPrice = 8.5;
+    const unitCost = 5.2;
+    const subtotal = quantity * unitPrice;
+    const discount = subtotal * rate / 100;
+    const net = subtotal - discount;
+    const cost = quantity * unitCost;
+    const margin = net - cost;
+    $('psr-commerce-qty-label').textContent = `${quantity} menu${quantity > 1 ? 's' : ''}`;
+    $('psr-commerce-qty-value').textContent = String(quantity);
+    $('psr-commerce-discount-label').textContent = `${rate} %`;
+    $('psr-commerce-discount-value').textContent = String(rate);
+    $('psr-commerce-subtotal').textContent = formatPsrMoney(subtotal);
+    $('psr-commerce-discount').textContent = `− ${formatPsrMoney(discount)}`;
+    $('psr-commerce-net').textContent = formatPsrMoney(net);
+    $('psr-commerce-cost').textContent = formatPsrMoney(cost);
+    $('psr-commerce-margin').textContent = formatPsrMoney(margin);
+  };
+  qty.addEventListener('input', updateLab);
+  discountRate.addEventListener('input', updateLab);
+  updateLab();
+
+  const check = async () => {
+    const checks = [
+      { id:'psr-commerce-q1', domain:'Prix × quantité', correct:Math.abs(parsePsrMathsNumber($('psr-commerce-q1').value) - 51) < 0.001 },
+      { id:'psr-commerce-q2', domain:'Remise', correct:Math.abs(parsePsrMathsNumber($('psr-commerce-q2').value) - 36) < 0.001 },
+      { id:'psr-commerce-q3', domain:'Prix − coût', correct:Math.abs(parsePsrMathsNumber($('psr-commerce-q3').value) - 4.5) < 0.001 },
+      { id:'psr-commerce-q4', domain:'Taxe fournie', correct:$('psr-commerce-q4').value === '5' },
+    ];
+    const count = checks.filter((item) => item.correct).length;
+    await recordPsrModuleChecks('commerce', checks);
+    show('psr-commerce-feedback', true);
+    $('psr-commerce-feedback').innerHTML = `<strong>${count}/4 situations réussies.</strong><div class="feedback-lines">
+      <span>${checks[0].correct ? '✓' : '↻'} 6 × 8,50 € = <b>51 €</b></span>
+      <span>${checks[1].correct ? '✓' : '↻'} 10 % de 40 € = 4 €, donc 40 € − 4 € = <b>36 €</b></span>
+      <span>${checks[2].correct ? '✓' : '↻'} 12 € − 7,50 € = <b>4,50 €</b></span>
+      <span>${checks[3].correct ? '✓' : '↻'} 10 % de 50 € = <b>5 €</b></span>
+    </div>`;
+  };
+  $('psr-check-commerce').addEventListener('click', check);
+  $('psr-commerce-answers')?.addEventListener('click', async () => {
+    $('psr-commerce-q1').value = '51';
+    $('psr-commerce-q2').value = '36';
+    $('psr-commerce-q3').value = '4.5';
+    $('psr-commerce-q4').value = '5';
+    await check();
+  });
+}
+
+function renderPsrMathsProbabilityModule() {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      ${renderPsrMathsSequenceNav('probabilites')}
+      <div>
+        <p class="eyebrow">Module · Probabilités</p>
+        <h3>Le hasard varie, mais il n’est pas sans repères.</h3>
+        <p class="learner-help">Quand on choisit au hasard, on ne sait pas ce qui va sortir au prochain essai. On peut quand même mesurer la chance qu’un résultat arrive. En maths, cette chance s’appelle une <strong>probabilité</strong>.</p>
+      </div>
+      <div class="psr-module-context-grid">
+        <article class="psr-module-context"><span>🟣</span><strong>Jeu du sac</strong><p>Dans un sac : 10 jetons, dont 3 violets. Tu pioches sans regarder. Quelle chance de tomber sur violet ?</p></article>
+        <article class="psr-module-context"><span>🔎</span><strong>Contrôle au hasard</strong><p>Choisir une barquette au hasard dans un lot pour effectuer un contrôle.</p></article>
+        <article class="psr-module-context"><span>🎲</span><strong>Simulation</strong><p>Faire le même tirage beaucoup de fois avec l’ordinateur pour observer les résultats.</p></article>
+      </div>
+      <div class="callout"><strong>D’abord, l’idée simple :</strong> sur 10 jetons, 3 font gagner. La chance de gagner est donc <strong>3 sur 10 = 30 %</strong>. On peut aussi écrire 30 % = <strong>0,3</strong>. Une probabilité va de 0 (impossible) à 1 (certain).</div>
+
+      <section class="psr-learning-lab">
+        <div><span class="pill">Joue</span><h4>Le sac de 10 jetons</h4><p class="muted"><strong>Règle :</strong> 3 jetons violets et 7 gris. Violet = gagné. Après chaque pioche, le jeton est remis dans le sac : c’est un <strong>tirage avec remise</strong>.</p></div>
+        <div class="psr-probability-lab">
+          <div class="psr-probability-bag">
+            <div class="psr-ticket-set" aria-label="Sac de dix jetons dont trois violets et sept gris">
+              ${Array.from({length:10}, (_, i) => `<span class="psr-ticket ${i < 3 ? 'favorable' : ''}" title="${i < 3 ? 'jeton violet' : 'jeton gris'}">${i < 3 ? 'V' : 'G'}</span>`).join('')}
+            </div>
+            <div class="psr-probability-formula"><strong>3 violets</strong><span>/</span><strong>10 jetons</strong><b>=</b><strong>30 %</strong></div>
+          </div>
+          <div class="psr-simulation-panel">
+            <div class="psr-simulation-stats">
+              <div class="psr-mini-stat">Pioches<strong id="psr-prob-draws">0</strong></div>
+              <div class="psr-mini-stat">Violets tirés<strong id="psr-prob-successes">0</strong></div>
+              <div class="psr-mini-stat">Part obtenue · fréquence<strong id="psr-prob-frequency">—</strong></div>
+              <div class="psr-mini-stat">Chance d’un violet · probabilité<strong>30 %</strong></div>
+            </div>
+            <div class="psr-probability-meter">
+              <span class="psr-probability-theory" title="30 % théorique"></span>
+              <span class="psr-probability-observed" id="psr-prob-observed"></span>
+            </div>
+            <div class="psr-simulation-history" id="psr-prob-history" aria-label="Derniers résultats simulés"></div>
+            <div class="practice-actions psr-compact-actions">
+              <button class="btn secondary psr-prob-run" type="button" data-count="1">Piocher 1 fois</button>
+              <button class="btn secondary psr-prob-run" type="button" data-count="20">Jouer 20 fois</button>
+              <button class="btn primary psr-prob-run" type="button" data-count="100">Jouer 100 fois</button>
+              <button class="btn ghost" id="psr-prob-reset" type="button">Recommencer</button>
+            </div>
+            <p id="psr-prob-message" class="learner-help">Commence par quelques pioches. Compte les violets obtenus, puis compare leur part avec la chance de départ : 30 %.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="psr-method-card">
+        <p class="eyebrow">Trois idées importantes</p>
+        <div class="psr-method-steps">
+          <div><span>1</span><p><strong>3 jetons font gagner</strong> sur 10 possibles : 3 cas favorables sur 10 cas possibles.</p></div>
+          <div><span>2</span><p>La part de violets réellement obtenus après plusieurs pioches s’appelle la <strong>fréquence</strong>.</p></div>
+          <div><span>3</span><p>La chance de départ, 30 %, est la <strong>probabilité</strong>. Sur peu de pioches, la fréquence peut être différente ; en répétant beaucoup, elle a tendance à s’en rapprocher.</p></div>
+        </div>
+        <div class="callout"><strong>2 jetons rouges sur 10</strong> → 2 cas favorables / 10 possibles → <strong>20 %</strong>.</div>
+      </section>
+
+      <section class="psr-module-practice">
+        <p class="eyebrow">À toi · 4 situations</p>
+        <div class="psr-challenge-questions">
+          <div class="psr-challenge-question"><label for="psr-prob-q1">1 · Dans un sac de 10 jetons, 2 sont rouges. Quelle est la probabilité de tirer un rouge ?</label><div class="session-link-row"><input id="psr-prob-q1" class="input" inputmode="decimal" type="text"><strong>%</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-prob-q2">2 · Un événement impossible, c’est quelque chose qui ne peut pas arriver. Quelle probabilité lui correspond ?</label><select id="psr-prob-q2" class="input"><option value="">Choisir…</option><option value="0">0</option><option value="0.5">0,5</option><option value="1">1</option><option value="100">100</option></select></div>
+          <div class="psr-challenge-question"><label for="psr-prob-q3">3 · « Tirer un violet » a 30 % de chance d’arriver. Quelle est la chance de « ne pas tirer un violet » ?</label><div class="session-link-row"><input id="psr-prob-q3" class="input" inputmode="decimal" type="text"><strong>%</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-prob-q4">4 · La chance de tirer un violet reste 30 %. Après seulement 10 tirages, 4 violets sont sortis, soit 40 %. Est-ce possible ?</label><select id="psr-prob-q4" class="input"><option value="">Choisir…</option><option value="wrong">Non : la probabilité est devenue 40 %</option><option value="normal">Oui : sur peu de tirages, la part observée peut varier</option><option value="impossible">Non : obtenir 40 % est impossible</option></select></div>
+        </div>
+        <div id="psr-prob-feedback" class="callout hidden" aria-live="polite"></div>
+        <div class="practice-actions">
+          <button id="psr-check-prob" class="btn primary" type="button">Vérifier</button>
+          ${state.previewMode ? '<button id="psr-prob-answers" class="btn secondary" type="button">Voir les réponses</button>' : ''}
+          <button class="btn secondary" type="button" data-open-psr="commerce">Revoir Prix & commerce</button>
+          <button class="btn ghost" type="button" data-open-psr="overview">Retour au parcours</button>
+        </div>
+      </section>
+    </div>`;
+
+  bindPsrMathsSequenceNav();
+  document.querySelectorAll('[data-open-psr]').forEach((button) => button.addEventListener('click', () => openPsrMathsSequenceStep(button.dataset.openPsr)));
+
+  let draws = 0;
+  let successes = 0;
+  let history = [];
+  const updateSimulation = () => {
+    const frequency = draws ? successes / draws * 100 : null;
+    $('psr-prob-draws').textContent = String(draws);
+    $('psr-prob-successes').textContent = String(successes);
+    $('psr-prob-frequency').textContent = frequency === null ? '—' : `${formatPsrNumber(frequency)} %`;
+    $('psr-prob-observed').style.width = `${frequency === null ? 0 : Math.min(100, frequency)}%`;
+    $('psr-prob-history').innerHTML = history.map((favorable) => `<span class="${favorable ? 'favorable' : ''}" title="${favorable ? 'violet' : 'autre'}"></span>`).join('');
+    $('psr-prob-message').textContent = draws === 0
+      ? 'Commence par quelques pioches. La chance de tirer violet est de 30 %.'
+      : draws < 20
+        ? 'Sur peu de pioches, la part de violets obtenue peut être assez loin de 30 %. C’est normal.'
+        : draws < 100
+          ? 'En jouant encore, regarde si la part de violets obtenue se rapproche de 30 %.'
+          : `Après ${draws} pioches, ${formatPsrNumber(frequency)} % des jetons tirés sont violets. Cette part observée s’appelle la fréquence. Elle n’a pas besoin d’être exactement égale à 30 %.`;
+  };
+  const runSimulation = (count) => {
+    for (let i = 0; i < count; i += 1) {
+      const favorable = Math.random() < 0.3;
+      draws += 1;
+      if (favorable) successes += 1;
+      history.push(favorable);
+    }
+    history = history.slice(-40);
+    updateSimulation();
+  };
+  document.querySelectorAll('.psr-prob-run').forEach((button) => button.addEventListener('click', () => runSimulation(Number(button.dataset.count))));
+  $('psr-prob-reset').addEventListener('click', () => {
+    draws = 0;
+    successes = 0;
+    history = [];
+    updateSimulation();
+  });
+  updateSimulation();
+
+  const check = async () => {
+    const checks = [
+      { id:'psr-prob-q1', domain:'Cas favorables / possibles', correct:Math.abs(parsePsrMathsNumber($('psr-prob-q1').value) - 20) < 0.001 },
+      { id:'psr-prob-q2', domain:'Impossible', correct:$('psr-prob-q2').value === '0' },
+      { id:'psr-prob-q3', domain:'Événement contraire', correct:Math.abs(parsePsrMathsNumber($('psr-prob-q3').value) - 70) < 0.001 },
+      { id:'psr-prob-q4', domain:'Fréquence et probabilité', correct:$('psr-prob-q4').value === 'normal' },
+    ];
+    const count = checks.filter((item) => item.correct).length;
+    await recordPsrModuleChecks('probabilites', checks);
+    show('psr-prob-feedback', true);
+    $('psr-prob-feedback').innerHTML = `<strong>${count}/4 situations réussies.</strong><div class="feedback-lines">
+      <span>${checks[0].correct ? '✓' : '↻'} 2 sur 10 = 2/10 = <b>20 %</b></span>
+      <span>${checks[1].correct ? '✓' : '↻'} Un événement impossible a une probabilité de <b>0</b></span>
+      <span>${checks[2].correct ? '✓' : '↻'} 100 % − 30 % = <b>70 %</b> : c’est l’événement contraire.</span>
+      <span>${checks[3].correct ? '✓' : '↻'} Sur seulement 10 tirages, <b>40 % est possible</b> même si la probabilité reste 30 %.</span>
+    </div>`;
+  };
+  $('psr-check-prob').addEventListener('click', check);
+  $('psr-prob-answers')?.addEventListener('click', async () => {
+    $('psr-prob-q1').value = '20';
+    $('psr-prob-q2').value = '0';
+    $('psr-prob-q3').value = '70';
+    $('psr-prob-q4').value = 'normal';
     await check();
   });
 }
@@ -3364,6 +3633,8 @@ PSR_MATHS_ITEM_LABELS['psr-module-pourcentages-v1'] = 'Module Pourcentages termi
 PSR_MATHS_ITEM_LABELS['psr-module-donnees-v1'] = 'Module Données terminé';
 PSR_MATHS_ITEM_LABELS['psr-module-equations-v1'] = 'Module Équations terminé';
 PSR_MATHS_ITEM_LABELS['psr-module-fonctions-v1'] = 'Module Graphiques terminé';
+PSR_MATHS_ITEM_LABELS['psr-module-commerce-v1'] = 'Module Prix & commerce terminé';
+PSR_MATHS_ITEM_LABELS['psr-module-probabilites-v1'] = 'Module Probabilités terminé';
 
 function renderPsrMathsReportDetail(report) {
   state.reportSessionId = report.session.id;

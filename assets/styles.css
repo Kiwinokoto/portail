@@ -461,8 +461,38 @@ body[data-teacher-workspace="reports"] #session-form{display:none!important}
 .psr-function-relation b{color:var(--muted)}
 .psr-function-relation strong{color:var(--ink);font-size:1.15rem}
 
+
+.psr-commerce-lab,.psr-probability-lab{display:grid;grid-template-columns:minmax(280px,.9fr) minmax(0,1.1fr);gap:18px;align-items:stretch}
+.psr-invoice-card{padding:18px;border:1px solid #e7d8c7;border-radius:18px;background:linear-gradient(180deg,#fffdf8,#fff7ec);box-shadow:0 10px 28px rgba(92,68,42,.06)}
+.psr-invoice-heading,.psr-invoice-line{display:flex;justify-content:space-between;gap:16px;align-items:baseline}
+.psr-invoice-heading{padding-bottom:13px;border-bottom:2px dashed #eadbc9}
+.psr-invoice-heading span{color:var(--muted);font-size:.84rem;font-weight:800}
+.psr-invoice-line{padding:11px 0;border-bottom:1px solid rgba(226,210,194,.7)}
+.psr-invoice-line:last-child{border-bottom:0}
+.psr-invoice-line.discount strong{color:var(--rose)}
+.psr-invoice-line.total{margin-top:3px;padding:14px 0;font-size:1.08rem}
+.psr-invoice-line.total strong{color:var(--accent-strong);font-size:1.28rem}
+.psr-invoice-line.muted{color:var(--muted);font-size:.86rem}
+.psr-invoice-line.margin{color:var(--accent-strong);font-weight:800}
+.psr-commerce-controls{display:grid;gap:10px;align-content:start}
+.psr-probability-bag,.psr-simulation-panel{padding:18px;border:1px solid var(--line);border-radius:18px;background:#fff}
+.psr-ticket-set{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.psr-ticket{display:grid;place-items:center;aspect-ratio:1;border:1px solid #ddd6e8;border-radius:12px;background:#f3f0f7;color:#aca3b5;font-weight:950}
+.psr-ticket.favorable{border-color:#cabcf4;background:linear-gradient(145deg,var(--accent),var(--accent-bright));color:#fff;box-shadow:0 6px 15px rgba(91,73,199,.14)}
+.psr-probability-formula{display:flex;justify-content:center;gap:9px;align-items:baseline;padding:13px;border-radius:13px;background:var(--accent-soft);color:var(--accent-strong);font-size:1.2rem}
+.psr-probability-formula strong:last-child{font-size:1.35rem}
+.psr-simulation-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.psr-probability-meter{position:relative;height:18px;margin:18px 0 14px;overflow:hidden;border:1px solid var(--line);border-radius:999px;background:#f0edf4}
+.psr-probability-observed{position:absolute;inset:0 auto 0 0;width:0;border-radius:inherit;background:linear-gradient(90deg,var(--rose),var(--accent));transition:width .2s ease}
+.psr-probability-theory{position:absolute;z-index:2;top:-4px;bottom:-4px;left:30%;width:3px;border-radius:999px;background:var(--blue);box-shadow:0 0 0 2px rgba(255,255,255,.75)}
+.psr-simulation-history{display:flex;flex-wrap:wrap;gap:5px;min-height:28px;margin-bottom:12px}
+.psr-simulation-history span{width:12px;height:12px;border-radius:50%;background:#ded9e5}
+.psr-simulation-history span.favorable{background:var(--accent)}
+.psr-compact-actions{gap:7px}
+.psr-compact-actions .btn{padding:.7rem .85rem;font-size:.84rem}
+
 @media (max-width:760px){
-  .psr-percent-lab,.psr-data-lab,.psr-equation-lab,.psr-function-lab{grid-template-columns:1fr}
+  .psr-percent-lab,.psr-data-lab,.psr-equation-lab,.psr-function-lab,.psr-commerce-lab,.psr-probability-lab{grid-template-columns:1fr}
   .psr-percent-grid{justify-self:center}
   .psr-data-chart{min-height:210px}
   .psr-data-track{height:140px}
