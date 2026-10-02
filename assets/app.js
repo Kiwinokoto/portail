@@ -69,8 +69,8 @@ function teacherWorkspaceHref(subjectId, workspace) {
   return `/?subject=${encodeURIComponent(subjectId)}&workspace=${encodeURIComponent(workspace)}`;
 }
 
-function renderTeacherWorkspaceNav(subjectId, active = 'parcours') {
-  const nav = $('teacher-workspace-nav');
+function renderTeacherWorkspaceNav(subjectId, active = 'parcours', navId = 'teacher-workspace-nav') {
+  const nav = $(navId);
   const items = [
     ['seances', 'Séances'],
     ['parcours', 'Parcours'],
@@ -82,12 +82,48 @@ function renderTeacherWorkspaceNav(subjectId, active = 'parcours') {
     '<a class="teacher-home-link" href="/">Accueil</a>',
     ...items.map(([id, label]) => `<a href="${teacherWorkspaceHref(subjectId, id)}" ${active === id ? 'aria-current="page"' : ''}>${label}</a>`),
   ].join('');
-  show('teacher-workspace-nav', true);
+  show(navId, true);
+}
+
+function focusedWorkspaceCopy(workspace) {
+  if (workspace === 'seances') return ['Séances', 'Créer, préparer, partager ou reprendre une séance.', 'Séances de la matière'];
+  if (workspace === 'corrections') return ['Corrigés', 'Choisir quand les solutions deviennent visibles pour chaque groupe.', 'Séances et corrigés'];
+  if (workspace === 'live') return ['Suivi en direct', 'Préparer la liste puis suivre les élèves pendant la séance.', 'Séances à suivre'];
+  if (workspace === 'reports') return ['Rapports', 'Retrouver les synthèses de groupe et le détail par élève.', 'Séances et rapports'];
+  return ['Parcours', 'Inspecter le cours et sa séquence.', 'Mes séances récentes'];
+}
+
+function enterFocusedTeacherWorkspace(subjectId, workspace) {
+  const [workspaceLabel, description, recentTitle] = focusedWorkspaceCopy(workspace);
+  show('teacher-home-hero', false);
+  show('teacher-selectors', false);
+  show('teacher-focused-header', true);
+  show('teacher-home-actions', false);
+  $('teacher-focused-title').textContent = `${state.formation.label} · ${state.subject.label} · ${workspaceLabel}`;
+  $('teacher-focused-description').textContent = description;
+  renderTeacherWorkspaceNav(subjectId, workspace, 'teacher-main-nav');
+  $('recent-sessions-eyebrow').textContent = workspace === 'seances' ? 'Organiser' : workspace === 'live' ? 'Piloter' : workspace === 'corrections' ? 'Contrôler' : 'Analyser';
+  $('recent-sessions-title').textContent = recentTitle;
+  document.body.dataset.teacherWorkspace = workspace;
+  renderRecentSessions();
+}
+
+function leaveFocusedTeacherWorkspace() {
+  show('teacher-home-hero', true);
+  show('teacher-selectors', true);
+  show('teacher-focused-header', false);
+  show('teacher-home-actions', true);
+  $('recent-sessions-eyebrow').textContent = 'Reprendre';
+  $('recent-sessions-title').textContent = 'Mes séances récentes';
+  delete document.body.dataset.teacherWorkspace;
 }
 
 async function applyRequestedTeacherWorkspace() {
   const requested = requestedTeacherWorkspace();
-  if (!requested) return;
+  if (!requested) {
+    leaveFocusedTeacherWorkspace();
+    return;
+  }
   const formation = state.formations.find((item) =>
     item.subjects.some((subject) => subject.id === requested.subjectId)
   );
@@ -99,16 +135,15 @@ async function applyRequestedTeacherWorkspace() {
     window.location.replace(teacherWorkspaceHref(requested.subjectId, 'parcours'));
     return;
   }
-  if (requested.workspace === 'seances') {
-    show('session-form', true);
-    revealOnNarrowScreen('subject-workspace');
-    return;
-  }
+
+  enterFocusedTeacherWorkspace(requested.subjectId, requested.workspace);
+  show('session-form', requested.workspace === 'seances');
+
   if (requested.workspace === 'reports') {
     await openReports();
     return;
   }
-  $('recent-sessions-panel').scrollIntoView({ behavior:'smooth', block:'start' });
+  revealOnNarrowScreen('teacher-focused-header');
 }
 
 function configureLearnerPath(session) {
@@ -1793,6 +1828,7 @@ function showLogin() {
 async function showTeacher() {
   $('student-view').classList.remove('teacher-preview-mode');
   show('teacher-workspace-nav', false);
+  leaveFocusedTeacherWorkspace();
   show('login-view', false); show('teacher-view', true); show('logout', true);
   $('welcome').textContent = `Bonjour ${state.user.display_name}`;
   show('admin-open', state.user.role === 'admin');
@@ -2096,24 +2132,44 @@ function renderRecentSessions() {
     const createdLabel = recentSessionDate(session.created_at);
     let actions = '';
 
+    const focused = document.body.dataset.teacherWorkspace || '';
     if (externalMaths) {
-      const label = session.active ? 'Ouvrir l’ancienne séance' : 'Ouvrir l’archive Maths';
-      actions = `<a class="btn primary" href="${esc(session.manage_url)}" target="_blank" rel="noopener">${label}</a>`;
+      let legacyUrl = session.manage_url;
+      try {
+        const url = new URL(session.manage_url, window.location.origin);
+        if (focused === 'corrections') url.searchParams.set('tab', 'corrections');
+        else if (focused === 'reports') url.searchParams.set('tab', 'reports');
+        else url.searchParams.set('tab', 'live');
+        legacyUrl = url.toString();
+      } catch { /* keep the server-provided URL */ }
+      const label = focused === 'corrections'
+        ? 'Gérer les anciens corrigés'
+        : focused === 'reports'
+          ? 'Voir l’ancien rapport'
+          : session.active ? 'Ouvrir l’ancienne séance' : 'Ouvrir l’archive Maths';
+      actions = `<a class="btn primary" href="${esc(legacyUrl)}" target="_blank" rel="noopener">${label}</a>`;
     } else {
-      if (internalNative && session.active) {
+      const showLive = !focused || focused === 'live';
+      const showCorrections = !focused || focused === 'corrections';
+      const showReports = !focused || focused === 'reports';
+      const showSessionTools = !focused || focused === 'seances';
+
+      if (showLive && internalNative && session.active) {
         actions += `<button class="btn primary" data-live="${esc(session.id)}">Suivi en direct</button>`;
       }
-      if (supportsCorrections && session.active) {
+      if (showCorrections && supportsCorrections && session.active) {
         actions += `<button class="btn secondary" data-corrections="${esc(session.id)}" data-unlocked="${session.corrections_unlocked ? '1' : '0'}">Corrigés : ${session.corrections_unlocked ? 'ouverts' : 'verrouillés'}</button>`;
       }
-      if (supportsReports) {
+      if (showReports && supportsReports) {
         actions += `<button class="btn secondary" data-report="${esc(session.id)}">Rapport</button>`;
       }
-      if (session.active) {
+      if (showSessionTools && session.active) {
         actions += `<button class="btn ghost" data-copy="${esc(session.join_url)}">Copier le lien élève</button>`;
         actions += `<a class="btn secondary" href="/api/sessions/${encodeURIComponent(session.id)}/qr.svg" target="_blank" rel="noopener">QR</a>`;
       }
-      actions += `<button class="btn ghost ${session.active ? 'danger' : ''}" data-session-active="${esc(session.id)}" data-active="${session.active ? '1' : '0'}">${session.active ? 'Fermer la séance' : 'Réouvrir'}</button>`;
+      if (showSessionTools) {
+        actions += `<button class="btn ghost ${session.active ? 'danger' : ''}" data-session-active="${esc(session.id)}" data-active="${session.active ? '1' : '0'}">${session.active ? 'Fermer la séance' : 'Réouvrir'}</button>`;
+      }
     }
 
     return `
@@ -2787,7 +2843,7 @@ $('login-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('
 $('logout').addEventListener('click', async () => { await api('/api/auth/logout', { method:'POST', body:'{}' }); state.user = null; showLogin(); });
 $('show-create-session').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('create');
-  show('session-form', true);
+  if (state.subject) window.location.assign(teacherWorkspaceHref(state.subject.id, 'seances'));
 });
 $('explore-subject').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('inspect');
@@ -2797,15 +2853,15 @@ $('explore-subject').addEventListener('click', () => {
 });
 $('corrections-subject').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('corrections');
-  $('recent-sessions-panel').scrollIntoView({ behavior:'smooth', block:'start' });
+  if (state.subject) window.location.assign(teacherWorkspaceHref(state.subject.id, 'corrections'));
 });
 $('show-live-sessions').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('live');
-  $('recent-sessions-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (state.subject) window.location.assign(teacherWorkspaceHref(state.subject.id, 'live'));
 });
 $('reports-subject').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('reports');
-  openReports();
+  if (state.subject) window.location.assign(teacherWorkspaceHref(state.subject.id, 'reports'));
 });
 $('refresh-sessions').addEventListener('click', loadSessions);
 $('live-dialog').addEventListener('close', clearLivePolling);
