@@ -14,6 +14,11 @@ It provides one teacher/learner entry point for formations, subjects, sequences,
 ## Product structure
 Teacher tooling uses one shared five-workspace vocabulary across internal and external subjects: **Séances → Parcours → Corrigés → Suivi en direct → Rapports**. Keep all five visible when useful; show explicit status for unfinished capabilities instead of inventing subject-specific labels for the same job.
 
+Navigation has two deliberate levels:
+- the **teacher home** is the catalogue/launcher: Formation → Subject, then the five workspace cards;
+- once a teacher enters a subject workspace, those same five jobs become the persistent **primary teacher navigation**. Do not force the teacher back through Formation/Matière selectors for every action;
+- inside a pedagogical sequence, use a distinct **secondary sequence navigation** to show the current activity and nearby/next activities. Teacher preview may navigate freely; learner availability follows the pedagogical unlock rules.
+
 Navigation is deliberately: **Formation → Subject → Subject pathway**.
 Do not add a CAP/Bac Pro family layer to the main navigation unless a real UX need appears.
 
