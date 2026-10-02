@@ -1,0 +1,34 @@
+name: Vendor French audio (temporary)
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  vendor:
+    if: github.head_ref == 'dev/vendor-french-audio'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout working branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Download curated Lingua Libre WAV files
+        run: python tools/vendor_french_audio.py
+
+      - name: Commit vendored audio when needed
+        run: |
+          if git diff --quiet -- assets/audio/fr assets/audio/manifest.json; then
+            echo "Audio assets already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/audio/fr assets/audio/manifest.json
+          git commit -m "assets: vendor curated French Lingua Libre audio"
+          git push origin "HEAD:${{ github.head_ref }}"
