@@ -22,9 +22,10 @@ Une fonctionnalité n'est **pas** considérée validée terrain tant que la dern
 - [ ] Aucune note globale ni correction immédiate n’est affichée à l’élève pendant le diagnostic.
 - [ ] **Suivi en direct** montre qui a commencé et l’avancement vers les 10 situations + fin du diagnostic.
 - [ ] **Rapports** montre détail par élève, réponses justes et « Je ne sais pas » sans produire de classement.
-- [ ] L’aperçu professeur du diagnostic n’écrit aucune activité élève.
+- [ ] **Corrigés** est verrouillé par défaut ; après déblocage professeur, « Voir les stratégies » affiche les explications sur le même appareil élève.
+- [ ] Reverrouiller puis vérifier depuis l’élève masque de nouveau les solutions.
+- [ ] L’aperçu professeur du diagnostic/correction n’écrit aucune activité élève.
 - [ ] Les anciennes séances Maths LGC continuent d’apparaître comme legacy et ouvrent encore leur ancien site.
-- [ ] Ne pas utiliser **Corrigés** comme validé PSR tant que la correction guidée du legacy n’a pas été migrée nativement.
 
 ### Compatibilité legacy déjà vérifiée
 

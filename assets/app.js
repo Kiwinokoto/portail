@@ -1118,8 +1118,43 @@ function psrMathsAnswerIsCorrect(question, value) {
   return Number.isFinite(number) && Math.abs(number - question.answer) <= question.tolerance;
 }
 
+function psrMathsAnswersStorageKey() {
+  const sessionId = state.joinSession?.id || '';
+  const learnerId = state.learner?.id || '';
+  return sessionId && learnerId ? `portail-psr-maths-answers:${sessionId}:${learnerId}` : '';
+}
+
+function readPsrMathsAnswers() {
+  const key = psrMathsAnswersStorageKey();
+  if (!key || state.previewMode) return {};
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePsrMathsAnswer(question, value, unknown, correct) {
+  if (state.previewMode) return;
+  const key = psrMathsAnswersStorageKey();
+  if (!key) return;
+  const answers = readPsrMathsAnswers();
+  answers[question.id] = {
+    value:unknown ? '' : String(value || ''),
+    unknown:Boolean(unknown),
+    correct:Boolean(correct),
+  };
+  try {
+    localStorage.setItem(key, JSON.stringify(answers));
+  } catch {
+    // Local answer recall improves correction UX but is not required for server tracking.
+  }
+}
+
 async function recordPsrDiagnosticAnswer(question, value, unknown = false) {
   const correct = !unknown && psrMathsAnswerIsCorrect(question, value);
+  savePsrMathsAnswer(question, value, unknown, correct);
   await trackEvent('answer', question.id, {
     correct,
     unknown,
@@ -1198,6 +1233,18 @@ function renderPsrMathsDiagnostic(index = 0) {
   input.focus();
 }
 
+async function refreshPsrMathsCorrectionAccess() {
+  if (state.previewMode) return true;
+  if (!state.joinToken) return false;
+  try {
+    const { session } = await api(`/api/join?token=${encodeURIComponent(state.joinToken)}`);
+    state.joinSession = session;
+    return Boolean(session.corrections_unlocked);
+  } catch {
+    return false;
+  }
+}
+
 async function renderPsrMathsFinish() {
   await trackEvent('activity_completed', 'psr-maths-rentree-v1', {
     questions:PSR_MATHS_DIAGNOSTIC.length,
@@ -1208,9 +1255,77 @@ async function renderPsrMathsFinish() {
         <p class="eyebrow">Diagnostic terminé</p>
         <h3>Merci ${esc(state.learner.first_name)}.</h3>
         <p class="muted">Il n’y a pas de note affichée ici. Ton professeur voit les réponses question par question et pourra choisir les exercices utiles pour la suite.</p>
+        <div class="practice-actions">
+          <button id="psr-show-correction" class="btn secondary" type="button">Voir les stratégies</button>
+        </div>
+        <p id="psr-correction-access-status" class="status" aria-live="polite"></p>
       </div>
     </div>`;
+  $('psr-show-correction').addEventListener('click', async () => {
+    $('psr-correction-access-status').textContent = 'Vérification…';
+    const unlocked = await refreshPsrMathsCorrectionAccess();
+    renderPsrMathsCorrection({ unlocked });
+  });
 }
+
+function psrMathsAnswerLabel(answer) {
+  if (!answer) return 'Réponse non disponible sur cet appareil';
+  if (answer.unknown) return 'Je ne sais pas';
+  return answer.value || '—';
+}
+
+function renderPsrMathsCorrection({ unlocked = false } = {}) {
+  const teacherPreview = state.previewMode;
+  const canShowSolutions = teacherPreview || unlocked;
+  const answers = readPsrMathsAnswers();
+
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      <div class="practice-heading">
+        <div>
+          <p class="eyebrow">Correction guidée</p>
+          <h3>On regarde les stratégies.</h3>
+        </div>
+        <button id="psr-correction-back" class="btn ghost" type="button">${teacherPreview ? 'Retour à l’aperçu' : 'Retour'}</button>
+      </div>
+      ${teacherPreview ? '<p class="learner-help">Vue professeur : toutes les stratégies sont visibles, sans activité élève enregistrée.</p>' : ''}
+      ${!canShowSolutions ? `
+        <div class="callout">
+          <strong>Corrigés encore verrouillés</strong>
+          <p>Ton professeur ouvrira les solutions au bon moment pour la classe. Tes réponses restent enregistrées.</p>
+          <button id="psr-refresh-corrections" class="btn secondary" type="button">Vérifier si les corrigés sont ouverts</button>
+        </div>` : ''}
+      <div class="report-item-summary">
+        ${PSR_MATHS_DIAGNOSTIC.map((question, index) => {
+          const answer = answers[question.id];
+          const stateLabel = teacherPreview || !answer
+            ? ''
+            : answer.unknown
+              ? 'Je ne sais pas'
+              : answer.correct
+                ? '✓ Bonne stratégie'
+                : '↻ À reprendre';
+          return `
+            <article class="report-item-row">
+              <strong>${index + 1}. ${esc(question.domain)}${stateLabel ? ` · ${esc(stateLabel)}` : ''}</strong>
+              <span>${esc(question.prompt)}</span>
+              ${teacherPreview ? '' : `<span>Ta réponse : ${esc(psrMathsAnswerLabel(answer))}</span>`}
+              ${canShowSolutions ? `<span>Correction : ${esc(question.explanation)}</span>` : '<span>Solution masquée jusqu’au déblocage.</span>'}
+            </article>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  $('psr-correction-back').addEventListener('click', () => {
+    if (teacherPreview) renderPsrMathsDiagnostic(0);
+    else renderPsrMathsFinish();
+  });
+  $('psr-refresh-corrections')?.addEventListener('click', async () => {
+    const nowUnlocked = await refreshPsrMathsCorrectionAccess();
+    renderPsrMathsCorrection({ unlocked:nowUnlocked });
+  });
+}
+
 
 function showLogin() {
   show('student-view', false); show('login-view', true); show('teacher-view', false); show('logout', false);
@@ -1290,7 +1405,6 @@ function sessionPathwayLabel(session) {
 }
 
 function sessionSupportsCorrections(session) {
-  if (session.subject_id === 'psr-maths') return false;
   return !(session.subject_id === 'ada-francais' && session.pathway_id === 'practice-v1');
 }
 
@@ -1362,29 +1476,20 @@ function updateWorkspaceActions() {
     status: external || hasInternalPreview ? 'disponible' : 'en cours',
     upcoming: internal && !hasInternalPreview
   });
-  if (state.subject.id === 'psr-maths') {
-    setWorkspaceAction('corrections-subject', {
-      disabled:true,
-      description:'La correction guidée du site Maths doit encore être migrée nativement dans Portail.',
-      status:'migration en cours',
-      upcoming:true
-    });
-  } else {
-    setWorkspaceAction('corrections-subject', {
-      disabled: internal && !hasActiveCorrectionSessions,
-      description: external
-        ? 'Verrouiller ou ouvrir les corrigés au moment choisi.'
-        : hasActiveCorrectionSessions
-          ? 'Verrouiller ou ouvrir les corrigés séance par séance.'
-          : hasCorrectionSessions
-            ? 'Réouvre une séance de positionnement pour modifier ses corrigés.'
-            : hasSessions
-              ? 'Les séances d’entraînement n’ont pas de corrigés.'
-              : 'Crée d’abord une séance de positionnement pour piloter les corrigés.',
-      status: external || hasActiveCorrectionSessions ? 'disponible' : hasCorrectionSessions ? 'séance fermée' : hasSessions ? 'non applicable' : 'après création',
-      upcoming: internal && !hasActiveCorrectionSessions
-    });
-  }
+  setWorkspaceAction('corrections-subject', {
+    disabled: internal && !hasActiveCorrectionSessions,
+    description: external
+      ? 'Verrouiller ou ouvrir les corrigés au moment choisi.'
+      : hasActiveCorrectionSessions
+        ? 'Verrouiller ou ouvrir les corrigés séance par séance.'
+        : hasCorrectionSessions
+          ? 'Réouvre une séance de positionnement pour modifier ses corrigés.'
+          : hasSessions
+            ? 'Les séances d’entraînement n’ont pas de corrigés.'
+            : 'Crée d’abord une séance de positionnement pour piloter les corrigés.',
+    status: external || hasActiveCorrectionSessions ? 'disponible' : hasCorrectionSessions ? 'séance fermée' : hasSessions ? 'non applicable' : 'après création',
+    upcoming: internal && !hasActiveCorrectionSessions
+  });
   setWorkspaceAction('show-live-sessions', {
     disabled: internal && !hasActiveSessions,
     description: external
