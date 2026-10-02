@@ -36,6 +36,8 @@ Une fonctionnalité n'est **pas** considérée validée terrain tant que la dern
 - [ ] Durées : réponses 10 h 25, 11 h 10, 105 min et 90 min produisent les quatre validations attendues.
 - [ ] **Recettes** : le curseur de portions recalcule coefficient, riz, légumes et sauce sans débordement mobile.
 - [ ] Recettes : 1 200 g, 5 L, 2 250 g et × 3,2 sont correctement reconnus.
+- [ ] **Pourcentages** : la grille 10×10, le curseur et les équivalences restent lisibles sur téléphone ; les réponses 10, 9 €, 18 € et 60 % sont reconnues.
+- [ ] **Données** : les 5 barres restent lisibles, le curseur vendredi recalcule total/max/min/moyenne ; mardi, 30, 30 % et 22 sont reconnus.
 - [ ] En Suivi en direct, un élève ayant terminé ces modules affiche une progression par phases (Diagnostic / Défi / modules) et jamais un score global trompeur.
 
 ### Compatibilité legacy
