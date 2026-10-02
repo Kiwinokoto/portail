@@ -62,6 +62,8 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [ ] Grow the concept manifest progressively toward roughly 500–2,000 familiar concepts; keep concept IDs language-neutral so later translations do not duplicate image assets.
 - [ ] Add an Open Images adapter for boxable concepts and optional automatic crops after the Wikimedia/Openverse workflow has been field-reviewed.
 - [ ] Decide later, after classroom observation, whether practice history should remain coarse (started/audio only), record simple completion/repetition signals, or drive adaptive repetition. Do not feed raw practice attempts into positioning reports by default.
+- [x] Add a temporary admin-only French audio comparison lab for the 61-word seed: Browser Web Speech vs automatic French Wiktionary/Commons audio vs the Lingua Libre speaker Sartus85. The selector is diagnostic only and does not change learner audio yet; Wikimedia candidates are fetched read-only at test time with file/licence/speaker metadata shown to the admin.
+- [ ] Listen through a representative sample in the admin audio lab, choose the preferred human/main source and acceptable fallbacks, then vendor the selected files locally before making them learner defaults.
 
 ## P2 — maths convergence
 
@@ -83,6 +85,7 @@ Do not add a visible CAP/Bac Pro family level for now.
 
 - [x] Portail → Maths ownership recovery across devices: manually validated 1 October 2026 (session created on phone, recovered on desktop under the same Portail account).
 - [ ] Validate the new Portail-level aggregation of external Maths sessions after deployment: recent session visible before entering Maths, and « Ouvrir le suivi » lands on the intended session.
+- [x] Reproduce the current browser-TTS failure on Brave/Linux VM (2 October 2026): Web Speech API is exposed but `speechSynthesis.getVoices()` stays empty after waiting, so the existing buttons fail silently. Treat API presence alone as insufficient capability detection.
 - [ ] Validate ADA French V2 on actual learner phones/tablets: TTS, emoji/visual rendering, instruction comprehension and touch targets.
 - [ ] Validate ADA Mathematics V1 on actual learner phones/tablets: quantities, € rendering, TTS and the wording « le plus » / « en tout ».
 - [ ] Run one full teacher loop with real or disposable test learners: roster → QR → learner work → live view → corrections → Reports.
