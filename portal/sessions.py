@@ -6,10 +6,12 @@ from .core import clean_text, iso, signed_join_url
 
 
 _DEFAULT_PATHWAY_BY_SUBJECT = {
+    "psr-maths": "rentree-v1",
     "ada-francais": "positioning-v1",
     "ada-maths": "numeracy-v1",
 }
 _ALLOWED_PATHWAYS_BY_SUBJECT = {
+    "psr-maths": {"rentree-v1"},
     "ada-francais": {"positioning-v1", "practice-v1"},
     "ada-maths": {"numeracy-v1"},
 }
