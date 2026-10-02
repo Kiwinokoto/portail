@@ -23,7 +23,7 @@ jobs:
 
       - name: Commit vendored audio when needed
         run: |
-          if git diff --quiet -- assets/audio/fr assets/audio/manifest.json; then
+          if [ -z "$(git status --porcelain -- assets/audio/fr assets/audio/manifest.json)" ]; then
             echo "Audio assets already up to date."
             exit 0
           fi
