@@ -42,8 +42,8 @@ La Séance 1 ne s'ouvre plus directement sur la première question. Portail expo
 La première tranche ne prétend pas remplacer tout le site legacy. Restent notamment :
 
 - enrichissements visuels de la correction guidée, notamment fractions/pourcentages (la correction textuelle V1 est déjà migrée) ;
-- **Durées**, **Recettes & proportionnalité**, **Pourcentages** et **Données & statistiques** sont maintenant natifs : contextes PSR, laboratoire manipulable, méthode et quatre situations d'entraînement chacun ;
-- restent à porter intégralement : Équations, Graphiques & fonctions, Prix & commerce, Probabilités ;
+- **Durées**, **Recettes & proportionnalité**, **Pourcentages**, **Données & statistiques**, **Équations** et **Graphiques & fonctions** sont maintenant natifs : contextes PSR, laboratoire manipulable, méthode et quatre situations d'entraînement chacun ;
+- restent à porter intégralement : Prix & commerce, Probabilités ;
 - remédiation/ordre de parcours à réévaluer avec les observations terrain.
 
 Le suivi live, les rapports (diagnostic + défi) et le verrou **Corrigés** sont maintenant disponibles dans Portail pour cette Séance 1 native.
@@ -69,3 +69,12 @@ Le module reprend les repères « part sur 100 », réduction et stock, avec une
 ### Données & statistiques
 
 Le module reprend les contextes ventes/stock/choix clients, avec un histogramme manipulable sur une semaine de menus servis. Le vendredi varie de 10 à 50 ; total, maximum, minimum et moyenne sont recalculés. Les quatre situations couvrent lecture/comparaison, moyenne, fréquence en pourcentage et valeur la plus fréquente.
+
+
+### Équations
+
+Le module reprend les trois situations concrètes du legacy (barquettes, prix, quantité), avec un curseur qui cherche l’équilibre de `3 × x = 24`, la méthode par opération inverse et quatre situations : 3 × x = 24, x + 7 = 19, 4 menus pour 36 €, x − 4 = 11.
+
+### Graphiques & fonctions
+
+Le module conserve la relation concrète du legacy : menus vendus à 8 € l’unité. Le curseur déplace un point sur la droite `y = 8 × x`, puis les quatre situations demandent 6 menus, 10 menus, retrouver le nombre de menus pour 96 € et comprendre l’effet d’un doublement.
