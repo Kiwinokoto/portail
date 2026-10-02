@@ -444,6 +444,27 @@ class PortalHttpTests(unittest.TestCase):
             )
         self.assertEqual(400, ctx.exception.code)
 
+    def test_psr_maths_corrections_lock_is_visible_to_signed_join(self):
+        session = self.create_psr_maths_session()
+        token = session["join_url"].split("?join=", 1)[1]
+        anonymous = urllib.request.build_opener()
+
+        status, payload = self.request(f"/api/join?token={token}", opener=anonymous)
+        self.assertEqual(200, status)
+        self.assertFalse(payload["session"]["corrections_unlocked"])
+
+        status, updated = self.request(
+            f"/api/sessions/{session['id']}/corrections",
+            method="POST",
+            payload={"unlocked": True},
+        )
+        self.assertEqual(200, status)
+        self.assertTrue(updated["session"]["corrections_unlocked"])
+
+        status, payload = self.request(f"/api/join?token={token}", opener=anonymous)
+        self.assertEqual(200, status)
+        self.assertTrue(payload["session"]["corrections_unlocked"])
+
     def test_public_cannot_create_unlisted_learner_by_typing_name(self):
         session = self.create_ada_session()
         token = session["join_url"].split("?join=", 1)[1]
