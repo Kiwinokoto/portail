@@ -352,3 +352,17 @@ h2,h3{margin:.15rem 0 .4rem}.muted{color:var(--muted);line-height:1.55}.status{c
   .psr-module-grid,.psr-intro-grid,.psr-challenge-board,.psr-bilan-grid{grid-template-columns:1fr}
   .psr-mini-stats{grid-template-columns:1fr 1fr}
 }
+
+.teacher-focused-header{display:grid;gap:12px;padding-bottom:14px}
+.teacher-focused-context{display:flex;gap:18px;align-items:start;justify-content:space-between}
+.teacher-focused-context h2{margin:.15rem 0 .35rem}
+.teacher-focused-header .teacher-workspace-nav{margin:0;top:8px}
+body[data-teacher-workspace] #subject-workspace .section-head{margin-bottom:4px}
+body[data-teacher-workspace] #subject-workspace{padding-top:16px}
+body[data-teacher-workspace="corrections"] #session-form,
+body[data-teacher-workspace="live"] #session-form,
+body[data-teacher-workspace="reports"] #session-form{display:none!important}
+@media (max-width:760px){
+  .teacher-focused-context{display:grid}
+  .teacher-focused-context .btn{justify-self:start}
+}
