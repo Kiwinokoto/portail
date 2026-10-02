@@ -16,6 +16,8 @@ from pathlib import Path
 import re
 import urllib.parse
 import urllib.request
+import urllib.error
+import time
 
 ROOT = Path(__file__).resolve().parents[1]
 DEST = ROOT / "assets" / "audio" / "fr"
@@ -65,16 +67,33 @@ SOURCES = [
 ]
 
 
+def open_with_backoff(url: str, *, timeout: int):
+    last_error = None
+    for attempt in range(6):
+        request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        try:
+            return urllib.request.urlopen(request, timeout=timeout)
+        except urllib.error.HTTPError as exc:
+            last_error = exc
+            if exc.code != 429 or attempt == 5:
+                raise
+            retry_after = exc.headers.get("Retry-After")
+            wait = float(retry_after) if retry_after and retry_after.isdigit() else 2 ** (attempt + 1)
+            time.sleep(min(wait, 30))
+    raise last_error
+
+
 def fetch_json(url: str) -> dict:
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=45) as response:
+    with open_with_backoff(url, timeout=45) as response:
         return json.load(response)
 
 
 def fetch_bytes(url: str) -> bytes:
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=60) as response:
-        return response.read()
+    with open_with_backoff(url, timeout=60) as response:
+        payload = response.read()
+    # Be deliberately polite to Wikimedia; this is a one-time release tool.
+    time.sleep(0.8)
+    return payload
 
 
 def plain(value: str) -> str:
