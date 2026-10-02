@@ -223,8 +223,17 @@ function humanAudioForText(text) {
   return override ? { word, ...override } : null;
 }
 
-function commonsAudioUrl(file) {
-  return 'https://commons.wikimedia.org/wiki/Special:Redirect/file/' + encodeURIComponent(file);
+function humanAudioAssetId(word) {
+  return normalizedAudioWord(word)
+    .replaceAll('œ', 'oe')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function localHumanAudioUrl(word) {
+  return '/assets/audio/fr/' + humanAudioAssetId(word) + '.wav';
 }
 
 function stopFrenchAudio() {
@@ -240,7 +249,7 @@ async function speakFrench(text, hooks = {}) {
   stopFrenchAudio();
   const human = humanAudioForText(text);
   if (human) {
-    const audio = new Audio(commonsAudioUrl(human.file));
+    const audio = new Audio(localHumanAudioUrl(human.word));
     activeFrenchAudio = audio;
     audio.preload = 'auto';
     audio.addEventListener('playing', () => hooks.onStart?.({ mode:'human', ...human }), { once:true });
