@@ -6,7 +6,7 @@ Depuis le 2 octobre 2026, `Kiwinokoto/portail` est le runtime canonique des nouv
 
 La migration reprend le contenu pédagogique utile, pas le shell technique legacy.
 
-## Première tranche : Séance 1 / diagnostic de rentrée
+## Séance 1 native : parcours, diagnostic et défi
 
 Le parcours Portail `psr-maths / rentree-v1` reprend les 10 situations auditées du site Maths LGC :
 
@@ -22,6 +22,8 @@ Le parcours Portail `psr-maths / rentree-v1` reprend les 10 situations auditées
 10. Ordres de grandeur — 10 × 4,98 € ≈ 50 €.
 
 La formulation, le type de réponse et les clés restent alignés sur le diagnostic legacy. La migration ne transforme pas les saisies ouvertes en QCM.
+
+La Séance 1 ne s'ouvre plus directement sur la première question. Portail expose désormais une vue d'ensemble avec **Pourquoi ? → Diagnostic → Correction → Défi PSR → Bilan**, plus une barre de séquence secondaire. Le défi **Préparer le service** est également natif : fiche technique pour 10 portions, curseur 5–40 portions, coefficient de proportionnalité, heure de départ et chiffre d'affaires.
 
 ## Différences d’architecture assumées
 
@@ -40,8 +42,7 @@ La formulation, le type de réponse et les clés restent alignés sur le diagnos
 La première tranche ne prétend pas remplacer tout le site legacy. Restent notamment :
 
 - enrichissements visuels de la correction guidée, notamment fractions/pourcentages (la correction textuelle V1 est déjà migrée) ;
-- défi PSR : fiche technique, proportionnalité, durée, coût/chiffre d’affaires ;
-- modules Durées, Recettes & proportionnalité, Pourcentages, Données & statistiques, Équations, Graphiques & fonctions, Prix & commerce, Probabilités ;
+- modules Durées, Recettes & proportionnalité, Pourcentages, Données & statistiques, Équations, Graphiques & fonctions, Prix & commerce, Probabilités ; leur place dans la séquence est déjà native mais leur contenu interactif complet reste à porter ;
 - remédiation/ordre de parcours à réévaluer avec les observations terrain.
 
-Le suivi live, les rapports et le verrou **Corrigés** sont maintenant disponibles dans Portail pour cette première tranche.
+Le suivi live, les rapports (diagnostic + défi) et le verrou **Corrigés** sont maintenant disponibles dans Portail pour cette Séance 1 native.
