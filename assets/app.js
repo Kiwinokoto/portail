@@ -1290,6 +1290,7 @@ function sessionPathwayLabel(session) {
 }
 
 function sessionSupportsCorrections(session) {
+  if (session.subject_id === 'psr-maths') return false;
   return !(session.subject_id === 'ada-francais' && session.pathway_id === 'practice-v1');
 }
 
@@ -1361,20 +1362,29 @@ function updateWorkspaceActions() {
     status: external || hasInternalPreview ? 'disponible' : 'en cours',
     upcoming: internal && !hasInternalPreview
   });
-  setWorkspaceAction('corrections-subject', {
-    disabled: internal && !hasActiveCorrectionSessions,
-    description: external
-      ? 'Verrouiller ou ouvrir les corrigés au moment choisi.'
-      : hasActiveCorrectionSessions
-        ? 'Verrouiller ou ouvrir les corrigés séance par séance.'
-        : hasCorrectionSessions
-          ? 'Réouvre une séance de positionnement pour modifier ses corrigés.'
-          : hasSessions
-            ? 'Les séances d’entraînement n’ont pas de corrigés.'
-            : 'Crée d’abord une séance de positionnement pour piloter les corrigés.',
-    status: external || hasActiveCorrectionSessions ? 'disponible' : hasCorrectionSessions ? 'séance fermée' : hasSessions ? 'non applicable' : 'après création',
-    upcoming: internal && !hasActiveCorrectionSessions
-  });
+  if (state.subject.id === 'psr-maths') {
+    setWorkspaceAction('corrections-subject', {
+      disabled:true,
+      description:'La correction guidée du site Maths doit encore être migrée nativement dans Portail.',
+      status:'migration en cours',
+      upcoming:true
+    });
+  } else {
+    setWorkspaceAction('corrections-subject', {
+      disabled: internal && !hasActiveCorrectionSessions,
+      description: external
+        ? 'Verrouiller ou ouvrir les corrigés au moment choisi.'
+        : hasActiveCorrectionSessions
+          ? 'Verrouiller ou ouvrir les corrigés séance par séance.'
+          : hasCorrectionSessions
+            ? 'Réouvre une séance de positionnement pour modifier ses corrigés.'
+            : hasSessions
+              ? 'Les séances d’entraînement n’ont pas de corrigés.'
+              : 'Crée d’abord une séance de positionnement pour piloter les corrigés.',
+      status: external || hasActiveCorrectionSessions ? 'disponible' : hasCorrectionSessions ? 'séance fermée' : hasSessions ? 'non applicable' : 'après création',
+      upcoming: internal && !hasActiveCorrectionSessions
+    });
+  }
   setWorkspaceAction('show-live-sessions', {
     disabled: internal && !hasActiveSessions,
     description: external
