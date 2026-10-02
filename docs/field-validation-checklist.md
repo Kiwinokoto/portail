@@ -30,6 +30,14 @@ Une fonctionnalité n'est **pas** considérée validée terrain tant que la dern
 - [ ] L’aperçu professeur du diagnostic/correction n’écrit aucune activité élève.
 - [ ] Les anciennes séances Maths LGC continuent d’apparaître comme legacy et ouvrent encore leur ancien site.
 
+### Modules PSR natifs — première vague
+
+- [ ] **Durées** : le curseur départ/durée reste lisible sur téléphone et recalcule correctement l'heure de fin.
+- [ ] Durées : réponses 10 h 25, 11 h 10, 105 min et 90 min produisent les quatre validations attendues.
+- [ ] **Recettes** : le curseur de portions recalcule coefficient, riz, légumes et sauce sans débordement mobile.
+- [ ] Recettes : 1 200 g, 5 L, 2 250 g et × 3,2 sont correctement reconnus.
+- [ ] En Suivi en direct, un élève ayant terminé ces modules affiche une progression par phases (Diagnostic / Défi / modules) et jamais un score global trompeur.
+
 ### Compatibilité legacy
 
 - [ ] Après déploiement du réparateur de ownership, l'ancienne séance de mardi attribuée à « Monsieur Kevin » apparaît directement dans les séances Portail de Kevin, tout en gardant son identifiant et ses données historiques.
