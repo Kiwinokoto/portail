@@ -42,7 +42,21 @@ La Séance 1 ne s'ouvre plus directement sur la première question. Portail expo
 La première tranche ne prétend pas remplacer tout le site legacy. Restent notamment :
 
 - enrichissements visuels de la correction guidée, notamment fractions/pourcentages (la correction textuelle V1 est déjà migrée) ;
-- modules Durées, Recettes & proportionnalité, Pourcentages, Données & statistiques, Équations, Graphiques & fonctions, Prix & commerce, Probabilités ; leur place dans la séquence est déjà native mais leur contenu interactif complet reste à porter ;
+- **Durées** et **Recettes & proportionnalité** sont maintenant natifs : contextes PSR, laboratoire manipulable, méthode et quatre situations d'entraînement chacun ;
+- restent à porter intégralement : Pourcentages, Données & statistiques, Équations, Graphiques & fonctions, Prix & commerce, Probabilités ;
 - remédiation/ordre de parcours à réévaluer avec les observations terrain.
 
 Le suivi live, les rapports (diagnostic + défi) et le verrou **Corrigés** sont maintenant disponibles dans Portail pour cette Séance 1 native.
+
+
+## Modules natifs — première vague
+
+### Durées
+
+Le module reprend les trois contextes du legacy (cuisson, mise en place, organisation), rappelle **1 h = 60 min**, propose un laboratoire avec heure de départ + durée et quatre situations : addition de durée, retour en arrière, durée entre deux heures et conversion 1 h 30 → 90 min.
+
+### Recettes & proportionnalité
+
+Le module repart de l'idée concrète « changer les portions, garder la recette », avec un curseur 5–35 portions basé sur 10 portions (riz/légumes/sauce), affichage du coefficient et quatre situations de proportionnalité dont le coefficient décimal 3,2.
+
+Les essais de ces modules restent des **signaux d'entraînement**. Le suivi professeur affiche séparément Diagnostic / Défi / nombre de modules terminés au lieu d'additionner toutes les activités dans un score global.
