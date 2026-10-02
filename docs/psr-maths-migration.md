@@ -27,9 +27,11 @@ La formulation, le type de réponse et les clés restent alignés sur le diagnos
 
 - identité élève : roster préparé dans Portail, puis sélection par l’élève ;
 - aucune date de naissance demandée dans le nouveau parcours ;
-- session, QR, fermeture/réouverture, live view et rapports sont ceux de Portail ;
+- session, QR, fermeture/réouverture, live view, verrou de corrigés et rapports sont ceux de Portail ;
 - chaque question produit un événement d’activité ; « Je ne sais pas » est conservé explicitement ;
 - aucune note globale n’est affichée à l’élève ;
+- les réponses nécessaires à la correction personnelle sont rappelées localement sur le même appareil ; aucune API publique n’expose les réponses d’un autre élève ;
+- la correction détaillée respecte le verrou professeur et peut revérifier son état depuis la vue élève ;
 - l’aperçu professeur ne persiste aucun événement ;
 - les anciennes séances restent dans Maths LGC et ne sont pas copiées dans la base Portail.
 
@@ -37,9 +39,9 @@ La formulation, le type de réponse et les clés restent alignés sur le diagnos
 
 La première tranche ne prétend pas remplacer tout le site legacy. Restent notamment :
 
-- correction guidée et visuels fractions/pourcentages ;
+- enrichissements visuels de la correction guidée, notamment fractions/pourcentages (la correction textuelle V1 est déjà migrée) ;
 - défi PSR : fiche technique, proportionnalité, durée, coût/chiffre d’affaires ;
 - modules Durées, Recettes & proportionnalité, Pourcentages, Données & statistiques, Équations, Graphiques & fonctions, Prix & commerce, Probabilités ;
 - remédiation/ordre de parcours à réévaluer avec les observations terrain.
 
-Le suivi live et les rapports Portail sont disponibles dès la première tranche ; **Corrigés** ne doit être considéré PSR-ready qu’après migration de la correction guidée.
+Le suivi live, les rapports et le verrou **Corrigés** sont maintenant disponibles dans Portail pour cette première tranche.
