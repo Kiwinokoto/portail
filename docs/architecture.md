@@ -55,6 +55,8 @@ Every active subject exposes the same five teacher workspaces natively in Portai
 
 The labels and order are product-level vocabulary. New course development must not create a second subject-specific teacher shell. An unavailable workspace should remain visible with a clear status such as **en cours** or **à venir** rather than disappear. Legacy external sessions may still be linked from recent-session history while their cohort is active.
 
+The five workspaces also define the teacher information architecture. The catalogue home remains a launcher; after entering a workspace, the same five labels become the persistent primary teacher navigation. A course/sequence may then expose a separate secondary navigation for pedagogical steps. Never mix those two levels: **teacher job navigation answers “what do I need to do?”; sequence navigation answers “where am I in the course?”**.
+
 ## Internal activity adapter
 
 PSR Mathematics, ADA French and ADA Mathematics share the same session infrastructure: teacher-owned class session, preloaded roster, signed learner link, opaque learner id, activity events, 4-second live follow-up and descriptive reports. The frontend selects a subject/pathway-specific learner start function and completion item while keeping identity/session handling common.
