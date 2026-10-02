@@ -14,6 +14,8 @@ Une fonctionnalité n'est **pas** considérée validée terrain tant que la dern
 
 À vérifier sur une séance Portail jetable, sans toucher aux séances historiques de `maths.lagrandeclasse.fr` :
 
+- [ ] Depuis l'accueil, les cinq cartes lancent des espaces focalisés ; hors accueil, **Séances → Parcours → Corrigés → Suivi en direct → Rapports** reste disponible comme navigation principale.
+- [ ] Dans **Parcours**, la vue professeur commence par la vue d'ensemble de la séquence et non par la question 1 ; la barre secondaire permet de visualiser les étapes suivantes.
 - [ ] PSR → Mathématiques reste dans `portail.lagrandeclasse.fr` pour le professeur.
 - [ ] **Séances** crée une occurrence Portail avec le parcours « Séance 1 — diagnostic de rentrée ».
 - [ ] Précharger 2–3 élèves puis ouvrir le lien/QR dans un navigateur élève.
@@ -21,11 +23,17 @@ Une fonctionnalité n'est **pas** considérée validée terrain tant que la dern
 - [ ] « Je ne sais pas » permet d’avancer et remonte comme signal séparé dans le suivi/rapport.
 - [ ] Aucune note globale ni correction immédiate n’est affichée à l’élève pendant le diagnostic.
 - [ ] **Suivi en direct** montre qui a commencé et l’avancement vers les 10 situations + fin du diagnostic.
-- [ ] **Rapports** montre détail par élève, réponses justes et « Je ne sais pas » sans produire de classement.
+- [ ] Après le diagnostic, le **Défi PSR** permet de varier les portions et vérifie coefficient, heure de départ et chiffre d'affaires.
+- [ ] **Rapports** montre diagnostic, « Je ne sais pas », état du défi et ses trois signaux sans produire de classement.
 - [ ] **Corrigés** est verrouillé par défaut ; après déblocage professeur, « Voir les stratégies » affiche les explications sur le même appareil élève.
 - [ ] Reverrouiller puis vérifier depuis l’élève masque de nouveau les solutions.
 - [ ] L’aperçu professeur du diagnostic/correction n’écrit aucune activité élève.
 - [ ] Les anciennes séances Maths LGC continuent d’apparaître comme legacy et ouvrent encore leur ancien site.
+
+### Compatibilité legacy
+
+- [ ] Après déploiement du réparateur de ownership, l'ancienne séance de mardi attribuée à « Monsieur Kevin » apparaît directement dans les séances Portail de Kevin, tout en gardant son identifiant et ses données historiques.
+- [ ] Le compte d'un autre professeur ne peut ni voir ni reprendre cette séance.
 
 ### Compatibilité legacy déjà vérifiée
 

@@ -52,10 +52,104 @@ function teacherPreviewSubject() {
   return ['psr-maths', 'ada-francais', 'ada-maths'].includes(subjectId) ? subjectId : '';
 }
 
+const TEACHER_WORKSPACES = ['seances', 'parcours', 'corrections', 'live', 'reports'];
+
+function requestedTeacherWorkspace() {
+  const params = new URLSearchParams(window.location.search);
+  const subjectId = params.get('subject') || '';
+  const workspace = params.get('workspace') || '';
+  if (!subjectId || !TEACHER_WORKSPACES.includes(workspace)) return null;
+  return { subjectId, workspace };
+}
+
+function teacherWorkspaceHref(subjectId, workspace) {
+  if (workspace === 'parcours') {
+    return `/?preview=teacher&subject=${encodeURIComponent(subjectId)}`;
+  }
+  return `/?subject=${encodeURIComponent(subjectId)}&workspace=${encodeURIComponent(workspace)}`;
+}
+
+function renderTeacherWorkspaceNav(subjectId, active = 'parcours', navId = 'teacher-workspace-nav') {
+  const nav = $(navId);
+  const items = [
+    ['seances', 'Séances'],
+    ['parcours', 'Parcours'],
+    ['corrections', 'Corrigés'],
+    ['live', 'Suivi en direct'],
+    ['reports', 'Rapports'],
+  ];
+  nav.innerHTML = [
+    '<a class="teacher-home-link" href="/">Accueil</a>',
+    ...items.map(([id, label]) => `<a href="${teacherWorkspaceHref(subjectId, id)}" ${active === id ? 'aria-current="page"' : ''}>${label}</a>`),
+  ].join('');
+  show(navId, true);
+}
+
+function focusedWorkspaceCopy(workspace) {
+  if (workspace === 'seances') return ['Séances', 'Créer, préparer, partager ou reprendre une séance.', 'Séances de la matière'];
+  if (workspace === 'corrections') return ['Corrigés', 'Choisir quand les solutions deviennent visibles pour chaque groupe.', 'Séances et corrigés'];
+  if (workspace === 'live') return ['Suivi en direct', 'Préparer la liste puis suivre les élèves pendant la séance.', 'Séances à suivre'];
+  if (workspace === 'reports') return ['Rapports', 'Retrouver les synthèses de groupe et le détail par élève.', 'Séances et rapports'];
+  return ['Parcours', 'Inspecter le cours et sa séquence.', 'Mes séances récentes'];
+}
+
+function enterFocusedTeacherWorkspace(subjectId, workspace) {
+  const [workspaceLabel, description, recentTitle] = focusedWorkspaceCopy(workspace);
+  show('teacher-home-hero', false);
+  show('teacher-selectors', false);
+  show('teacher-focused-header', true);
+  show('teacher-home-actions', false);
+  $('teacher-focused-title').textContent = `${state.formation.label} · ${state.subject.label} · ${workspaceLabel}`;
+  $('teacher-focused-description').textContent = description;
+  renderTeacherWorkspaceNav(subjectId, workspace, 'teacher-main-nav');
+  $('recent-sessions-eyebrow').textContent = workspace === 'seances' ? 'Organiser' : workspace === 'live' ? 'Piloter' : workspace === 'corrections' ? 'Contrôler' : 'Analyser';
+  $('recent-sessions-title').textContent = recentTitle;
+  document.body.dataset.teacherWorkspace = workspace;
+  renderRecentSessions();
+}
+
+function leaveFocusedTeacherWorkspace() {
+  show('teacher-home-hero', true);
+  show('teacher-selectors', true);
+  show('teacher-focused-header', false);
+  show('teacher-home-actions', true);
+  $('recent-sessions-eyebrow').textContent = 'Reprendre';
+  $('recent-sessions-title').textContent = 'Mes séances récentes';
+  delete document.body.dataset.teacherWorkspace;
+}
+
+async function applyRequestedTeacherWorkspace() {
+  const requested = requestedTeacherWorkspace();
+  if (!requested) {
+    leaveFocusedTeacherWorkspace();
+    return;
+  }
+  const formation = state.formations.find((item) =>
+    item.subjects.some((subject) => subject.id === requested.subjectId)
+  );
+  if (!formation) return;
+  selectFormation(formation.id);
+  selectSubject(requested.subjectId);
+
+  if (requested.workspace === 'parcours') {
+    window.location.replace(teacherWorkspaceHref(requested.subjectId, 'parcours'));
+    return;
+  }
+
+  enterFocusedTeacherWorkspace(requested.subjectId, requested.workspace);
+  show('session-form', requested.workspace === 'seances');
+
+  if (requested.workspace === 'reports') {
+    await openReports();
+    return;
+  }
+  revealOnNarrowScreen('teacher-focused-header');
+}
+
 function configureLearnerPath(session) {
   if (session.subject_id === 'psr-maths') {
     state.positioningItemId = 'psr-maths-rentree-v1';
-    state.learnerStart = () => renderPsrMathsDiagnostic(0);
+    state.learnerStart = renderPsrMathsPathwayHome;
     return true;
   }
   if (session.subject_id === 'ada-francais') {
@@ -84,6 +178,8 @@ function showTeacherPreview(subjectId) {
   const isAdaFrench = subjectId === 'ada-francais';
   state.previewMode = true;
   state.joinToken = null;
+  $('student-view').classList.add('teacher-preview-mode');
+  renderTeacherWorkspaceNav(subjectId, 'parcours');
   state.joinSession = {
     id: 'teacher-preview',
     formation_id: isPsrMaths ? 'psr' : 'ada',
@@ -115,7 +211,8 @@ function showTeacherPreview(subjectId) {
   show('teacher-preview-banner', true);
   $('student-session-title').textContent = `${state.joinSession.formation_label} · ${state.joinSession.subject_label} — aperçu professeur`;
   $('student-session-context').textContent = 'Navigation libre · aucune donnée élève enregistrée';
-  if (isAdaFrench) renderAdaTeacherPreviewHome();
+  if (isPsrMaths) renderPsrMathsPathwayHome();
+  else if (isAdaFrench) renderAdaTeacherPreviewHome();
   else state.learnerStart?.();
 }
 
@@ -134,11 +231,14 @@ async function boot() {
   const previewSubject = teacherPreviewSubject();
   if (previewSubject) return showTeacherPreview(previewSubject);
   await showTeacher();
+  await applyRequestedTeacherWorkspace();
 }
 
 async function showStudentJoin(token) {
   state.previewMode = false;
   state.joinToken = token;
+  $('student-view').classList.remove('teacher-preview-mode');
+  show('teacher-workspace-nav', false);
   show('teacher-preview-banner', false);
   show('student-view', true); show('login-view', false); show('teacher-view', false); show('logout', false);
   try {
@@ -1035,6 +1135,384 @@ function renderNumeracyFinish() {
   speakFrench(`Bravo ${state.learner.first_name}. C’est terminé pour maintenant.`);
 }
 
+const PSR_MATHS_MODULES = [
+  { id:'durees', label:'Durées', description:'Lire une heure, calculer une durée et prévoir quand commencer.' },
+  { id:'recettes', label:'Recettes', description:'Adapter une fiche technique quand le nombre de portions change.' },
+  { id:'pourcentages', label:'Pourcentages', description:'Comprendre « sur 100 », calculer une part et une réduction.' },
+  { id:'donnees', label:'Données', description:'Lire un tableau ou un graphique, comparer et calculer une moyenne.' },
+  { id:'equations', label:'Équations', description:'Trouver un nombre inconnu et vérifier qu’il convient.' },
+  { id:'graphiques', label:'Graphiques', description:'Voir comment une quantité change quand une autre change.' },
+  { id:'commerce', label:'Prix & commerce', description:'Lire une facture, calculer une réduction et distinguer coût, prix et marge.' },
+  { id:'probabilites', label:'Probabilités', description:'Comprendre le hasard, comparer fréquence et probabilité, puis simuler.' },
+];
+
+const PSR_MATHS_SEQUENCE = [
+  { id:'overview', label:'Vue d’ensemble', phase:'Séquence' },
+  { id:'intro', label:'Pourquoi ?', phase:'1' },
+  { id:'diagnostic', label:'Diagnostic', phase:'2' },
+  { id:'correction', label:'Correction', phase:'3' },
+  { id:'challenge', label:'Défi PSR', phase:'4' },
+  { id:'bilan', label:'Bilan', phase:'5' },
+  ...PSR_MATHS_MODULES.map((module) => ({ id:module.id, label:module.label, phase:'Module' })),
+];
+
+function psrMathsMetaStorageKey() {
+  const sessionId = state.joinSession?.id || '';
+  const learnerId = state.learner?.id || '';
+  return sessionId && learnerId ? `portail-psr-maths-meta:${sessionId}:${learnerId}` : '';
+}
+
+function readPsrMathsMeta() {
+  if (state.previewMode) return { introDone:true, challengeDone:true };
+  const key = psrMathsMetaStorageKey();
+  if (!key) return {};
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writePsrMathsMeta(patch) {
+  if (state.previewMode) return;
+  const key = psrMathsMetaStorageKey();
+  if (!key) return;
+  try {
+    localStorage.setItem(key, JSON.stringify({ ...readPsrMathsMeta(), ...patch }));
+  } catch {
+    // Progress hints are optional; server activity remains the source for teacher follow-up.
+  }
+}
+
+function psrMathsDiagnosticDone() {
+  if (state.previewMode) return true;
+  const answers = readPsrMathsAnswers();
+  return PSR_MATHS_DIAGNOSTIC.every((question) => answers[question.id]);
+}
+
+function psrMathsChallengeDone() {
+  return state.previewMode || Boolean(readPsrMathsMeta().challengeDone);
+}
+
+function psrMathsSequenceUnlocked(stepId) {
+  if (state.previewMode) return true;
+  if (['overview','intro','diagnostic'].includes(stepId)) return true;
+  if (['correction','challenge'].includes(stepId)) return psrMathsDiagnosticDone();
+  return psrMathsChallengeDone();
+}
+
+function psrMathsSequenceStatus(stepId) {
+  if (state.previewMode) return 'aperçu libre';
+  if (stepId === 'diagnostic') return psrMathsDiagnosticDone() ? 'terminé / refaire' : 'à faire';
+  if (stepId === 'challenge') return psrMathsChallengeDone() ? 'terminé / refaire' : psrMathsDiagnosticDone() ? 'disponible' : 'après diagnostic';
+  if (stepId === 'correction') return psrMathsDiagnosticDone() ? 'après diagnostic' : 'verrouillé';
+  if (stepId === 'bilan') return psrMathsChallengeDone() ? 'disponible' : 'après défi';
+  if (PSR_MATHS_MODULES.some((module) => module.id === stepId)) return psrMathsChallengeDone() ? 'suite du CAP' : 'après défi';
+  return '';
+}
+
+function renderPsrMathsSequenceNav(activeId) {
+  return `
+    <nav class="psr-sequence-nav" aria-label="Séquence PSR Mathématiques">
+      ${PSR_MATHS_SEQUENCE.map((step) => {
+        const unlocked = psrMathsSequenceUnlocked(step.id);
+        return `
+          <button class="psr-sequence-link${step.id === activeId ? ' current' : ''}" type="button"
+            data-psr-step="${esc(step.id)}" ${unlocked ? '' : 'disabled'}>
+            <span class="psr-sequence-index">${esc(step.phase)}</span>
+            <span><strong>${esc(step.label)}</strong><small>${esc(psrMathsSequenceStatus(step.id))}</small></span>
+          </button>`;
+      }).join('')}
+    </nav>`;
+}
+
+function openPsrMathsSequenceStep(stepId) {
+  if (!psrMathsSequenceUnlocked(stepId)) return;
+  if (stepId === 'overview') return renderPsrMathsPathwayHome();
+  if (stepId === 'intro') return renderPsrMathsIntro();
+  if (stepId === 'diagnostic') return renderPsrMathsDiagnostic(0);
+  if (stepId === 'correction') {
+    if (state.previewMode) return renderPsrMathsCorrection({ unlocked:true });
+    return refreshPsrMathsCorrectionAccess().then((unlocked) => renderPsrMathsCorrection({ unlocked }));
+  }
+  if (stepId === 'challenge') return renderPsrMathsChallenge();
+  if (stepId === 'bilan') return renderPsrMathsBilan();
+  return renderPsrMathsModulePreview(stepId);
+}
+
+function bindPsrMathsSequenceNav() {
+  document.querySelectorAll('[data-psr-step]').forEach((button) => {
+    button.addEventListener('click', () => openPsrMathsSequenceStep(button.dataset.psrStep));
+  });
+}
+
+function renderPsrMathsPathwayHome() {
+  const diagnosticDone = psrMathsDiagnosticDone();
+  const challengeDone = psrMathsChallengeDone();
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      ${renderPsrMathsSequenceNav('overview')}
+      <div class="psr-pathway-head">
+        <p class="eyebrow">PSR · Mathématiques</p>
+        <h3>Le parcours en un coup d’œil.</h3>
+        <p class="learner-help">${state.previewMode
+          ? 'Vue professeur : tu peux ouvrir librement les étapes déjà migrées et visualiser la suite du programme.'
+          : 'Tu avances étape par étape. Le diagnostic sert à savoir où commencer ; il ne donne pas de note.'}</p>
+      </div>
+      <div class="psr-pathway-grid">
+        <article class="psr-path-step">
+          <div class="step-num">1</div>
+          <div><h4>Pourquoi des maths en PSR ?</h4><p>Peser, servir, lire une heure, vérifier un prix et comprendre des données.</p></div>
+          <button class="btn secondary" type="button" data-open-psr="intro">Ouvrir</button>
+        </article>
+        <article class="psr-path-step">
+          <div class="step-num">2</div>
+          <div><h4>Diagnostic de rentrée</h4><p>10 situations courtes, avec « Je ne sais pas ». Aucun score affiché à l’élève.</p></div>
+          <button class="btn primary" type="button" data-open-psr="diagnostic">${diagnosticDone ? 'Revoir / refaire' : 'Commencer'}</button>
+        </article>
+        <article class="psr-path-step">
+          <div class="step-num">3</div>
+          <div><h4>Correction guidée</h4><p>Comprendre la stratégie. Les solutions restent pilotées par le professeur.</p></div>
+          <button class="btn secondary" type="button" data-open-psr="correction" ${psrMathsSequenceUnlocked('correction') ? '' : 'disabled'}>Voir</button>
+        </article>
+        <article class="psr-path-step">
+          <div class="step-num">4</div>
+          <div><h4>Défi PSR · préparer le service</h4><p>Adapter une recette, calculer une heure de départ et un chiffre d’affaires.</p></div>
+          <button class="btn primary" type="button" data-open-psr="challenge" ${psrMathsSequenceUnlocked('challenge') ? '' : 'disabled'}>${challengeDone ? 'Refaire' : 'Relever le défi'}</button>
+        </article>
+        <article class="psr-path-step">
+          <div class="step-num">5</div>
+          <div><h4>Bilan et suite</h4><p>Repérer les domaines déjà solides et ceux à retravailler, sans classement.</p></div>
+          <button class="btn secondary" type="button" data-open-psr="bilan" ${psrMathsSequenceUnlocked('bilan') ? '' : 'disabled'}>Voir</button>
+        </article>
+      </div>
+      <div>
+        <p class="eyebrow" style="margin-top:8px">Suite du CAP</p>
+        <div class="psr-module-grid">
+          ${PSR_MATHS_MODULES.map((module) => `
+            <article class="psr-module-card">
+              <span class="pill">${psrMathsChallengeDone() ? 'suite du parcours' : 'après le défi'}</span>
+              <h4>${esc(module.label)}</h4>
+              <p>${esc(module.description)}</p>
+              <button class="btn ghost" type="button" data-open-psr="${esc(module.id)}" ${psrMathsSequenceUnlocked(module.id) ? '' : 'disabled'}>Voir le module</button>
+            </article>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  bindPsrMathsSequenceNav();
+  document.querySelectorAll('[data-open-psr]').forEach((button) => {
+    button.addEventListener('click', () => openPsrMathsSequenceStep(button.dataset.openPsr));
+  });
+}
+
+function renderPsrMathsIntro() {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      ${renderPsrMathsSequenceNav('intro')}
+      <div>
+        <p class="eyebrow">Étape 1 · À quoi ça sert ?</p>
+        <h3>En PSR, les maths sont partout.</h3>
+        <p class="learner-help">On part de situations concrètes. Les mots plus techniques viennent ensuite.</p>
+      </div>
+      <div class="psr-intro-grid">
+        <article class="psr-intro-tile"><span class="psr-intro-icon">⚖</span><strong>Préparer</strong><p>Peser, compter les portions, changer les quantités et prévoir une durée.</p></article>
+        <article class="psr-intro-tile"><span class="psr-intro-icon">🕒</span><strong>Servir</strong><p>Lire l’heure, vérifier un prix et rendre la monnaie.</p></article>
+        <article class="psr-intro-tile"><span class="psr-intro-icon">▥</span><strong>Lire des informations</strong><p>Comprendre un tableau ou un graphique et comparer des résultats.</p></article>
+        <article class="psr-intro-tile"><span class="psr-intro-icon">?</span><strong>Trouver une solution</strong><p>Comprendre ce qu’on cherche, choisir un calcul et vérifier si le résultat est possible.</p></article>
+      </div>
+      <div class="callout"><strong>Objectif :</strong> comprendre une situation, choisir le bon outil et vérifier sa réponse.</div>
+      <div class="practice-actions">
+        <button id="psr-intro-continue" class="btn primary" type="button">Voir le parcours</button>
+      </div>
+    </div>`;
+  bindPsrMathsSequenceNav();
+  $('psr-intro-continue').addEventListener('click', () => {
+    writePsrMathsMeta({ introDone:true });
+    renderPsrMathsPathwayHome();
+  });
+}
+
+function formatPsrNumber(value) {
+  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits:2 }).format(value);
+}
+
+function formatPsrMoney(value) {
+  return new Intl.NumberFormat('fr-FR', { style:'currency', currency:'EUR' }).format(value);
+}
+
+function renderPsrMathsChallenge() {
+  const teacherPreview = state.previewMode;
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      ${renderPsrMathsSequenceNav('challenge')}
+      <div>
+        <p class="eyebrow">Étape 4 · Défi PSR</p>
+        <h3>Préparer le service.</h3>
+        <p class="learner-help">La fiche technique est prévue pour 10 portions de salade de fruits. Adapte la production, puis réponds aux trois questions.</p>
+      </div>
+      <div class="psr-challenge-board">
+        <section class="psr-recipe-card">
+          <strong>Fiche technique · 10 portions</strong>
+          <table class="psr-recipe-table">
+            <thead><tr><th>Ingrédient</th><th>Quantité</th></tr></thead>
+            <tbody><tr><td>Pommes</td><td>800 g</td></tr><tr><td>Oranges</td><td>600 g</td></tr><tr><td>Bananes</td><td>400 g</td></tr><tr><td>Jus</td><td>250 mL</td></tr></tbody>
+          </table>
+          <p class="learner-help">Coût matière pour 10 portions : 8,50 €.</p>
+        </section>
+        <section class="psr-challenge-controls">
+          <label for="psr-portions"><strong>Nombre de portions à produire</strong></label>
+          <div class="psr-big-number"><span id="psr-portion-count">30</span><small>portions</small></div>
+          <input id="psr-portions" type="range" min="5" max="40" step="1" value="30" />
+          <div class="psr-mini-stats">
+            <div class="psr-mini-stat">Pommes<strong id="psr-apples"></strong></div>
+            <div class="psr-mini-stat">Oranges<strong id="psr-oranges"></strong></div>
+            <div class="psr-mini-stat">Bananes<strong id="psr-bananas"></strong></div>
+            <div class="psr-mini-stat">Jus<strong id="psr-juice"></strong></div>
+            <div class="psr-mini-stat">Coût estimé<strong id="psr-cost"></strong></div>
+            <div class="psr-mini-stat">Coefficient<strong id="psr-factor"></strong></div>
+          </div>
+        </section>
+      </div>
+      <div class="psr-challenge-questions">
+        <div class="psr-challenge-question">
+          <label for="psr-factor-choice">1 · Comment trouver le coefficient pour adapter toutes les quantités ?</label>
+          <select id="psr-factor-choice" class="input">
+            <option value="">Choisir…</option>
+            <option value="wrong-inverse">Faire 10 ÷ nombre de portions</option>
+            <option value="coefficient">Faire nombre de portions ÷ 10, puis multiplier chaque quantité</option>
+            <option value="wrong-add">Ajouter 10 au nombre de portions</option>
+          </select>
+        </div>
+        <div class="psr-challenge-question">
+          <label for="psr-start-time">2 · Service à 11 h 45. Préparation et mise en place : 35 minutes. Au plus tard, à quelle heure commencer ?</label>
+          <input id="psr-start-time" class="input" type="text" placeholder="ex. 11 h 10" />
+        </div>
+        <div class="psr-challenge-question">
+          <label for="psr-revenue">3 · Chaque portion est vendue 2,50 €. Quel chiffre d’affaires si tout est vendu ?</label>
+          <div class="session-link-row"><input id="psr-revenue" class="input" inputmode="decimal" type="text" placeholder="Ta réponse" /><strong>€</strong></div>
+        </div>
+      </div>
+      <div id="psr-challenge-feedback" class="callout hidden" aria-live="polite"></div>
+      <div class="practice-actions">
+        <button id="psr-check-challenge" class="btn primary" type="button">Vérifier le défi</button>
+        ${teacherPreview ? '<button id="psr-show-challenge-answers" class="btn secondary" type="button">Afficher les réponses</button>' : ''}
+        <button id="psr-challenge-overview" class="btn ghost" type="button">Retour au parcours</button>
+      </div>
+    </div>`;
+  bindPsrMathsSequenceNav();
+
+  const range = $('psr-portions');
+  const update = () => {
+    const portions = Number(range.value);
+    const factor = portions / 10;
+    $('psr-portion-count').textContent = String(portions);
+    $('psr-apples').textContent = `${formatPsrNumber(800 * factor)} g`;
+    $('psr-oranges').textContent = `${formatPsrNumber(600 * factor)} g`;
+    $('psr-bananas').textContent = `${formatPsrNumber(400 * factor)} g`;
+    $('psr-juice').textContent = `${formatPsrNumber(250 * factor)} mL`;
+    $('psr-cost').textContent = formatPsrMoney(8.5 * factor);
+    $('psr-factor').textContent = `× ${formatPsrNumber(factor)}`;
+  };
+  range.addEventListener('input', update);
+  update();
+
+  const check = async () => {
+    const portions = Number(range.value);
+    const factorOk = $('psr-factor-choice').value === 'coefficient';
+    const timeOk = ['11h10','11 h 10','11:10','11.10'].some((value) => normalisePsrMathsText(value) === normalisePsrMathsText($('psr-start-time').value));
+    const expectedRevenue = portions * 2.5;
+    const revenueOk = Math.abs(parsePsrMathsNumber($('psr-revenue').value) - expectedRevenue) < 0.001;
+    const checks = [
+      ['psr-challenge-factor', factorOk, 'Proportionnalité'],
+      ['psr-challenge-time', timeOk, 'Durées'],
+      ['psr-challenge-revenue', revenueOk, 'Prix & calcul'],
+    ];
+    if (!teacherPreview) {
+      for (const [itemId, correct, domain] of checks) {
+        await trackEvent('answer', itemId, { correct, domain, portions });
+        if (correct) await trackEvent('activity_completed', itemId, { domain });
+      }
+    }
+    const count = checks.filter(([, correct]) => correct).length;
+    const feedback = $('psr-challenge-feedback');
+    show('psr-challenge-feedback', true);
+    feedback.innerHTML = `<strong>${count}/3 réponses justes.</strong>
+      <div class="feedback-lines">
+        <span>${factorOk ? '✓' : '↻'} Coefficient : ${portions} ÷ 10 = <b>${formatPsrNumber(portions / 10)}</b>.</span>
+        <span>${timeOk ? '✓' : '↻'} Horaire : 11 h 45 − 35 min = <b>11 h 10</b>.</span>
+        <span>${revenueOk ? '✓' : '↻'} Chiffre d’affaires : ${portions} × 2,50 € = <b>${formatPsrMoney(expectedRevenue)}</b>.</span>
+      </div>`;
+    if (count === 3) {
+      writePsrMathsMeta({ challengeDone:true });
+      if (!teacherPreview) await trackEvent('activity_completed', 'psr-maths-challenge-v1', { portions });
+      feedback.innerHTML += '<div class="practice-actions"><button id="psr-to-bilan" class="btn primary" type="button">Voir le bilan</button></div>';
+      $('psr-to-bilan').addEventListener('click', renderPsrMathsBilan);
+    }
+  };
+  $('psr-check-challenge').addEventListener('click', check);
+  $('psr-show-challenge-answers')?.addEventListener('click', async () => {
+    $('psr-factor-choice').value = 'coefficient';
+    $('psr-start-time').value = '11 h 10';
+    $('psr-revenue').value = formatPsrNumber(Number(range.value) * 2.5);
+    await check();
+  });
+  $('psr-challenge-overview').addEventListener('click', renderPsrMathsPathwayHome);
+}
+
+function renderPsrMathsBilan() {
+  const answers = readPsrMathsAnswers();
+  const knownAnswers = PSR_MATHS_DIAGNOSTIC
+    .map((question) => ({ question, answer:answers[question.id] }))
+    .filter((item) => item.answer);
+  const strong = [...new Set(knownAnswers.filter((item) => item.answer.correct).map((item) => item.question.domain))];
+  const needsWork = [...new Set(knownAnswers.filter((item) => !item.answer.correct).map((item) => item.question.domain))];
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      ${renderPsrMathsSequenceNav('bilan')}
+      <div>
+        <p class="eyebrow">Étape 5 · Bilan</p>
+        <h3>Un point de départ, pas une note.</h3>
+        <p class="learner-help">On garde les domaines séparés pour choisir la suite du travail, sans classement global.</p>
+      </div>
+      <div class="psr-bilan-grid">
+        <article class="psr-bilan-card">
+          <strong>Déjà bien repéré</strong>
+          <div class="psr-domain-chips">${state.previewMode ? '<span class="pill">Selon les réponses de l’élève</span>' : strong.length ? strong.map((label) => `<span class="pill">${esc(label)}</span>`).join('') : '<span class="muted">À observer après le diagnostic.</span>'}</div>
+        </article>
+        <article class="psr-bilan-card">
+          <strong>À retravailler en priorité</strong>
+          <div class="psr-domain-chips">${state.previewMode ? '<span class="pill">Selon les erreurs / « Je ne sais pas »</span>' : needsWork.length ? needsWork.map((label) => `<span class="pill">${esc(label)}</span>`).join('') : '<span class="muted">Aucune priorité repérée dans les réponses disponibles.</span>'}</div>
+        </article>
+      </div>
+      <div class="callout"><strong>Défi PSR :</strong> ${state.previewMode ? 'aperçu disponible' : psrMathsChallengeDone() ? 'terminé' : 'à terminer'}.</div>
+      <p class="learner-help">La suite travaille les durées, la proportionnalité, les pourcentages, les données, les équations, les graphiques, les prix et les probabilités.</p>
+      <div class="practice-actions"><button id="psr-bilan-overview" class="btn primary" type="button">Retour au parcours</button></div>
+    </div>`;
+  bindPsrMathsSequenceNav();
+  $('psr-bilan-overview').addEventListener('click', renderPsrMathsPathwayHome);
+}
+
+function renderPsrMathsModulePreview(moduleId) {
+  const module = PSR_MATHS_MODULES.find((item) => item.id === moduleId);
+  if (!module) return renderPsrMathsPathwayHome();
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      ${renderPsrMathsSequenceNav(moduleId)}
+      <div>
+        <p class="eyebrow">Module · ${esc(module.label)}</p>
+        <h3>${esc(module.description)}</h3>
+      </div>
+      <div class="callout">
+        <strong>Migration en cours dans Portail.</strong>
+        <p>Le module complet existe encore dans l’ancien cours Maths LGC. Il sera repris ici avec ses manipulations et exercices, sans recopier l’ancien shell technique.</p>
+      </div>
+      <div class="practice-actions"><button id="psr-module-overview" class="btn primary" type="button">Retour au parcours</button></div>
+    </div>`;
+  bindPsrMathsSequenceNav();
+  $('psr-module-overview').addEventListener('click', renderPsrMathsPathwayHome);
+}
+
 const PSR_MATHS_DIAGNOSTIC = [
   {
     id:'psr-d01', domain:'Calcul',
@@ -1183,6 +1661,7 @@ function renderPsrMathsDiagnostic(index = 0) {
 
   $('student-session-message').innerHTML = `
     <div class="learner-stage numeracy-stage">
+      ${renderPsrMathsSequenceNav('diagnostic')}
       <p class="eyebrow">Diagnostic de rentrée · ${index + 1}/${PSR_MATHS_DIAGNOSTIC.length}</p>
       <h3>${esc(question.prompt)}</h3>
       <p class="learner-help">Ce diagnostic n’est pas une note. Si tu ne sais pas, dis-le simplement : c’est une information utile pour le professeur.</p>
@@ -1202,6 +1681,7 @@ function renderPsrMathsDiagnostic(index = 0) {
       <p id="psr-diagnostic-feedback" class="feedback" aria-live="polite"></p>
     </div>`;
 
+  bindPsrMathsSequenceNav();
   const input = $('psr-diagnostic-answer');
   const finishAnswer = async (value, unknown) => {
     const clean = String(value || '').trim();
@@ -1251,21 +1731,27 @@ async function renderPsrMathsFinish() {
   });
   $('student-session-message').innerHTML = `
     <div class="learner-stage">
+      ${renderPsrMathsSequenceNav('diagnostic')}
       <div class="finish-card">
         <p class="eyebrow">Diagnostic terminé</p>
         <h3>Merci ${esc(state.learner.first_name)}.</h3>
         <p class="muted">Il n’y a pas de note affichée ici. Ton professeur voit les réponses question par question et pourra choisir les exercices utiles pour la suite.</p>
         <div class="practice-actions">
           <button id="psr-show-correction" class="btn secondary" type="button">Voir les stratégies</button>
+          <button id="psr-start-challenge" class="btn primary" type="button">Continuer vers le défi PSR</button>
+          <button id="psr-finish-overview" class="btn ghost" type="button">Voir le parcours</button>
         </div>
         <p id="psr-correction-access-status" class="status" aria-live="polite"></p>
       </div>
     </div>`;
+  bindPsrMathsSequenceNav();
   $('psr-show-correction').addEventListener('click', async () => {
     $('psr-correction-access-status').textContent = 'Vérification…';
     const unlocked = await refreshPsrMathsCorrectionAccess();
     renderPsrMathsCorrection({ unlocked });
   });
+  $('psr-start-challenge').addEventListener('click', renderPsrMathsChallenge);
+  $('psr-finish-overview').addEventListener('click', renderPsrMathsPathwayHome);
 }
 
 function psrMathsAnswerLabel(answer) {
@@ -1281,6 +1767,7 @@ function renderPsrMathsCorrection({ unlocked = false } = {}) {
 
   $('student-session-message').innerHTML = `
     <div class="learner-stage">
+      ${renderPsrMathsSequenceNav('correction')}
       <div class="practice-heading">
         <div>
           <p class="eyebrow">Correction guidée</p>
@@ -1314,12 +1801,19 @@ function renderPsrMathsCorrection({ unlocked = false } = {}) {
             </article>`;
         }).join('')}
       </div>
+      <div class="practice-actions">
+        <button id="psr-correction-challenge" class="btn primary" type="button">Défi PSR</button>
+        <button id="psr-correction-overview" class="btn ghost" type="button">Voir le parcours</button>
+      </div>
     </div>`;
 
+  bindPsrMathsSequenceNav();
   $('psr-correction-back').addEventListener('click', () => {
-    if (teacherPreview) renderPsrMathsDiagnostic(0);
+    if (teacherPreview) renderPsrMathsPathwayHome();
     else renderPsrMathsFinish();
   });
+  $('psr-correction-challenge').addEventListener('click', renderPsrMathsChallenge);
+  $('psr-correction-overview').addEventListener('click', renderPsrMathsPathwayHome);
   $('psr-refresh-corrections')?.addEventListener('click', async () => {
     const nowUnlocked = await refreshPsrMathsCorrectionAccess();
     renderPsrMathsCorrection({ unlocked:nowUnlocked });
@@ -1332,6 +1826,9 @@ function showLogin() {
 }
 
 async function showTeacher() {
+  $('student-view').classList.remove('teacher-preview-mode');
+  show('teacher-workspace-nav', false);
+  leaveFocusedTeacherWorkspace();
   show('login-view', false); show('teacher-view', true); show('logout', true);
   $('welcome').textContent = `Bonjour ${state.user.display_name}`;
   show('admin-open', state.user.role === 'admin');
@@ -1635,24 +2132,44 @@ function renderRecentSessions() {
     const createdLabel = recentSessionDate(session.created_at);
     let actions = '';
 
+    const focused = document.body.dataset.teacherWorkspace || '';
     if (externalMaths) {
-      const label = session.active ? 'Ouvrir l’ancienne séance' : 'Ouvrir l’archive Maths';
-      actions = `<a class="btn primary" href="${esc(session.manage_url)}" target="_blank" rel="noopener">${label}</a>`;
+      let legacyUrl = session.manage_url;
+      try {
+        const url = new URL(session.manage_url, window.location.origin);
+        if (focused === 'corrections') url.searchParams.set('tab', 'corrections');
+        else if (focused === 'reports') url.searchParams.set('tab', 'reports');
+        else url.searchParams.set('tab', 'live');
+        legacyUrl = url.toString();
+      } catch { /* keep the server-provided URL */ }
+      const label = focused === 'corrections'
+        ? 'Gérer les anciens corrigés'
+        : focused === 'reports'
+          ? 'Voir l’ancien rapport'
+          : session.active ? 'Ouvrir l’ancienne séance' : 'Ouvrir l’archive Maths';
+      actions = `<a class="btn primary" href="${esc(legacyUrl)}" target="_blank" rel="noopener">${label}</a>`;
     } else {
-      if (internalNative && session.active) {
+      const showLive = !focused || focused === 'live';
+      const showCorrections = !focused || focused === 'corrections';
+      const showReports = !focused || focused === 'reports';
+      const showSessionTools = !focused || focused === 'seances';
+
+      if (showLive && internalNative && session.active) {
         actions += `<button class="btn primary" data-live="${esc(session.id)}">Suivi en direct</button>`;
       }
-      if (supportsCorrections && session.active) {
+      if (showCorrections && supportsCorrections && session.active) {
         actions += `<button class="btn secondary" data-corrections="${esc(session.id)}" data-unlocked="${session.corrections_unlocked ? '1' : '0'}">Corrigés : ${session.corrections_unlocked ? 'ouverts' : 'verrouillés'}</button>`;
       }
-      if (supportsReports) {
+      if (showReports && supportsReports) {
         actions += `<button class="btn secondary" data-report="${esc(session.id)}">Rapport</button>`;
       }
-      if (session.active) {
+      if (showSessionTools && session.active) {
         actions += `<button class="btn ghost" data-copy="${esc(session.join_url)}">Copier le lien élève</button>`;
         actions += `<a class="btn secondary" href="/api/sessions/${encodeURIComponent(session.id)}/qr.svg" target="_blank" rel="noopener">QR</a>`;
       }
-      actions += `<button class="btn ghost ${session.active ? 'danger' : ''}" data-session-active="${esc(session.id)}" data-active="${session.active ? '1' : '0'}">${session.active ? 'Fermer la séance' : 'Réouvrir'}</button>`;
+      if (showSessionTools) {
+        actions += `<button class="btn ghost ${session.active ? 'danger' : ''}" data-session-active="${esc(session.id)}" data-active="${session.active ? '1' : '0'}">${session.active ? 'Fermer la séance' : 'Réouvrir'}</button>`;
+      }
     }
 
     return `
@@ -1773,7 +2290,7 @@ async function openLiveView(sessionId) {
 }
 
 function subjectCompletionCount(subjectId) {
-  if (subjectId === 'psr-maths') return 11;
+  if (subjectId === 'psr-maths') return 15;
   if (subjectId === 'ada-francais') return 8;
   if (subjectId === 'ada-maths') return 6;
   return 1;
@@ -2101,37 +2618,56 @@ const PSR_MATHS_ITEM_LABELS = Object.fromEntries(
   PSR_MATHS_DIAGNOSTIC.map((item, index) => [item.id, `${index + 1}. ${item.domain}`])
 );
 PSR_MATHS_ITEM_LABELS['psr-maths-rentree-v1'] = 'Diagnostic terminé';
+PSR_MATHS_ITEM_LABELS['psr-challenge-factor'] = 'Défi · coefficient de proportionnalité';
+PSR_MATHS_ITEM_LABELS['psr-challenge-time'] = 'Défi · heure de départ';
+PSR_MATHS_ITEM_LABELS['psr-challenge-revenue'] = 'Défi · chiffre d’affaires';
+PSR_MATHS_ITEM_LABELS['psr-maths-challenge-v1'] = 'Défi PSR terminé';
 
 function renderPsrMathsReportDetail(report) {
   state.reportSessionId = report.session.id;
-  setReportLearnerHeaders(['Élève','Réponses justes','Je ne sais pas','Terminé']);
+  setReportLearnerHeaders(['Élève','Diagnostic','Je ne sais pas','Défi PSR','État']);
+  const challengeFinishedCount = report.learners.filter((learner) =>
+    learnerItem(learner, 'psr-maths-challenge-v1').completed
+  ).length;
   $('report-detail-title').textContent = report.session.group_label;
   $('report-detail-meta').textContent = `Séance ${report.session.session_number}${report.session.title ? ` · ${report.session.title}` : ''}`;
   $('report-detail-metrics').innerHTML = [
     reportMetric('Liste', String(report.rosterCount)),
     reportMetric('Commencé', `${report.startedCount}/${report.rosterCount}`),
     reportMetric('Diagnostic terminé', `${report.finishedCount}/${report.rosterCount}`),
-    reportMetric('Réponses justes', report.attempts ? `${report.correct}/${report.attempts}` : '—'),
+    reportMetric('Défi terminé', `${challengeFinishedCount}/${report.rosterCount}`),
     reportMetric('Je ne sais pas', String(report.unknown || 0)),
   ].join('');
 
-  const ids = [...PSR_MATHS_DIAGNOSTIC.map((item) => item.id), 'psr-maths-rentree-v1'];
+  const ids = [
+    ...PSR_MATHS_DIAGNOSTIC.map((item) => item.id),
+    'psr-maths-rentree-v1',
+    'psr-challenge-factor','psr-challenge-time','psr-challenge-revenue','psr-maths-challenge-v1'
+  ];
   const items = (report.items || []).filter((item) => ids.includes(item.item_id));
   $('report-item-summary').innerHTML = items.map((item) => `
     <div class="report-item-row">
       <strong>${esc(PSR_MATHS_ITEM_LABELS[item.item_id] || item.item_id)}</strong>
-      <span>${item.completed_count}/${report.rosterCount} répondu</span>
+      <span>${item.completed_count}/${report.rosterCount} terminé</span>
       <span>${item.attempts ? `${item.correct_answers}/${item.attempts} justes` : 'pas de réponse'}</span>
       <span>${item.unknown_answers ? `${item.unknown_answers} « je ne sais pas »` : ''}</span>
     </div>`).join('');
 
-  $('report-learner-rows').innerHTML = report.learners.map((learner) => `
-    <tr>
-      <td>${esc(learner.first_name)}${learner.last_name ? ` ${esc(learner.last_name)}` : ''}</td>
-      <td>${learner.attempts ? `${learner.correct_answers}/${learner.attempts}` : '—'}</td>
-      <td>${learner.unknown_answers || 0}</td>
-      <td>${learnerItem(learner, 'psr-maths-rentree-v1').completed ? 'Oui' : '—'}</td>
-    </tr>`).join('');
+  $('report-learner-rows').innerHTML = report.learners.map((learner) => {
+    const challengeItems = ['psr-challenge-factor','psr-challenge-time','psr-challenge-revenue'];
+    const challengeAttempts = challengeItems.reduce((sum, id) => sum + learnerItem(learner, id).attempts, 0);
+    const challengeCorrect = challengeItems.reduce((sum, id) => sum + learnerItem(learner, id).correct_answers, 0);
+    const diagnosticDone = learnerItem(learner, 'psr-maths-rentree-v1').completed;
+    const challengeDone = learnerItem(learner, 'psr-maths-challenge-v1').completed;
+    return `
+      <tr>
+        <td>${esc(learner.first_name)}${learner.last_name ? ` ${esc(learner.last_name)}` : ''}</td>
+        <td>${diagnosticDone ? 'Terminé' : learner.started ? 'En cours' : '—'}</td>
+        <td>${learner.unknown_answers || 0}</td>
+        <td>${challengeAttempts ? `${challengeCorrect}/${challengeAttempts}` : '—'}</td>
+        <td>${challengeDone ? 'Défi terminé' : diagnosticDone ? 'Diagnostic terminé' : learner.started ? 'En cours' : '—'}</td>
+      </tr>`;
+  }).join('');
   show('report-detail', true);
   $('report-detail').scrollIntoView({ behavior:'smooth', block:'start' });
 }
@@ -2316,32 +2852,35 @@ $('login-button').addEventListener('click', async () => {
     }
     const previewSubject = teacherPreviewSubject();
     if (previewSubject) showTeacherPreview(previewSubject);
-    else await showTeacher();
+    else {
+      await showTeacher();
+      await applyRequestedTeacherWorkspace();
+    }
   } catch (error) { $('login-status').textContent = error.message; }
 });
 $('login-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('login-button').click(); });
 $('logout').addEventListener('click', async () => { await api('/api/auth/logout', { method:'POST', body:'{}' }); state.user = null; showLogin(); });
 $('show-create-session').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('create');
-  show('session-form', true);
+  if (state.subject) window.location.assign(teacherWorkspaceHref(state.subject.id, 'seances'));
 });
 $('explore-subject').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('inspect');
   if (['psr-maths', 'ada-francais', 'ada-maths'].includes(state.subject?.id)) {
-    window.open(`/?preview=teacher&subject=${encodeURIComponent(state.subject.id)}`, '_blank', 'noopener');
+    window.location.assign(teacherWorkspaceHref(state.subject.id, 'parcours'));
   }
 });
 $('corrections-subject').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('corrections');
-  $('recent-sessions-panel').scrollIntoView({ behavior:'smooth', block:'start' });
+  if (state.subject) window.location.assign(teacherWorkspaceHref(state.subject.id, 'corrections'));
 });
 $('show-live-sessions').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('live');
-  $('recent-sessions-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (state.subject) window.location.assign(teacherWorkspaceHref(state.subject.id, 'live'));
 });
 $('reports-subject').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('reports');
-  openReports();
+  if (state.subject) window.location.assign(teacherWorkspaceHref(state.subject.id, 'reports'));
 });
 $('refresh-sessions').addEventListener('click', loadSessions);
 $('live-dialog').addEventListener('close', clearLivePolling);

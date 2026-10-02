@@ -133,6 +133,16 @@ class PortalHttpTests(unittest.TestCase):
         self.assertIn("renderCaseMemoryPractice", practice_js)
         self.assertIn("renderSyllableListeningPractice", practice_js)
 
+        with urllib.request.urlopen(self.base + "/assets/app.js", timeout=3) as response:
+            self.assertEqual(200, response.status)
+            app_js = response.read().decode("utf-8")
+        self.assertIn("renderTeacherWorkspaceNav", app_js)
+        self.assertIn("renderPsrMathsPathwayHome", app_js)
+        self.assertIn("renderPsrMathsChallenge", app_js)
+        self.assertIn("PSR_MATHS_MODULES", app_js)
+        self.assertIn("psr-maths-challenge-v1", app_js)
+        self.assertIn("teacher-main-nav", html)
+
         with urllib.request.urlopen(self.base + "/assets/learning/literacy-basics.json", timeout=3) as response:
             self.assertEqual(200, response.status)
             basics = json.loads(response.read())
