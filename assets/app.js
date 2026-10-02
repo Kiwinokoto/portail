@@ -52,6 +52,65 @@ function teacherPreviewSubject() {
   return ['psr-maths', 'ada-francais', 'ada-maths'].includes(subjectId) ? subjectId : '';
 }
 
+const TEACHER_WORKSPACES = ['seances', 'parcours', 'corrections', 'live', 'reports'];
+
+function requestedTeacherWorkspace() {
+  const params = new URLSearchParams(window.location.search);
+  const subjectId = params.get('subject') || '';
+  const workspace = params.get('workspace') || '';
+  if (!subjectId || !TEACHER_WORKSPACES.includes(workspace)) return null;
+  return { subjectId, workspace };
+}
+
+function teacherWorkspaceHref(subjectId, workspace) {
+  if (workspace === 'parcours') {
+    return `/?preview=teacher&subject=${encodeURIComponent(subjectId)}`;
+  }
+  return `/?subject=${encodeURIComponent(subjectId)}&workspace=${encodeURIComponent(workspace)}`;
+}
+
+function renderTeacherWorkspaceNav(subjectId, active = 'parcours') {
+  const nav = $('teacher-workspace-nav');
+  const items = [
+    ['seances', 'Séances'],
+    ['parcours', 'Parcours'],
+    ['corrections', 'Corrigés'],
+    ['live', 'Suivi en direct'],
+    ['reports', 'Rapports'],
+  ];
+  nav.innerHTML = [
+    '<a class="teacher-home-link" href="/">Accueil</a>',
+    ...items.map(([id, label]) => `<a href="${teacherWorkspaceHref(subjectId, id)}" ${active === id ? 'aria-current="page"' : ''}>${label}</a>`),
+  ].join('');
+  show('teacher-workspace-nav', true);
+}
+
+async function applyRequestedTeacherWorkspace() {
+  const requested = requestedTeacherWorkspace();
+  if (!requested) return;
+  const formation = state.formations.find((item) =>
+    item.subjects.some((subject) => subject.id === requested.subjectId)
+  );
+  if (!formation) return;
+  selectFormation(formation.id);
+  selectSubject(requested.subjectId);
+
+  if (requested.workspace === 'parcours') {
+    window.location.replace(teacherWorkspaceHref(requested.subjectId, 'parcours'));
+    return;
+  }
+  if (requested.workspace === 'seances') {
+    show('session-form', true);
+    revealOnNarrowScreen('subject-workspace');
+    return;
+  }
+  if (requested.workspace === 'reports') {
+    await openReports();
+    return;
+  }
+  $('recent-sessions-panel').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
 function configureLearnerPath(session) {
   if (session.subject_id === 'psr-maths') {
     state.positioningItemId = 'psr-maths-rentree-v1';
@@ -84,6 +143,8 @@ function showTeacherPreview(subjectId) {
   const isAdaFrench = subjectId === 'ada-francais';
   state.previewMode = true;
   state.joinToken = null;
+  $('student-view').classList.add('teacher-preview-mode');
+  renderTeacherWorkspaceNav(subjectId, 'parcours');
   state.joinSession = {
     id: 'teacher-preview',
     formation_id: isPsrMaths ? 'psr' : 'ada',
@@ -115,7 +176,8 @@ function showTeacherPreview(subjectId) {
   show('teacher-preview-banner', true);
   $('student-session-title').textContent = `${state.joinSession.formation_label} · ${state.joinSession.subject_label} — aperçu professeur`;
   $('student-session-context').textContent = 'Navigation libre · aucune donnée élève enregistrée';
-  if (isAdaFrench) renderAdaTeacherPreviewHome();
+  if (isPsrMaths) renderPsrMathsPathwayHome();
+  else if (isAdaFrench) renderAdaTeacherPreviewHome();
   else state.learnerStart?.();
 }
 
@@ -134,11 +196,14 @@ async function boot() {
   const previewSubject = teacherPreviewSubject();
   if (previewSubject) return showTeacherPreview(previewSubject);
   await showTeacher();
+  await applyRequestedTeacherWorkspace();
 }
 
 async function showStudentJoin(token) {
   state.previewMode = false;
   state.joinToken = token;
+  $('student-view').classList.remove('teacher-preview-mode');
+  show('teacher-workspace-nav', false);
   show('teacher-preview-banner', false);
   show('student-view', true); show('login-view', false); show('teacher-view', false); show('logout', false);
   try {
@@ -1332,6 +1397,8 @@ function showLogin() {
 }
 
 async function showTeacher() {
+  $('student-view').classList.remove('teacher-preview-mode');
+  show('teacher-workspace-nav', false);
   show('login-view', false); show('teacher-view', true); show('logout', true);
   $('welcome').textContent = `Bonjour ${state.user.display_name}`;
   show('admin-open', state.user.role === 'admin');
@@ -2316,7 +2383,10 @@ $('login-button').addEventListener('click', async () => {
     }
     const previewSubject = teacherPreviewSubject();
     if (previewSubject) showTeacherPreview(previewSubject);
-    else await showTeacher();
+    else {
+      await showTeacher();
+      await applyRequestedTeacherWorkspace();
+    }
   } catch (error) { $('login-status').textContent = error.message; }
 });
 $('login-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('login-button').click(); });
@@ -2328,7 +2398,7 @@ $('show-create-session').addEventListener('click', () => {
 $('explore-subject').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('inspect');
   if (['psr-maths', 'ada-francais', 'ada-maths'].includes(state.subject?.id)) {
-    window.open(`/?preview=teacher&subject=${encodeURIComponent(state.subject.id)}`, '_blank', 'noopener');
+    window.location.assign(teacherWorkspaceHref(state.subject.id, 'parcours'));
   }
 });
 $('corrections-subject').addEventListener('click', () => {
