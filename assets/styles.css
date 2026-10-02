@@ -252,3 +252,103 @@ h2,h3{margin:.15rem 0 .4rem}.muted{color:var(--muted);line-height:1.55}.status{c
 
 .case-letter{font-size:clamp(3rem,12vw,5.6rem);font-weight:950;line-height:1;text-transform:none}
 .syllable-choice{text-transform:uppercase;letter-spacing:.05em}
+
+
+/* Focused teacher navigation used once a teacher leaves the catalogue home. */
+.learner-panel.teacher-preview-mode{max-width:1180px}
+.teacher-workspace-nav{
+  position:sticky;top:10px;z-index:12;
+  display:flex;gap:8px;align-items:center;
+  margin:14px 0 22px;padding:8px;
+  overflow-x:auto;overscroll-behavior-inline:contain;
+  border:1px solid var(--line);border-radius:16px;
+  background:rgba(255,253,249,.96);box-shadow:0 10px 26px rgba(54,39,83,.08);
+  backdrop-filter:blur(10px)
+}
+.teacher-workspace-nav a{
+  flex:0 0 auto;min-height:40px;padding:9px 12px;border-radius:11px;
+  color:var(--muted);font-size:.82rem;font-weight:850;text-decoration:none;
+  border:1px solid transparent
+}
+.teacher-workspace-nav a:hover,.teacher-workspace-nav a:focus-visible{
+  color:var(--accent-strong);background:var(--accent-soft);outline:none
+}
+.teacher-workspace-nav a[aria-current="page"]{
+  color:var(--accent-strong);background:var(--accent-soft);border-color:#d8cef0
+}
+.teacher-workspace-nav .teacher-home-link{margin-right:2px;border-color:var(--line);background:#fff}
+
+.psr-sequence-nav{
+  display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;margin:-2px 0 12px;
+  scrollbar-width:thin;overscroll-behavior-inline:contain
+}
+.psr-sequence-link{
+  flex:0 0 auto;display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;
+  min-width:138px;padding:9px 11px;border:1px solid var(--line);border-radius:13px;
+  background:#fff;color:var(--ink);text-align:left;cursor:pointer
+}
+.psr-sequence-link:hover:not(:disabled),.psr-sequence-link:focus-visible:not(:disabled){
+  border-color:#bfb2dc;background:var(--accent-soft);outline:none
+}
+.psr-sequence-link.current{border-color:#b9a8df;background:var(--accent-soft)}
+.psr-sequence-link:disabled{opacity:.58;cursor:not-allowed}
+.psr-sequence-index{
+  display:grid;place-items:center;width:26px;height:26px;border-radius:50%;
+  background:#eee9f7;color:var(--accent-strong);font-size:.72rem;font-weight:900
+}
+.psr-sequence-link strong{font-size:.78rem;line-height:1.15}
+.psr-sequence-link small{display:block;margin-top:2px;color:var(--muted);font-size:.67rem}
+
+.psr-pathway-head{display:grid;gap:7px;margin-bottom:4px}
+.psr-pathway-grid{display:grid;gap:10px}
+.psr-path-step{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;
+  padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:#fff
+}
+.psr-path-step .step-num{
+  display:grid;place-items:center;width:34px;height:34px;border-radius:50%;
+  background:var(--accent-soft);color:var(--accent-strong);font-weight:900
+}
+.psr-path-step h4{margin:0 0 3px;font-size:1rem}
+.psr-path-step p{margin:0;color:var(--muted);font-size:.82rem;line-height:1.4}
+.psr-module-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+.psr-module-card{
+  display:grid;gap:7px;padding:14px;border:1px solid var(--line);border-radius:15px;background:#fff
+}
+.psr-module-card h4,.psr-module-card p{margin:0}
+.psr-module-card p{color:var(--muted);font-size:.82rem;line-height:1.45}
+.psr-module-card .btn{justify-self:start;margin-top:3px}
+
+.psr-intro-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.psr-intro-tile{display:grid;gap:7px;padding:15px;border:1px solid var(--line);border-radius:16px;background:#fff}
+.psr-intro-tile strong{font-size:1rem}
+.psr-intro-tile p{margin:0;color:var(--muted);line-height:1.45}
+.psr-intro-icon{font-size:1.7rem}
+
+.psr-challenge-board{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:14px}
+.psr-recipe-card,.psr-challenge-controls{
+  padding:15px;border:1px solid var(--line);border-radius:16px;background:#fff
+}
+.psr-recipe-table{width:100%;border-collapse:collapse;margin-top:8px}
+.psr-recipe-table th,.psr-recipe-table td{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+.psr-recipe-table th{color:var(--accent-strong);font-size:.76rem}
+.psr-recipe-table tr:last-child td{border-bottom:0}
+.psr-big-number{display:flex;align-items:baseline;gap:6px;margin:8px 0;font-size:2.2rem;font-weight:950;color:var(--accent-strong)}
+.psr-mini-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.psr-mini-stat{padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:#fbfaff;color:var(--muted);font-size:.72rem}
+.psr-mini-stat strong{display:block;margin-top:3px;color:var(--ink);font-size:.94rem}
+.psr-challenge-questions{display:grid;gap:12px;margin-top:14px}
+.psr-challenge-question{display:grid;gap:8px;padding:14px;border:1px solid var(--line);border-radius:15px;background:#fff}
+.psr-challenge-question label{font-weight:850;line-height:1.4}
+.psr-bilan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.psr-bilan-card{padding:14px;border:1px solid var(--line);border-radius:15px;background:#fff}
+.psr-bilan-card strong{display:block;margin-bottom:5px}
+.psr-domain-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+
+@media (max-width:760px){
+  .teacher-workspace-nav{top:4px;border-radius:13px;margin-inline:-6px}
+  .psr-path-step{grid-template-columns:auto minmax(0,1fr)}
+  .psr-path-step .btn{grid-column:1/-1}
+  .psr-module-grid,.psr-intro-grid,.psr-challenge-board,.psr-bilan-grid{grid-template-columns:1fr}
+  .psr-mini-stats{grid-template-columns:1fr 1fr}
+}
