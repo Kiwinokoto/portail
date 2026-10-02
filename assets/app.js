@@ -190,13 +190,90 @@ async function startPreparedLearnerPath(session) {
   else renderRosterMissing();
 }
 
-function speakFrench(text) {
-  if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) return false;
-  window.speechSynthesis.cancel();
+const SARTUS85_AUDIO_WORDS = new Set([
+  'arbre', 'assiette', 'banane', 'bol', 'bus', 'bébé', 'casserole', 'chaise', 'chat',
+  'chaussure', 'chemise', 'chien', 'clé', 'couteau', 'cuillère', 'douche', 'eau', 'enfant',
+  'fleur', 'four', 'fourchette', 'frigo', 'lait', 'lampe', 'lit', 'livre', 'magasin', 'main',
+  'maison', 'manteau', 'montre', 'moto', 'nez', 'pain', 'pantalon', 'parc', 'pharmacie',
+  'pied', 'pomme', 'porte', 'poêle', 'riz', 'robinet', 'rue', 'sac', 'savon', 'serviette',
+  'stylo', 'table', 'tasse', 'tomate', 'train', 'téléphone', 'verre', 'voiture', 'vélo',
+  'école', 'œil', 'œuf'
+]);
+const HUMAN_AUDIO_OVERRIDES = {
+  'brosse à dents': { file:'LL-Q150 (fra)-Pamputt-brosse à dents.wav', speaker:'Pamputt', license:'CC0' },
+  'toilettes': { file:'LL-Q150 (fra)-Justforoc-toilettes.wav', speaker:'Justforoc', license:'CC BY-SA 4.0' },
+};
+let activeFrenchAudio = null;
+
+function normalizedAudioWord(text) {
+  return String(text || '').trim().toLocaleLowerCase('fr-FR').replace(/[.!?…]+$/u, '').trim();
+}
+
+function humanAudioForText(text) {
+  const word = normalizedAudioWord(text);
+  if (SARTUS85_AUDIO_WORDS.has(word)) {
+    return {
+      word,
+      file:`LL-Q150 (fra)-Sartus85-${word}.wav`,
+      speaker:'Sartus85',
+      license:'CC BY-SA 4.0',
+    };
+  }
+  const override = HUMAN_AUDIO_OVERRIDES[word];
+  return override ? { word, ...override } : null;
+}
+
+function commonsAudioUrl(file) {
+  return 'https://commons.wikimedia.org/wiki/Special:Redirect/file/' + encodeURIComponent(file);
+}
+
+function stopFrenchAudio() {
+  if (activeFrenchAudio) {
+    activeFrenchAudio.pause();
+    activeFrenchAudio.currentTime = 0;
+    activeFrenchAudio = null;
+  }
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+}
+
+async function speakFrench(text, hooks = {}) {
+  stopFrenchAudio();
+  const human = humanAudioForText(text);
+  if (human) {
+    const audio = new Audio(commonsAudioUrl(human.file));
+    activeFrenchAudio = audio;
+    audio.preload = 'auto';
+    audio.addEventListener('playing', () => hooks.onStart?.({ mode:'human', ...human }), { once:true });
+    audio.addEventListener('ended', () => {
+      if (activeFrenchAudio === audio) activeFrenchAudio = null;
+      hooks.onEnd?.({ mode:'human', ...human });
+    }, { once:true });
+    audio.addEventListener('error', () => hooks.onError?.(), { once:true });
+    try {
+      await audio.play();
+      return true;
+    } catch {
+      if (activeFrenchAudio === audio) activeFrenchAudio = null;
+    }
+  }
+
+  if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+    hooks.onError?.();
+    return false;
+  }
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) {
+    hooks.onError?.();
+    return false;
+  }
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'fr-FR';
   utterance.rate = 0.86;
   utterance.pitch = 1;
+  utterance.voice = voices.find((voice) => /^fr(?:-|$)/i.test(voice.lang || '')) || null;
+  utterance.onstart = () => hooks.onStart?.({ mode:'browser' });
+  utterance.onend = () => hooks.onEnd?.({ mode:'browser' });
+  utterance.onerror = () => hooks.onError?.();
   window.speechSynthesis.speak(utterance);
   return true;
 }
@@ -223,190 +300,24 @@ function audioButton(label, text, itemId = '') {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'btn secondary audio-btn';
-  if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
-    button.textContent = 'Audio indisponible';
-    button.disabled = true;
-    button.title = 'Ce navigateur ne fournit pas de synthèse vocale.';
-    return button;
-  }
-  button.textContent = `🔊 ${label}`;
-  button.addEventListener('click', () => {
-    speakFrench(text);
-    trackEvent('audio_played', itemId, { text });
+  const idleLabel = `🔊 ${label}`;
+  button.textContent = idleLabel;
+  button.addEventListener('click', async () => {
+    button.textContent = '🔊 Lecture…';
+    const available = await speakFrench(text, {
+      onEnd: () => { button.textContent = idleLabel; },
+      onError: () => {
+        button.textContent = 'Audio indisponible';
+        button.title = 'Aucune source audio utilisable sur cet appareil.';
+      },
+    });
+    if (!available) {
+      button.textContent = 'Audio indisponible';
+      button.title = 'Aucune source audio utilisable sur cet appareil.';
+    }
+    trackEvent('audio_played', itemId, { text, available });
   });
   return button;
-}
-
-const ADMIN_AUDIO_TEST_WORDS = [
-  'bus', 'moto', 'voiture', 'vélo', 'train', 'pomme', 'banane', 'tomate', 'pain', 'lait',
-  'œuf', 'riz', 'eau', 'tasse', 'verre', 'assiette', 'bol', 'cuillère', 'fourchette', 'couteau',
-  'casserole', 'poêle', 'frigo', 'four', 'robinet', 'savon', 'serviette', 'brosse à dents',
-  'douche', 'toilettes', 'clé', 'porte', 'table', 'chaise', 'lit', 'lampe', 'maison', 'livre',
-  'stylo', 'sac', 'manteau', 'chaussure', 'chemise', 'pantalon', 'téléphone', 'montre', 'bébé',
-  'enfant', 'main', 'pied', 'nez', 'œil', 'école', 'magasin', 'pharmacie', 'rue', 'parc',
-  'arbre', 'fleur', 'chien', 'chat'
-];
-const adminAudioCandidateCache = new Map();
-const adminAudioMetadataCache = new Map();
-let adminAudioPlayer = null;
-
-function frenchWiktionarySection(wikitext) {
-  const header = wikitext.match(/^==\s*\{\{langue\|fr(?:\|[^}]*)?\}\}\s*==\s*$/m);
-  if (!header) return '';
-  const start = header.index + header[0].length;
-  const rest = wikitext.slice(start);
-  const nextLanguage = rest.match(/^==[^=].*?==\s*$/m);
-  return nextLanguage ? rest.slice(0, nextLanguage.index) : rest;
-}
-
-function wiktionaryAudioFiles(wikitext) {
-  const section = frenchWiktionarySection(wikitext);
-  const files = [];
-  const patterns = [
-    /(?:audio|prononciation|son)\s*=\s*([^|}\n<>\[\]]+\.(?:ogg|oga|wav|mp3|flac|opus))/gi,
-    /\[\[(?:fichier|file):([^|\]\n]+\.(?:ogg|oga|wav|mp3|flac|opus))/gi,
-  ];
-  patterns.forEach((pattern) => {
-    let match;
-    while ((match = pattern.exec(section)) !== null) {
-      const file = match[1].trim().replaceAll('_', ' ');
-      if (file && !files.includes(file)) files.push(file);
-    }
-  });
-  return files;
-}
-
-async function fetchWiktionaryAudioFiles(word) {
-  const key = word.trim().toLocaleLowerCase('fr-FR');
-  if (!key) throw new Error('Entre un mot français.');
-  if (adminAudioCandidateCache.has(key)) return adminAudioCandidateCache.get(key);
-  const params = new URLSearchParams({
-    action:'query',
-    prop:'revisions',
-    rvprop:'content',
-    rvslots:'main',
-    format:'json',
-    formatversion:'2',
-    redirects:'1',
-    titles:key,
-    origin:'*',
-  });
-  const response = await fetch(`https://fr.wiktionary.org/w/api.php?${params}`);
-  if (!response.ok) throw new Error(`Wiktionary répond ${response.status}.`);
-  const data = await response.json();
-  const page = data?.query?.pages?.[0];
-  const wikitext = page?.revisions?.[0]?.slots?.main?.content || '';
-  const files = wiktionaryAudioFiles(wikitext);
-  adminAudioCandidateCache.set(key, files);
-  return files;
-}
-
-function pickAdminAudioFile(files, source) {
-  if (source === 'sartus85') {
-    return files.find((file) => /LL-Q150 \(fra\)-Sartus85-/i.test(file)) || null;
-  }
-  return files.find((file) => /^Fr-/i.test(file) && !/Sartus85/i.test(file))
-    || files.find((file) => !/Sartus85/i.test(file))
-    || files[0]
-    || null;
-}
-
-function plainMetadataText(value = '') {
-  const node = document.createElement('div');
-  node.innerHTML = value;
-  return node.textContent?.replace(/\s+/g, ' ').trim() || '';
-}
-
-async function fetchCommonsAudioMetadata(file) {
-  if (adminAudioMetadataCache.has(file)) return adminAudioMetadataCache.get(file);
-  const params = new URLSearchParams({
-    action:'query',
-    prop:'imageinfo',
-    iiprop:'url|extmetadata',
-    format:'json',
-    formatversion:'2',
-    titles:`File:${file}`,
-    origin:'*',
-  });
-  const response = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`);
-  if (!response.ok) throw new Error(`Wikimedia Commons répond ${response.status}.`);
-  const data = await response.json();
-  const info = data?.query?.pages?.[0]?.imageinfo?.[0];
-  if (!info?.url) throw new Error('Le fichier audio Commons est introuvable.');
-  const metadata = info.extmetadata || {};
-  const result = {
-    url:info.url,
-    license:plainMetadataText(metadata.LicenseShortName?.value || ''),
-    artist:plainMetadataText(metadata.Artist?.value || ''),
-  };
-  adminAudioMetadataCache.set(file, result);
-  return result;
-}
-
-function stopAdminAudio() {
-  if (adminAudioPlayer) {
-    adminAudioPlayer.pause();
-    adminAudioPlayer.currentTime = 0;
-    adminAudioPlayer = null;
-  }
-  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-}
-
-async function playAdminAudioSample() {
-  const word = $('admin-audio-word').value.trim();
-  const source = $('admin-audio-source').value;
-  const status = $('admin-audio-status');
-  const meta = $('admin-audio-meta');
-  stopAdminAudio();
-  status.textContent = 'Préparation…';
-  meta.textContent = '';
-
-  try {
-    if (source === 'browser') {
-      const voices = ('speechSynthesis' in window) ? window.speechSynthesis.getVoices() : [];
-      if (!voices.length) throw new Error('Le navigateur expose Web Speech mais aucune voix n’est disponible.');
-      const frenchVoices = voices.filter((voice) => /^fr(?:-|$)/i.test(voice.lang || ''));
-      speakFrench(word);
-      status.textContent = 'Lecture via le navigateur.';
-      meta.textContent = frenchVoices.length
-        ? `${frenchVoices.length} voix française(s) détectée(s) sur ${voices.length} voix.`
-        : `Aucune voix explicitement française parmi ${voices.length} voix ; le navigateur choisit le fallback.`;
-      return;
-    }
-
-    const files = await fetchWiktionaryAudioFiles(word);
-    if (!files.length) throw new Error(`Aucun audio français trouvé sur Wiktionary pour « ${word} ».`);
-    const file = pickAdminAudioFile(files, source);
-    if (!file) {
-      throw new Error(source === 'sartus85'
-        ? `Sartus85 n’a pas d’enregistrement trouvé pour « ${word} ».`
-        : `Aucun candidat Wiki exploitable pour « ${word} ».`);
-    }
-    const info = await fetchCommonsAudioMetadata(file);
-    adminAudioPlayer = new Audio(info.url);
-    adminAudioPlayer.preload = 'auto';
-    adminAudioPlayer.addEventListener('ended', () => {
-      if (adminAudioPlayer) status.textContent = 'Lecture terminée.';
-    }, { once:true });
-    await adminAudioPlayer.play();
-    status.textContent = source === 'sartus85' ? 'Lecture Sartus85.' : 'Lecture Wiki automatique.';
-    const bits = [file, info.license, info.artist].filter(Boolean);
-    meta.textContent = bits.join(' · ');
-  } catch (error) {
-    status.textContent = error.message;
-  }
-}
-
-function setupAdminAudioLab() {
-  const list = $('admin-audio-words');
-  if (!list.dataset.ready) {
-    list.innerHTML = ADMIN_AUDIO_TEST_WORDS.map((word) => `<option value="${esc(word)}"></option>`).join('');
-    list.dataset.ready = 'true';
-  }
-  const savedSource = localStorage.getItem('portail.adminAudioSource');
-  if (['wiktionary', 'sartus85', 'browser'].includes(savedSource)) {
-    $('admin-audio-source').value = savedSource;
-  }
 }
 
 function renderRosterMissing() {
@@ -841,9 +752,9 @@ const ORAL_COMPREHENSION_CHOICES = [
 ];
 
 const ORAL_COMPREHENSION_ROUNDS = [
-  { target: 'telephone', instruction: 'Touche le téléphone.' },
-  { target: 'cle', instruction: 'Touche la clé.' },
-  { target: 'bus', instruction: 'Touche le bus.' },
+  { target: 'telephone', instruction: 'Touche le téléphone.', spoken: 'téléphone' },
+  { target: 'cle', instruction: 'Touche la clé.', spoken: 'clé' },
+  { target: 'bus', instruction: 'Touche le bus.', spoken: 'bus' },
 ];
 
 function shuffledVisualChoices() {
@@ -868,7 +779,7 @@ function renderOralComprehensionActivity(roundIndex = 0) {
       <p class="learner-help">${roundIndex + 1} / ${ORAL_COMPREHENSION_ROUNDS.length}</p>
     </div>`;
 
-  $('oral-audio').appendChild(audioButton('Réécouter', round.instruction, 'oral-comprehension'));
+  $('oral-audio').appendChild(audioButton('Réécouter', round.spoken, 'oral-comprehension'));
   const grid = $('oral-choices');
   choices.forEach((choice) => {
     const button = document.createElement('button');
@@ -897,12 +808,12 @@ function renderOralComprehensionActivity(roundIndex = 0) {
         button.classList.add('bad');
         $('oral-feedback').className = 'feedback bad';
         $('oral-feedback').textContent = 'Essaie encore.';
-        speakFrench(`Essaie encore. ${round.instruction}`);
+        speakFrench(round.spoken);
       }
     });
     grid.appendChild(button);
   });
-  speakFrench(round.instruction);
+  speakFrench(round.spoken);
 }
 
 function renderPositioningFinish() {
@@ -2093,21 +2004,7 @@ $('session-form').addEventListener('submit', async (event) => {
     await loadSessions();
   } catch (error) { $('session-status').textContent = error.message; }
 });
-$('admin-open').addEventListener('click', async () => {
-  show('new-token-box', false);
-  setupAdminAudioLab();
-  await loadUsers();
-  $('admin-dialog').showModal();
-});
-$('admin-audio-source').addEventListener('change', () => {
-  localStorage.setItem('portail.adminAudioSource', $('admin-audio-source').value);
-});
-$('admin-audio-play').addEventListener('click', playAdminAudioSample);
-$('admin-audio-stop').addEventListener('click', () => {
-  stopAdminAudio();
-  $('admin-audio-status').textContent = 'Lecture arrêtée.';
-});
-$('admin-dialog').addEventListener('close', stopAdminAudio);
+$('admin-open').addEventListener('click', async () => { show('new-token-box', false); await loadUsers(); $('admin-dialog').showModal(); });
 $('create-user').addEventListener('click', async () => {
   $('admin-status').textContent = '';
   try {
