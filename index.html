@@ -46,7 +46,7 @@
     </section>
 
     <section id="teacher-view" class="hidden stack teacher-dashboard">
-      <section class="hero panel teacher-hero">
+      <section id="teacher-home-hero" class="hero panel teacher-hero">
         <div>
           <p class="eyebrow">Espace professeur</p>
           <h2 id="welcome">Bonjour</h2>
@@ -55,7 +55,7 @@
         <button id="admin-open" class="btn secondary hidden">Collègues</button>
       </section>
 
-      <div class="selector-grid">
+      <div id="teacher-selectors" class="selector-grid">
       <section id="formations-panel" class="panel selector-panel">
         <div class="section-head">
           <div>
@@ -77,6 +77,18 @@
       </section>
       </div>
 
+      <section id="teacher-focused-header" class="panel teacher-focused-header hidden">
+        <div class="teacher-focused-context">
+          <div>
+            <p class="eyebrow">Espace professeur</p>
+            <h2 id="teacher-focused-title">Matière</h2>
+            <p id="teacher-focused-description" class="muted"></p>
+          </div>
+          <a class="btn ghost" href="/">Changer de formation / matière</a>
+        </div>
+        <nav id="teacher-main-nav" class="teacher-workspace-nav" aria-label="Navigation principale professeur"></nav>
+      </section>
+
       <section id="subject-workspace" class="panel hidden">
         <div class="section-head">
           <div>
@@ -86,7 +98,7 @@
           </div>
           <a id="external-course" class="btn secondary hidden" target="_blank" rel="noopener">Ouvrir l’espace professeur</a>
         </div>
-        <div class="action-grid" aria-label="Outils enseignant">
+        <div id="teacher-home-actions" class="action-grid" aria-label="Outils enseignant">
           <button id="show-create-session" class="action-card" data-icon="+">
             <strong>Séances</strong>
             <span class="action-description">Créer ou reprendre une séance de groupe.</span>
@@ -127,7 +139,7 @@
       </section>
 
       <section id="recent-sessions-panel" class="panel recent-sessions-panel">
-        <div class="section-head"><div><p class="eyebrow">Reprendre</p><h3>Mes séances récentes</h3></div><button id="refresh-sessions" class="btn ghost">Actualiser</button></div>
+        <div class="section-head"><div><p id="recent-sessions-eyebrow" class="eyebrow">Reprendre</p><h3 id="recent-sessions-title">Mes séances récentes</h3></div><button id="refresh-sessions" class="btn ghost">Actualiser</button></div>
         <div id="sessions-list" class="session-list"></div>
       </section>
     </section>
