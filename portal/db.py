@@ -113,6 +113,10 @@ class BaseStore:
                 "UPDATE class_sessions SET pathway_id='numeracy-v1' "
                 "WHERE subject_id='ada-maths' AND pathway_id='default'"
             )
+            db.execute(
+                "UPDATE class_sessions SET pathway_id='rentree-v1' "
+                "WHERE subject_id='psr-maths' AND pathway_id='default'"
+            )
             self._seed_catalog(db)
 
     def _seed_catalog(self, db: sqlite3.Connection) -> None:
@@ -127,7 +131,7 @@ class BaseStore:
             [
                 ("psr-maths", "psr", "Mathématiques",
                  "Diagnostic de rentrée et parcours mathématiques contextualisé PSR.",
-                 10, "external", "https://maths.lagrandeclasse.fr/teacher"),
+                 10, "internal", None),
                 ("ada-francais", "ada", "Français",
                  "Entrer dans l'écrit : littératie, sons, lettres, mots et lecture utile.",
                  10, "internal", None),
@@ -136,20 +140,16 @@ class BaseStore:
                  20, "internal", None),
             ],
         )
-        # Existing production databases predate the teacher-facing route.
-        # The portal is a teacher workspace, so external subjects must never
-        # send an authenticated teacher to the student landing page.
+        # PSR Maths moved into Portail on 2 October 2026. Existing production
+        # databases may still describe it as the former external Maths LGC site.
+        # Keep the legacy service online separately, but make all new catalogue
+        # and class-session work Portail-native.
         db.execute(
             """UPDATE subjects
-               SET external_url=?
-               WHERE id='psr-maths'
-                 AND external_url IN (?, ?, ?)""",
-            (
-                "https://maths.lagrandeclasse.fr/teacher",
-                "https://maths.lagrandeclasse.fr",
-                "https://maths.lagrandeclasse.fr/",
-                "https://maths.lagrandeclasse.fr/teacher",
-            ),
+               SET mode='internal',
+                   external_url=NULL,
+                   description='Diagnostic de rentrée et parcours mathématiques contextualisé PSR.'
+               WHERE id='psr-maths'"""
         )
         # Promote the previously planned ADA numeracy subject in existing databases.
         db.execute(

@@ -49,10 +49,15 @@ function teacherPreviewSubject() {
   const params = new URLSearchParams(window.location.search);
   const subjectId = params.get('subject') || '';
   if (params.get('preview') !== 'teacher') return '';
-  return ['ada-francais', 'ada-maths'].includes(subjectId) ? subjectId : '';
+  return ['psr-maths', 'ada-francais', 'ada-maths'].includes(subjectId) ? subjectId : '';
 }
 
 function configureLearnerPath(session) {
+  if (session.subject_id === 'psr-maths') {
+    state.positioningItemId = 'psr-maths-rentree-v1';
+    state.learnerStart = () => renderPsrMathsDiagnostic(0);
+    return true;
+  }
   if (session.subject_id === 'ada-francais') {
     if (session.pathway_id === 'practice-v1') {
       state.positioningItemId = 'practice-v1';
@@ -73,18 +78,21 @@ function configureLearnerPath(session) {
   return false;
 }
 
-function showAdaTeacherPreview(subjectId) {
-  const isMaths = subjectId === 'ada-maths';
+function showTeacherPreview(subjectId) {
+  const isPsrMaths = subjectId === 'psr-maths';
+  const isAdaMaths = subjectId === 'ada-maths';
+  const isAdaFrench = subjectId === 'ada-francais';
   state.previewMode = true;
   state.joinToken = null;
   state.joinSession = {
     id: 'teacher-preview',
-    formation_id: 'ada',
-    formation_label: 'ADA',
+    formation_id: isPsrMaths ? 'psr' : 'ada',
+    formation_label: isPsrMaths ? 'PSR' : 'ADA',
     subject_id: subjectId,
-    subject_label: isMaths ? 'Mathématiques' : 'Français',
+    subject_label: (isPsrMaths || isAdaMaths) ? 'Mathématiques' : 'Français',
+    pathway_id: isPsrMaths ? 'rentree-v1' : isAdaMaths ? 'numeracy-v1' : 'positioning-v1',
     session_number: 1,
-    title: 'Aperçu du positionnement',
+    title: isPsrMaths ? 'Diagnostic de rentrée' : 'Aperçu du positionnement',
     group_label: 'Aperçu professeur',
   };
   state.learner = {
@@ -105,10 +113,10 @@ function showAdaTeacherPreview(subjectId) {
   show('teacher-view', false);
   show('logout', false);
   show('teacher-preview-banner', true);
-  $('student-session-title').textContent = `ADA · ${state.joinSession.subject_label} — aperçu professeur`;
+  $('student-session-title').textContent = `${state.joinSession.formation_label} · ${state.joinSession.subject_label} — aperçu professeur`;
   $('student-session-context').textContent = 'Navigation libre · aucune donnée élève enregistrée';
-  if (isMaths) state.learnerStart();
-  else renderAdaTeacherPreviewHome();
+  if (isAdaFrench) renderAdaTeacherPreviewHome();
+  else state.learnerStart?.();
 }
 
 async function boot() {
@@ -124,7 +132,7 @@ async function boot() {
     return;
   }
   const previewSubject = teacherPreviewSubject();
-  if (previewSubject) return showAdaTeacherPreview(previewSubject);
+  if (previewSubject) return showTeacherPreview(previewSubject);
   await showTeacher();
 }
 
@@ -1027,6 +1035,183 @@ function renderNumeracyFinish() {
   speakFrench(`Bravo ${state.learner.first_name}. C’est terminé pour maintenant.`);
 }
 
+const PSR_MATHS_DIAGNOSTIC = [
+  {
+    id:'psr-d01', domain:'Calcul',
+    prompt:'Une caisse contient 12 bouteilles à 1,50 € chacune. Quel est le prix total ?',
+    type:'number', suffix:'€', answer:18, tolerance:0.001,
+    explanation:'12 × 1,50 = 18. On multiplie le prix unitaire par le nombre de bouteilles.'
+  },
+  {
+    id:'psr-d02', domain:'Automatismes',
+    prompt:'Un bac contient 3,6 kg de préparation. Combien cela fait-il en grammes ?',
+    type:'number', suffix:'g', answer:3600, tolerance:0.001,
+    explanation:'1 kg = 1 000 g, donc 3,6 × 1 000 = 3 600 g.'
+  },
+  {
+    id:'psr-d03', domain:'Durées',
+    prompt:'Une préparation commence à 9 h 35 et dure 50 minutes. À quelle heure finit-elle ?',
+    type:'text', placeholder:'ex. 10 h 25',
+    answer:['10h25','10 h 25','10:25','10.25'],
+    explanation:'9 h 35 + 25 min = 10 h, puis encore 25 min : fin à 10 h 25.'
+  },
+  {
+    id:'psr-d04', domain:'Fractions & pourcentages',
+    prompt:'La moitié d’une quantité correspond à quel pourcentage ?',
+    type:'number', suffix:'%', answer:50, tolerance:0.001,
+    explanation:'1/2 = 0,5 = 50 %.'
+  },
+  {
+    id:'psr-d05', domain:'Proportionnalité',
+    prompt:'Une recette utilise 400 g de riz pour 5 portions. Combien faut-il de riz pour 15 portions ?',
+    type:'number', suffix:'g', answer:1200, tolerance:0.001,
+    explanation:'15 portions, c’est 3 fois 5 portions. Donc 400 × 3 = 1 200 g.'
+  },
+  {
+    id:'psr-d06', domain:'Monnaie',
+    prompt:'Un client paie 20 € pour une commande de 13,70 €. Quelle monnaie faut-il rendre ?',
+    type:'number', suffix:'€', answer:6.30, tolerance:0.001,
+    explanation:'20 − 13,70 = 6,30 €.'
+  },
+  {
+    id:'psr-d07', domain:'Données',
+    prompt:'Quatre services ont vendu 18, 22, 20 et 20 menus. Quelle est la moyenne ?',
+    type:'number', suffix:'menus', answer:20, tolerance:0.001,
+    explanation:'(18 + 22 + 20 + 20) ÷ 4 = 80 ÷ 4 = 20.'
+  },
+  {
+    id:'psr-d08', domain:'Équations',
+    prompt:'On cherche un nombre x tel que 3 × x = 24. Quelle est la valeur de x ?',
+    type:'number', answer:8, tolerance:0.001,
+    explanation:'x = 24 ÷ 3 = 8.'
+  },
+  {
+    id:'psr-d09', domain:'Lecture de situation',
+    prompt:'Une machine produit 6 barquettes toutes les 10 minutes. Combien en produit-elle en 30 minutes, au même rythme ?',
+    type:'number', suffix:'barquettes', answer:18, tolerance:0.001,
+    explanation:'30 minutes = 3 fois 10 minutes. Donc 6 × 3 = 18 barquettes.'
+  },
+  {
+    id:'psr-d10', domain:'Ordres de grandeur',
+    prompt:'Un produit coûte 4,98 €. Pour estimer rapidement le coût de 10 produits, quel ordre de grandeur est le plus raisonnable ?',
+    type:'select', options:['5 €','50 €','500 €'], answer:'50 €',
+    explanation:'4,98 € est proche de 5 €. Pour 10 produits : environ 5 × 10 = 50 €.'
+  },
+];
+
+function normalisePsrMathsText(value) {
+  return String(value || '').toLocaleLowerCase('fr-FR').replace(/\s+/g, '').replace(',', '.').trim();
+}
+
+function parsePsrMathsNumber(value) {
+  const parsed = Number(String(value || '').replace(',', '.').replace(/\s/g, ''));
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function psrMathsAnswerIsCorrect(question, value) {
+  if (question.type === 'select') return value === question.answer;
+  if (question.type === 'text') {
+    const candidate = normalisePsrMathsText(value);
+    return question.answer.some((answer) => normalisePsrMathsText(answer) === candidate);
+  }
+  const number = parsePsrMathsNumber(value);
+  return Number.isFinite(number) && Math.abs(number - question.answer) <= question.tolerance;
+}
+
+async function recordPsrDiagnosticAnswer(question, value, unknown = false) {
+  const correct = !unknown && psrMathsAnswerIsCorrect(question, value);
+  await trackEvent('answer', question.id, {
+    correct,
+    unknown,
+    choice: unknown ? '' : value,
+    domain: question.domain,
+  });
+  await trackEvent('activity_completed', question.id, {
+    unknown,
+    domain: question.domain,
+  });
+}
+
+function renderPsrMathsDiagnostic(index = 0) {
+  const question = PSR_MATHS_DIAGNOSTIC[index];
+  if (!question) return renderPsrMathsFinish();
+
+  const inputMarkup = question.type === 'select'
+    ? `<select id="psr-diagnostic-answer" class="input" aria-label="Réponse à la question ${index + 1}">
+        <option value="">Choisir…</option>
+        ${question.options.map((option) => `<option value="${esc(option)}">${esc(option)}</option>`).join('')}
+      </select>`
+    : `<input id="psr-diagnostic-answer" class="input" type="text"
+        inputmode="${question.type === 'number' ? 'decimal' : 'text'}"
+        placeholder="${esc(question.placeholder || 'Ta réponse')}"
+        aria-label="Réponse à la question ${index + 1}" />`;
+
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage numeracy-stage">
+      <p class="eyebrow">Diagnostic de rentrée · ${index + 1}/${PSR_MATHS_DIAGNOSTIC.length}</p>
+      <h3>${esc(question.prompt)}</h3>
+      <p class="learner-help">Ce diagnostic n’est pas une note. Si tu ne sais pas, dis-le simplement : c’est une information utile pour le professeur.</p>
+      <div class="form-grid compact">
+        <label class="wide">Ta réponse
+          <div class="session-link-row">
+            ${inputMarkup}
+            ${question.suffix ? `<strong>${esc(question.suffix)}</strong>` : ''}
+          </div>
+        </label>
+      </div>
+      <div class="practice-actions">
+        <button id="psr-diagnostic-submit" class="btn primary" type="button">Valider ma réponse</button>
+        <button id="psr-diagnostic-unknown" class="btn ghost" type="button">Je ne sais pas</button>
+        <button id="psr-diagnostic-next" class="btn primary hidden" type="button">${index === PSR_MATHS_DIAGNOSTIC.length - 1 ? 'Terminer' : 'Question suivante'}</button>
+      </div>
+      <p id="psr-diagnostic-feedback" class="feedback" aria-live="polite"></p>
+    </div>`;
+
+  const input = $('psr-diagnostic-answer');
+  const finishAnswer = async (value, unknown) => {
+    const clean = String(value || '').trim();
+    if (!unknown && !clean) {
+      $('psr-diagnostic-feedback').className = 'feedback bad';
+      $('psr-diagnostic-feedback').textContent = 'Entre une réponse ou choisis « Je ne sais pas ».';
+      return;
+    }
+    input.disabled = true;
+    $('psr-diagnostic-submit').disabled = true;
+    $('psr-diagnostic-unknown').disabled = true;
+    await recordPsrDiagnosticAnswer(question, clean, unknown);
+    $('psr-diagnostic-feedback').className = 'feedback';
+    $('psr-diagnostic-feedback').textContent = unknown
+      ? 'Merci. « Je ne sais pas » est enregistré.'
+      : 'Réponse enregistrée.';
+    show('psr-diagnostic-next', true);
+  };
+
+  $('psr-diagnostic-submit').addEventListener('click', () => finishAnswer(input.value, false));
+  $('psr-diagnostic-unknown').addEventListener('click', () => finishAnswer('', true));
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && question.type !== 'select') {
+      event.preventDefault();
+      $('psr-diagnostic-submit').click();
+    }
+  });
+  $('psr-diagnostic-next').addEventListener('click', () => renderPsrMathsDiagnostic(index + 1));
+  input.focus();
+}
+
+async function renderPsrMathsFinish() {
+  await trackEvent('activity_completed', 'psr-maths-rentree-v1', {
+    questions:PSR_MATHS_DIAGNOSTIC.length,
+  });
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      <div class="finish-card">
+        <p class="eyebrow">Diagnostic terminé</p>
+        <h3>Merci ${esc(state.learner.first_name)}.</h3>
+        <p class="muted">Il n’y a pas de note affichée ici. Ton professeur voit les réponses question par question et pourra choisir les exercices utiles pour la suite.</p>
+      </div>
+    </div>`;
+}
+
 function showLogin() {
   show('student-view', false); show('login-view', true); show('teacher-view', false); show('logout', false);
 }
@@ -1097,6 +1282,7 @@ function setWorkspaceAction(id, { disabled = false, description = '', status = '
 }
 
 function sessionPathwayLabel(session) {
+  if (session.subject_id === 'psr-maths') return 'Rentrée · diagnostic';
   if (session.subject_id === 'ada-francais' && session.pathway_id === 'practice-v1') return 'Entraînement';
   if (session.subject_id === 'ada-francais') return 'Positionnement';
   if (session.subject_id === 'ada-maths') return 'Numératie';
@@ -1104,6 +1290,7 @@ function sessionPathwayLabel(session) {
 }
 
 function sessionSupportsCorrections(session) {
+  if (session.subject_id === 'psr-maths') return false;
   return !(session.subject_id === 'ada-francais' && session.pathway_id === 'practice-v1');
 }
 
@@ -1115,6 +1302,12 @@ function configureSessionPathwayField() {
   const field = $('session-pathway-field');
   const select = $('session-pathway');
   const help = $('session-pathway-help');
+  if (state.subject?.id === 'psr-maths') {
+    select.innerHTML = '<option value="rentree-v1">Séance 1 — diagnostic de rentrée</option>';
+    help.textContent = 'Le diagnostic alimente le suivi et les rapports sans afficher de note à l’élève.';
+    show('session-pathway-field', true);
+    return;
+  }
   if (state.subject?.id === 'ada-francais') {
     select.innerHTML = `
       <option value="positioning-v1">Positionnement — observer les acquis</option>
@@ -1144,7 +1337,7 @@ function updateWorkspaceActions() {
   const hasCorrectionSessions = correctionSessions.length > 0;
   const hasActiveCorrectionSessions = correctionSessions.some((session) => session.active);
   const hasReportSessions = reportSessions.length > 0;
-  const hasInternalPreview = ['ada-francais', 'ada-maths'].includes(state.subject.id);
+  const hasInternalPreview = ['psr-maths', 'ada-francais', 'ada-maths'].includes(state.subject.id);
 
   if (planned) {
     setWorkspaceAction('show-create-session', { disabled:true, description:'Le parcours doit d’abord être construit.', status:'à construire', upcoming:true });
@@ -1169,20 +1362,29 @@ function updateWorkspaceActions() {
     status: external || hasInternalPreview ? 'disponible' : 'en cours',
     upcoming: internal && !hasInternalPreview
   });
-  setWorkspaceAction('corrections-subject', {
-    disabled: internal && !hasActiveCorrectionSessions,
-    description: external
-      ? 'Verrouiller ou ouvrir les corrigés au moment choisi.'
-      : hasActiveCorrectionSessions
-        ? 'Verrouiller ou ouvrir les corrigés séance par séance.'
-        : hasCorrectionSessions
-          ? 'Réouvre une séance de positionnement pour modifier ses corrigés.'
-          : hasSessions
-            ? 'Les séances d’entraînement n’ont pas de corrigés.'
-            : 'Crée d’abord une séance de positionnement pour piloter les corrigés.',
-    status: external || hasActiveCorrectionSessions ? 'disponible' : hasCorrectionSessions ? 'séance fermée' : hasSessions ? 'non applicable' : 'après création',
-    upcoming: internal && !hasActiveCorrectionSessions
-  });
+  if (state.subject.id === 'psr-maths') {
+    setWorkspaceAction('corrections-subject', {
+      disabled:true,
+      description:'La correction guidée du site Maths doit encore être migrée nativement dans Portail.',
+      status:'migration en cours',
+      upcoming:true
+    });
+  } else {
+    setWorkspaceAction('corrections-subject', {
+      disabled: internal && !hasActiveCorrectionSessions,
+      description: external
+        ? 'Verrouiller ou ouvrir les corrigés au moment choisi.'
+        : hasActiveCorrectionSessions
+          ? 'Verrouiller ou ouvrir les corrigés séance par séance.'
+          : hasCorrectionSessions
+            ? 'Réouvre une séance de positionnement pour modifier ses corrigés.'
+            : hasSessions
+              ? 'Les séances d’entraînement n’ont pas de corrigés.'
+              : 'Crée d’abord une séance de positionnement pour piloter les corrigés.',
+      status: external || hasActiveCorrectionSessions ? 'disponible' : hasCorrectionSessions ? 'séance fermée' : hasSessions ? 'non applicable' : 'après création',
+      upcoming: internal && !hasActiveCorrectionSessions
+    });
+  }
   setWorkspaceAction('show-live-sessions', {
     disabled: internal && !hasActiveSessions,
     description: external
@@ -1320,19 +1522,19 @@ function renderRecentSessions() {
 
   $('sessions-list').innerHTML = sessions.map((session) => {
     const externalMaths = session.source === 'maths';
-    const internalAda = !externalMaths && ['ada-francais', 'ada-maths'].includes(session.subject_id);
-    const supportsCorrections = internalAda && sessionSupportsCorrections(session);
-    const supportsReports = internalAda && sessionSupportsReports(session);
-    const pathwayLabel = externalMaths ? 'Maths LGC' : sessionPathwayLabel(session);
+    const internalNative = !externalMaths && ['psr-maths', 'ada-francais', 'ada-maths'].includes(session.subject_id);
+    const supportsCorrections = internalNative && sessionSupportsCorrections(session);
+    const supportsReports = internalNative && sessionSupportsReports(session);
+    const pathwayLabel = externalMaths ? 'Ancien Maths LGC' : sessionPathwayLabel(session);
     const lifecycleLabel = session.active ? 'ouverte' : 'fermée';
     const createdLabel = recentSessionDate(session.created_at);
     let actions = '';
 
     if (externalMaths) {
-      const label = session.active ? 'Ouvrir le suivi' : 'Ouvrir dans Maths';
+      const label = session.active ? 'Ouvrir l’ancienne séance' : 'Ouvrir l’archive Maths';
       actions = `<a class="btn primary" href="${esc(session.manage_url)}" target="_blank" rel="noopener">${label}</a>`;
     } else {
-      if (internalAda && session.active) {
+      if (internalNative && session.active) {
         actions += `<button class="btn primary" data-live="${esc(session.id)}">Suivi en direct</button>`;
       }
       if (supportsCorrections && session.active) {
@@ -1466,6 +1668,7 @@ async function openLiveView(sessionId) {
 }
 
 function subjectCompletionCount(subjectId) {
+  if (subjectId === 'psr-maths') return 11;
   if (subjectId === 'ada-francais') return 8;
   if (subjectId === 'ada-maths') return 6;
   return 1;
@@ -1676,13 +1879,18 @@ function buildActivityReport(activity, completionItemId) {
   const finished = learners.filter((learner) => learnerItem(learner, completionItemId).completed).length;
   const attempts = learners.reduce((sum, learner) => sum + Number(learner.attempts || 0), 0);
   const correct = learners.reduce((sum, learner) => sum + Number(learner.correct_answers || 0), 0);
+  const unknown = learners.reduce((sum, learner) => sum + Number(learner.unknown_answers || 0), 0);
   return {
     ...activity, learners,
     rosterCount: learners.length,
     startedCount: Number(activity.started_count || 0),
     finishedCount: finished,
-    attempts, correct,
+    attempts, correct, unknown,
   };
+}
+
+function buildPsrMathsReport(activity) {
+  return buildActivityReport(activity, 'psr-maths-rentree-v1');
 }
 
 function buildAdaReport(activity) {
@@ -1704,6 +1912,9 @@ function reportMetric(label, value) {
 
 async function openReports(preferredSessionId = '') {
   if (!state.subject || state.subject.mode !== 'internal') return;
+  if (state.subject.id === 'psr-maths') {
+    return openReportCollection(buildPsrMathsReport, renderPsrMathsReportDetail, preferredSessionId);
+  }
   if (state.subject.id === 'ada-francais') {
     return openReportCollection(buildAdaReport, renderAdaReportDetail, preferredSessionId);
   }
@@ -1714,7 +1925,7 @@ async function openReports(preferredSessionId = '') {
 
 async function openSessionReport(sessionId) {
   const session = state.sessions.find((item) => item.id === sessionId);
-  if (!session || !['ada-francais', 'ada-maths'].includes(session.subject_id) || !sessionSupportsReports(session)) return;
+  if (!session || !['psr-maths', 'ada-francais', 'ada-maths'].includes(session.subject_id) || !sessionSupportsReports(session)) return;
   if (state.formation?.id !== session.formation_id) selectFormation(session.formation_id);
   if (state.subject?.id !== session.subject_id) selectSubject(session.subject_id);
   await openReports(sessionId);
@@ -1779,6 +1990,45 @@ async function openReportCollection(buildReport, renderDetail, preferredSessionI
     const preferred = reports.find((report) => report.session.id === preferredSessionId);
     if (preferred) renderDetail(preferred);
   }
+}
+
+const PSR_MATHS_ITEM_LABELS = Object.fromEntries(
+  PSR_MATHS_DIAGNOSTIC.map((item, index) => [item.id, `${index + 1}. ${item.domain}`])
+);
+PSR_MATHS_ITEM_LABELS['psr-maths-rentree-v1'] = 'Diagnostic terminé';
+
+function renderPsrMathsReportDetail(report) {
+  state.reportSessionId = report.session.id;
+  setReportLearnerHeaders(['Élève','Réponses justes','Je ne sais pas','Terminé']);
+  $('report-detail-title').textContent = report.session.group_label;
+  $('report-detail-meta').textContent = `Séance ${report.session.session_number}${report.session.title ? ` · ${report.session.title}` : ''}`;
+  $('report-detail-metrics').innerHTML = [
+    reportMetric('Liste', String(report.rosterCount)),
+    reportMetric('Commencé', `${report.startedCount}/${report.rosterCount}`),
+    reportMetric('Diagnostic terminé', `${report.finishedCount}/${report.rosterCount}`),
+    reportMetric('Réponses justes', report.attempts ? `${report.correct}/${report.attempts}` : '—'),
+    reportMetric('Je ne sais pas', String(report.unknown || 0)),
+  ].join('');
+
+  const ids = [...PSR_MATHS_DIAGNOSTIC.map((item) => item.id), 'psr-maths-rentree-v1'];
+  const items = (report.items || []).filter((item) => ids.includes(item.item_id));
+  $('report-item-summary').innerHTML = items.map((item) => `
+    <div class="report-item-row">
+      <strong>${esc(PSR_MATHS_ITEM_LABELS[item.item_id] || item.item_id)}</strong>
+      <span>${item.completed_count}/${report.rosterCount} répondu</span>
+      <span>${item.attempts ? `${item.correct_answers}/${item.attempts} justes` : 'pas de réponse'}</span>
+      <span>${item.unknown_answers ? `${item.unknown_answers} « je ne sais pas »` : ''}</span>
+    </div>`).join('');
+
+  $('report-learner-rows').innerHTML = report.learners.map((learner) => `
+    <tr>
+      <td>${esc(learner.first_name)}${learner.last_name ? ` ${esc(learner.last_name)}` : ''}</td>
+      <td>${learner.attempts ? `${learner.correct_answers}/${learner.attempts}` : '—'}</td>
+      <td>${learner.unknown_answers || 0}</td>
+      <td>${learnerItem(learner, 'psr-maths-rentree-v1').completed ? 'Oui' : '—'}</td>
+    </tr>`).join('');
+  show('report-detail', true);
+  $('report-detail').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 function renderAdaReportDetail(report) {
@@ -1960,7 +2210,7 @@ $('login-button').addEventListener('click', async () => {
       return;
     }
     const previewSubject = teacherPreviewSubject();
-    if (previewSubject) showAdaTeacherPreview(previewSubject);
+    if (previewSubject) showTeacherPreview(previewSubject);
     else await showTeacher();
   } catch (error) { $('login-status').textContent = error.message; }
 });
@@ -1972,7 +2222,7 @@ $('show-create-session').addEventListener('click', () => {
 });
 $('explore-subject').addEventListener('click', () => {
   if (state.subject?.mode === 'external') return openExternalTeacher('inspect');
-  if (['ada-francais', 'ada-maths'].includes(state.subject?.id)) {
+  if (['psr-maths', 'ada-francais', 'ada-maths'].includes(state.subject?.id)) {
     window.open(`/?preview=teacher&subject=${encodeURIComponent(state.subject.id)}`, '_blank', 'noopener');
   }
 });
@@ -2006,7 +2256,7 @@ $('session-form').addEventListener('submit', async (event) => {
       pathway_id: $('session-pathway').value,
       session_number: Number($('session-number').value), title:$('session-title').value, group_label:$('session-group').value,
     })});
-    $('session-status').textContent = ['ada-francais', 'ada-maths'].includes(state.subject.id)
+    $('session-status').textContent = ['psr-maths', 'ada-francais', 'ada-maths'].includes(state.subject.id)
       ? 'Séance créée ✓ · ajoute maintenant la liste des élèves dans “Suivi en direct”.'
       : 'Séance créée ✓';
     $('session-title').value = ''; $('session-group').value = '';

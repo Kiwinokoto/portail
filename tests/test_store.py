@@ -26,24 +26,37 @@ class PortalStoreTests(unittest.TestCase):
         self.assertEqual({"psr", "ada"}, set(by_id))
         self.assertEqual(["psr-maths"], [s["id"] for s in by_id["psr"]["subjects"]])
         psr_maths = by_id["psr"]["subjects"][0]
-        self.assertEqual("external", psr_maths["mode"])
-        self.assertEqual("https://maths.lagrandeclasse.fr/teacher", psr_maths["external_url"])
+        self.assertEqual("internal", psr_maths["mode"])
+        self.assertIsNone(psr_maths["external_url"])
         self.assertEqual({"ada-francais", "ada-maths"}, {s["id"] for s in by_id["ada"]["subjects"]})
         ada_maths = next(s for s in by_id["ada"]["subjects"] if s["id"] == "ada-maths")
         self.assertEqual("internal", ada_maths["mode"])
 
-    def test_init_repairs_legacy_psr_maths_student_url(self):
+    def test_init_promotes_legacy_psr_maths_to_internal(self):
         with self.store.connect() as db:
             db.execute(
-                "UPDATE subjects SET external_url=? WHERE id='psr-maths'",
-                ("https://maths.lagrandeclasse.fr",),
+                "UPDATE subjects SET mode='external',external_url=? WHERE id='psr-maths'",
+                ("https://maths.lagrandeclasse.fr/teacher",),
             )
         self.store.init()
         admin, _ = self.store.create_user("Admin routing", "admin")
         catalog = self.store.catalog_for(admin)
         psr = next(item for item in catalog if item["id"] == "psr")
         maths = next(subject for subject in psr["subjects"] if subject["id"] == "psr-maths")
-        self.assertEqual("https://maths.lagrandeclasse.fr/teacher", maths["external_url"])
+        self.assertEqual("internal", maths["mode"])
+        self.assertIsNone(maths["external_url"])
+
+    def test_psr_maths_session_defaults_to_rentree_pathway(self):
+        teacher, _ = self.store.create_user("Kevin Maths", "teacher")
+        session = self.store.create_class_session(
+            teacher_id=teacher["id"],
+            formation_id="psr",
+            subject_id="psr-maths",
+            session_number=1,
+            title="Diagnostic de rentrée",
+            group_label="PSR 1",
+        )
+        self.assertEqual("rentree-v1", session["pathway_id"])
 
     def test_init_promotes_legacy_ada_maths_plan_to_internal(self):
         with self.store.connect() as db:

@@ -74,6 +74,23 @@ class PortalHttpTests(unittest.TestCase):
         self.assertEqual(201, status)
         return payload["session"]
 
+    def create_psr_maths_session(self):
+        self.login()
+        status, payload = self.request(
+            "/api/sessions",
+            method="POST",
+            payload={
+                "formation_id": "psr",
+                "subject_id": "psr-maths",
+                "pathway_id": "rentree-v1",
+                "session_number": 1,
+                "title": "Diagnostic de rentrée",
+                "group_label": "PSR test",
+            },
+        )
+        self.assertEqual(201, status)
+        return payload["session"]
+
     def test_health_and_login_catalog(self):
         status, payload = self.request("/healthz")
         self.assertEqual(200, status)
@@ -439,6 +456,63 @@ class PortalHttpTests(unittest.TestCase):
                 opener=anonymous,
             )
         self.assertEqual(400, ctx.exception.code)
+
+    def test_psr_maths_native_session_tracks_unknown_answers(self):
+        session = self.create_psr_maths_session()
+        self.assertEqual("rentree-v1", session["pathway_id"])
+        status, roster = self.request(
+            f"/api/sessions/{session['id']}/learners",
+            method="POST",
+            payload={"learners": [{"first_name": "Amina", "last_name": "Diallo"}]},
+        )
+        self.assertEqual(201, status)
+        learner_id = roster["learners"][0]["id"]
+        token = session["join_url"].split("?join=", 1)[1]
+        anonymous = urllib.request.build_opener()
+
+        status, _ = self.request(
+            "/api/join/learners",
+            method="POST",
+            payload={"token": token, "learner_id": learner_id},
+            opener=anonymous,
+        )
+        self.assertEqual(201, status)
+
+        status, _ = self.request(
+            "/api/join/events",
+            method="POST",
+            payload={
+                "token": token,
+                "learner_id": learner_id,
+                "event_type": "answer",
+                "item_id": "psr-d01",
+                "payload": {"correct": False, "unknown": True, "domain": "Calcul et prix"},
+            },
+            opener=anonymous,
+        )
+        self.assertEqual(201, status)
+        status, _ = self.request(
+            "/api/join/events",
+            method="POST",
+            payload={
+                "token": token,
+                "learner_id": learner_id,
+                "event_type": "activity_completed",
+                "item_id": "psr-d01",
+                "payload": {"unknown": True},
+            },
+            opener=anonymous,
+        )
+        self.assertEqual(201, status)
+
+        status, activity = self.request(f"/api/sessions/{session['id']}/activity")
+        self.assertEqual(200, status)
+        learner = activity["learners"][0]
+        self.assertEqual(1, learner["attempts"])
+        self.assertEqual(1, learner["unknown_answers"])
+        item = next(item for item in activity["items"] if item["item_id"] == "psr-d01")
+        self.assertEqual(1, item["unknown_answers"])
+        self.assertEqual(1, item["completed_count"])
 
     def test_admin_can_create_teacher_but_token_is_one_time_response(self):
         self.login()

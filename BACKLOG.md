@@ -1,5 +1,18 @@
 # Portail LGC — backlog / handoff
 
+## Product decision — 2 October 2026
+
+**Portail is now the canonical repository and site for the formations and courses currently being developed and tested.** The goal is immediate usability with colleagues on one subdomain, one authentication model, one formation → subject → pathway navigation and one set of teacher tools before any later Moodle integration.
+
+`maths_lgc` was a useful emergency CAP PSR course site and its pedagogical content is worth preserving, but its separate teacher navigation/auth/session architecture is no longer a target. Keep it online for the existing cohort(s) and historical sessions; freeze feature work there except critical fixes. Migrate useful Maths content into Portail natively rather than wrapping or embedding the legacy teacher shell.
+
+For new work:
+- new PSR Maths sessions are to be created, joined, followed and reported from Portail;
+- Portail owns the canonical class-session/roster/activity model;
+- course content should be migrated into Portail primitives and cleaned up during migration rather than copied wholesale;
+- the legacy Maths subdomain remains a compatibility surface until old cohorts no longer need it;
+- do not generalise the old Portail → per-app SSO pattern to Playground, Roads or future courses unless a genuinely separate product requires it.
+
 ## Product decision — 30 September 2026
 
 The portal is a temporary, lightweight pedagogical workspace while Moodle, Course Factory and Roads mature.
@@ -66,27 +79,28 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] Remove the temporary admin audio lab after the decision and wire the current vocabulary/oral-word flows to the human-first audio resolver. Keep source/licence provenance under `assets/audio/README.md`.
 - [ ] Replace remaining browser-TTS-only phrases/instructions with curated or generated high-quality audio where the wording must be spoken verbatim; do not silently rely on Web Speech availability.
 
-## P2 — maths convergence
+## P2 — PSR Maths native migration
 
-- [x] Define the shared five-workspace teacher model: Séances → Parcours → Corrigés → Suivi en direct → Rapports.
-- [x] Harmonise the Portail and Maths LGC teacher UI on those five workspaces and expose explicit availability/status.
-- [x] Attach new Maths sessions to the authenticated portal teacher identity so sessions survive browser/device changes without relying on locally stored management secrets. Legacy sessions keep their existing management-secret fallback.
-- [x] Build Reports V1 in both teacher surfaces: group synthesis, learner detail, and descriptive cross-group comparison only for comparable sessions.
-- [x] Add portal-issued one-time SSO handoff for Maths LGC using PKCE; no shared teacher token crosses subdomains.
-- [x] Keep `maths_lgc` production untouched during the initial portal bootstrap; later Maths changes were deliberate convergence work after the portal foundation was live.
-- [x] Model PSR Mathematics as an external teacher-facing subject; portal actions route to Maths LGC `/teacher`, never the student landing page.
-- [x] Reuse the prepared-roster learner identity flow, teacher preview, live follow-up and report collection across ADA French and ADA Mathematics instead of creating a second session system.
-- [x] Keep PSR Maths linked as an external interactive course through SSO rather than importing its content into Portail; ordinary-content migration remains a future Moodle decision.
-- [x] Add ADA numeracy foundation V1 separately from CAP-level Maths LGC: concrete quantity, spoken numeral, quantity comparison, concrete addition and written money amount.
-- [x] Validate the cross-device ownership mechanism manually: a session created on phone under the Portail identity was recovered on desktop in Maths LGC (1 October 2026).
-- [x] Add a server-to-server recent-session aggregation contract so Portail can surface teacher-owned Maths sessions without duplicating them. Maths remains source of truth; the handoff reuses one-time PKCE SSO proof.
-- [ ] Recheck the Portail recent-session UX after the Maths deep-link fix: an owned Maths session already appears directly in « Mes séances récentes »; « Ouvrir le suivi » must now land on that exact session with the live-follow-up section focused, without an extra visible authentication step.
+- [x] Decide architecture: Portail becomes the canonical repo/site for current courses; `maths_lgc` becomes legacy-only for existing cohorts (2 October 2026).
+- [x] Promote PSR Mathematics from external subject to an internal Portail pathway without altering historical `maths_lgc` sessions. Legacy sessions remain surfaced separately as « Ancien Maths LGC ».
+- [x] Migrate **Séance 1 / diagnostic de rentrée** first: the 10 audited legacy situations keep their original wording and response type, no learner-facing grade is shown, and « Je ne sais pas » is tracked as separate positioning evidence.
+- [ ] Migrate the PSR challenge (recipe scaling, schedule and simple revenue) after the diagnostic is stable.
+- [ ] Migrate the eight post-diagnostic learning modules incrementally: Durées; Recettes & proportionnalité; Pourcentages; Données & statistiques; Équations; Graphiques & fonctions; Prix & commerce; Probabilités.
+- [x] Reuse Portail-native roster, QR/join link, live follow-up and reports for PSR Maths. Do not recreate a Maths-specific teacher dashboard.
+- [ ] Migrate the legacy guided correction content before enabling **Corrigés** for native PSR Maths; keep the workspace visible but explicitly « migration en cours » meanwhile.
+- [x] Add a PSR Maths teacher preview that writes no learner activity.
+- [x] Define PSR Maths Reports V1 separately from ADA numeracy: item/domain detail, per-learner correct-response count and explicit « Je ne sais pas » signals, with no learner-facing global grade or ranking.
+- [ ] Keep legacy `maths.lagrandeclasse.fr` online for the existing cohort and old session links; critical fixes only, no new product features.
+- [ ] Once no active cohort depends on legacy Maths, archive its teacher surface and decide whether any historical data export/import is needed before shutdown.
+- [x] Preserve the legacy SSO/deep-link path during transition so existing sessions remain reachable from Portail while migration is incomplete.
+- [x] Validate legacy cross-device ownership mechanism (1 October 2026); treat it as compatibility, not future architecture.
 
 ## Field validation still pending
 
 - [x] Portail → Maths ownership recovery across devices: manually validated 1 October 2026 (session created on phone, recovered on desktop under the same Portail account).
-- [ ] Validate the new Portail-level aggregation of external Maths sessions after deployment: recent session visible before entering Maths, and « Ouvrir le suivi » lands on the intended session.
+- [x] Validate legacy Portail → Maths deep-link routing: Portail can surface an owned legacy Maths session and `tab=live` lands on the live-follow-up section. Historical pre-Portail sessions may remain separate; no further UX investment is planned beyond compatibility.
 - [x] Reproduce the current browser-TTS failure on Brave/Linux VM (2 October 2026): Web Speech API is exposed but `speechSynthesis.getVoices()` stays empty after waiting, so the existing buttons fail silently. Treat API presence alone as insufficient capability detection.
+- [ ] Validate native PSR Maths `rentree-v1` on a disposable Portail session: create → preload roster → learner QR → 10 diagnostic situations → « Je ne sais pas » → live view → report; confirm legacy Maths sessions remain separate and usable.
 - [ ] Validate ADA French V2 on actual learner phones/tablets: TTS, emoji/visual rendering, instruction comprehension and touch targets.
 - [ ] Validate ADA Mathematics V1 on actual learner phones/tablets: quantities, € rendering, TTS and the wording « le plus » / « en tout ».
 - [ ] Run one full teacher loop with real or disposable test learners: roster → QR → learner work → live view → corrections → Reports.
@@ -101,14 +115,14 @@ This project must stay easy to dismantle or adapt:
 - ordinary authored content → Moodle / Course Factory;
 - high-value interactive exercises may remain as embedded/external activities.
 
-## Current handoff — 1 October 2026
+## Current handoff — 2 October 2026
 
 Production is live on `portail.lagrandeclasse.fr` and `maths.lagrandeclasse.fr`.
 
-Teacher navigation is now harmonised around five shared workspaces: **Séances → Parcours → Corrigés → Suivi en direct → Rapports**. Portail exposes the same vocabulary for internal and external subjects; PSR Maths deep-links each action to the matching Maths workspace. Rapports V1 is active for Maths LGC, ADA French and ADA Mathematics.
+Teacher navigation remains organised around five shared workspaces: **Séances → Parcours → Corrigés → Suivi en direct → Rapports**. The architectural decision has changed: these workspaces should now be implemented natively in Portail for PSR Maths rather than mirrored across a second teacher shell.
 
-The Portail→Maths SSO is in production. New Maths sessions created under SSO are bound to the stable Portail teacher identity. On 1 October Kevin created a Maths session on his phone and recovered it on desktop under the same Portail identity, manually validating the ownership/backend mechanism. The remaining UX gap was that Portail's own « Mes séances récentes » only knew its local SQLite sessions; the current branches add a one-time-PKCE server-to-server summary handoff so Maths stays source of truth while Portail can surface those sessions directly. Legacy Maths sessions remain compatible with their existing per-session management secret.
+The Portail→Maths SSO remains in production only as a transition/legacy bridge. Existing Maths cohorts and old links must keep working, but all new PSR Maths product work moves into Portail. Useful pedagogical content from `maths_lgc` will be migrated and cleaned up; its separate teacher auth/navigation/session stack will not be reproduced.
 
-Maths live follow-up polls every 4 seconds while visible. Reports V1 exists for Maths and ADA French. ADA teacher controls include safe roster correction/removal, per-session correction locking and per-item report detail. ADA French positioning V2 now extends the probe sequence through visual discrimination, guided sound→letter association, useful-word recognition and an unscored writing gesture, with an authenticated teacher preview that records no learner activity. Next validation should happen on real learner devices before adding stronger literacy inferences. ADA Mathematics now has its own narrow numeracy V1 and must likewise be field-tested before its probes are expanded.
+Native PSR Maths migration has started in Portail: `rentree-v1` contains the 10 audited diagnostic situations, uses the Portail prepared-roster/QR/session model, feeds the shared 4-second live view and has a PSR-specific descriptive report with explicit « Je ne sais pas » signals. The guided correction, PSR challenge and eight learning modules still need migration; **Corrigés** therefore remains visibly unavailable for native PSR Maths until the correction content is ready. ADA French and ADA Mathematics remain on their existing native Portail pathways and still need real-device validation.
 
 AgentCtl registration for Portail is complete. Project id: `portail`; canonical repo: `Kiwinokoto/portail`; current allowed scope: `repo:Kiwinokoto/portail`. The routine CLI is available on the Mint workstation; the LGC VPS does not need it for ordinary GitHub Actions deployment.

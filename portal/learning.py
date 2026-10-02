@@ -260,6 +260,7 @@ class LearningMixin:
                 "last_activity_at": None,
                 "attempts": 0,
                 "correct_answers": 0,
+                "unknown_answers": 0,
                 "completed_items": 0,
                 "items": {},
             }
@@ -285,7 +286,7 @@ class LearningMixin:
                     item_order.append(item_id)
                 item = summary["items"].setdefault(
                     item_id,
-                    {"attempts": 0, "correct_answers": 0, "completed": False},
+                    {"attempts": 0, "correct_answers": 0, "unknown_answers": 0, "completed": False},
                 )
 
             if row["event_type"] == "answer":
@@ -300,6 +301,10 @@ class LearningMixin:
                     summary["correct_answers"] += 1
                     if item is not None:
                         item["correct_answers"] += 1
+                if payload.get("unknown") is True:
+                    summary["unknown_answers"] += 1
+                    if item is not None:
+                        item["unknown_answers"] += 1
             elif row["event_type"] == "activity_completed" and item_id:
                 completed[learner_id].add(item_id)
                 if item is not None:
@@ -313,6 +318,7 @@ class LearningMixin:
         for item_id in item_order:
             attempts = 0
             correct_answers = 0
+            unknown_answers = 0
             completed_count = 0
             for learner in learners:
                 item = learner["items"].get(item_id)
@@ -320,6 +326,7 @@ class LearningMixin:
                     continue
                 attempts += item["attempts"]
                 correct_answers += item["correct_answers"]
+                unknown_answers += item.get("unknown_answers", 0)
                 if item["completed"]:
                     completed_count += 1
             item_summaries.append(
@@ -327,6 +334,7 @@ class LearningMixin:
                     "item_id": item_id,
                     "attempts": attempts,
                     "correct_answers": correct_answers,
+                    "unknown_answers": unknown_answers,
                     "completed_count": completed_count,
                 }
             )

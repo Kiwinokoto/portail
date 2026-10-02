@@ -1,6 +1,6 @@
-# Validation terrain — Portail LGC / Maths LGC
+# Validation terrain — Portail LGC
 
-État au 1 octobre 2026.
+État au 2 octobre 2026. `maths.lagrandeclasse.fr` est désormais un chemin legacy à préserver pour les cohortes existantes ; les nouveaux tests fonctionnels PSR Maths se font dans Portail.
 
 Ce document sépare volontairement trois niveaux :
 
@@ -10,27 +10,27 @@ Ce document sépare volontairement trois niveaux :
 
 Une fonctionnalité n'est **pas** considérée validée terrain tant que la dernière colonne n'est pas cochée.
 
-## 1. Portail → Maths : identité et récupération des séances
+## 1. PSR Mathématiques natif — première migration
 
-| Vérification | Automatisé | Déployé | Terrain |
-| --- | --- | --- | --- |
-| SSO Portail → Maths sans recopier de jeton | ✅ | ✅ | ⬜ |
-| Un autre professeur ne peut pas ouvrir la séance | ✅ | ✅ | ⬜ |
-| Une séance créée sous SSO réapparaît après reconnexion sur un autre navigateur/appareil | ✅ | ✅ | ✅ téléphone → desktop (01/10) |
-| Les anciennes séances restent accessibles par leur ancien secret de gestion | ✅ | ✅ | ⬜ |
+À vérifier sur une séance Portail jetable, sans toucher aux séances historiques de `maths.lagrandeclasse.fr` :
 
-### Test manuel recommandé
+- [ ] PSR → Mathématiques reste dans `portail.lagrandeclasse.fr` pour le professeur.
+- [ ] **Séances** crée une occurrence Portail avec le parcours « Séance 1 — diagnostic de rentrée ».
+- [ ] Précharger 2–3 élèves puis ouvrir le lien/QR dans un navigateur élève.
+- [ ] Les 10 situations conservent la formulation et le type de réponse du diagnostic legacy (saisies numériques/heure ; choix seulement pour l’ordre de grandeur).
+- [ ] « Je ne sais pas » permet d’avancer et remonte comme signal séparé dans le suivi/rapport.
+- [ ] Aucune note globale ni correction immédiate n’est affichée à l’élève pendant le diagnostic.
+- [ ] **Suivi en direct** montre qui a commencé et l’avancement vers les 10 situations + fin du diagnostic.
+- [ ] **Rapports** montre détail par élève, réponses justes et « Je ne sais pas » sans produire de classement.
+- [ ] L’aperçu professeur du diagnostic n’écrit aucune activité élève.
+- [ ] Les anciennes séances Maths LGC continuent d’apparaître comme legacy et ouvrent encore leur ancien site.
+- [ ] Ne pas utiliser **Corrigés** comme validé PSR tant que la correction guidée du legacy n’a pas été migrée nativement.
 
-1. Dans un navigateur A, se connecter au Portail.
-2. Ouvrir PSR → Mathématiques et créer une séance jetable.
-3. Vérifier qu'elle apparaît dans **Séances**, **Corrigés**, **Suivi en direct** et **Rapports**.
-4. Dans un navigateur B ou un autre appareil, sans copier le lien de gestion, se connecter au même compte Portail.
-5. Ouvrir PSR → Mathématiques.
-6. Vérifier que la séance réapparaît et que son suivi s'ouvre.
-7. Revenir au Portail : vérifier que la séance Maths apparaît dans **Mes séances récentes** et que **Ouvrir le suivi** ouvre cette séance précise.
-8. Si un second compte professeur de test existe, vérifier qu'il ne voit pas/ n'ouvre pas cette séance.
+### Compatibilité legacy déjà vérifiée
 
-**État actuel : mécanisme d’identité/ownership validé manuellement le 1 octobre. Kevin a créé une séance Maths depuis son téléphone puis l’a retrouvée sur ordinateur avec le même compte Portail. Reste à revalider l’UX du niveau supérieur : la séance doit maintenant remonter directement dans « Mes séances récentes » du Portail sans devoir entrer d’abord dans Maths.**
+- [x] Une séance Maths créée sous l’ancien SSO peut être retrouvée sur un autre appareil avec la même identité Portail (01/10).
+- [x] Le deep-link legacy `tab=live&session=...` conserve la destination de suivi (02/10).
+- [ ] Les séances antérieures à Portail restent volontairement séparées si elles n’ont pas d’ownership Portail ; pas de migration destructive prévue.
 
 ## 2. ADA Français V2 — appareil élève réel
 
