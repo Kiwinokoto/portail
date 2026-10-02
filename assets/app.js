@@ -1037,77 +1037,93 @@ function renderNumeracyFinish() {
 
 const PSR_MATHS_DIAGNOSTIC = [
   {
-    id:'psr-d01', domain:'Calcul et prix',
-    prompt:'12 bouteilles coûtent 1,50 € chacune. Combien coûtent-elles au total ?',
-    choices:['12 €','18 €','20 €','30 €'], answer:'18 €',
-    explanation:'12 × 1,50 = 18.'
+    id:'psr-d01', domain:'Calcul',
+    prompt:'Une caisse contient 12 bouteilles à 1,50 € chacune. Quel est le prix total ?',
+    type:'number', suffix:'€', answer:18, tolerance:0.001,
+    explanation:'12 × 1,50 = 18. On multiplie le prix unitaire par le nombre de bouteilles.'
   },
   {
-    id:'psr-d02', domain:'Conversions',
-    prompt:'3,6 kg, cela fait combien de grammes ?',
-    choices:['36 g','360 g','3 600 g','36 000 g'], answer:'3 600 g',
-    explanation:'3,6 × 1 000 = 3 600 g.'
+    id:'psr-d02', domain:'Automatismes',
+    prompt:'Un bac contient 3,6 kg de préparation. Combien cela fait-il en grammes ?',
+    type:'number', suffix:'g', answer:3600, tolerance:0.001,
+    explanation:'1 kg = 1 000 g, donc 3,6 × 1 000 = 3 600 g.'
   },
   {
     id:'psr-d03', domain:'Durées',
-    prompt:'Il est 9 h 35. On ajoute 50 minutes. Quelle heure est-il ?',
-    choices:['10 h 05','10 h 15','10 h 25','10 h 35'], answer:'10 h 25',
-    explanation:'25 minutes jusqu’à 10 h, puis encore 25 minutes.'
+    prompt:'Une préparation commence à 9 h 35 et dure 50 minutes. À quelle heure finit-elle ?',
+    type:'text', placeholder:'ex. 10 h 25',
+    answer:['10h25','10 h 25','10:25','10.25'],
+    explanation:'9 h 35 + 25 min = 10 h, puis encore 25 min : fin à 10 h 25.'
   },
   {
-    id:'psr-d04', domain:'Fractions et pourcentages',
-    prompt:'La moitié correspond à quel pourcentage ?',
-    choices:['25 %','40 %','50 %','75 %'], answer:'50 %',
-    explanation:'Une moitié = 1/2 = 50 %.'
+    id:'psr-d04', domain:'Fractions & pourcentages',
+    prompt:'La moitié d’une quantité correspond à quel pourcentage ?',
+    type:'number', suffix:'%', answer:50, tolerance:0.001,
+    explanation:'1/2 = 0,5 = 50 %.'
   },
   {
     id:'psr-d05', domain:'Proportionnalité',
-    prompt:'Il faut 400 g pour 5 portions. Combien faut-il pour 15 portions ?',
-    choices:['800 g','1 000 g','1 200 g','1 500 g'], answer:'1 200 g',
-    explanation:'15 ÷ 5 = 3, puis 400 × 3 = 1 200 g.'
+    prompt:'Une recette utilise 400 g de riz pour 5 portions. Combien faut-il de riz pour 15 portions ?',
+    type:'number', suffix:'g', answer:1200, tolerance:0.001,
+    explanation:'15 portions, c’est 3 fois 5 portions. Donc 400 × 3 = 1 200 g.'
   },
   {
     id:'psr-d06', domain:'Monnaie',
-    prompt:'Un achat coûte 13,70 €. Tu paies avec 20 €. Combien doit-on te rendre ?',
-    choices:['5,30 €','6,30 €','6,70 €','7,30 €'], answer:'6,30 €',
+    prompt:'Un client paie 20 € pour une commande de 13,70 €. Quelle monnaie faut-il rendre ?',
+    type:'number', suffix:'€', answer:6.30, tolerance:0.001,
     explanation:'20 − 13,70 = 6,30 €.'
   },
   {
-    id:'psr-d07', domain:'Moyenne',
-    prompt:'Les quatre valeurs sont 18, 22, 20 et 20. Quelle est leur moyenne ?',
-    choices:['18','19','20','22'], answer:'20',
-    explanation:'18 + 22 + 20 + 20 = 80, puis 80 ÷ 4 = 20.'
+    id:'psr-d07', domain:'Données',
+    prompt:'Quatre services ont vendu 18, 22, 20 et 20 menus. Quelle est la moyenne ?',
+    type:'number', suffix:'menus', answer:20, tolerance:0.001,
+    explanation:'(18 + 22 + 20 + 20) ÷ 4 = 80 ÷ 4 = 20.'
   },
   {
-    id:'psr-d08', domain:'Nombre inconnu',
-    prompt:'3 × ? = 24. Quel nombre manque ?',
-    choices:['6','7','8','9'], answer:'8',
-    explanation:'24 ÷ 3 = 8.'
+    id:'psr-d08', domain:'Équations',
+    prompt:'On cherche un nombre x tel que 3 × x = 24. Quelle est la valeur de x ?',
+    type:'number', answer:8, tolerance:0.001,
+    explanation:'x = 24 ÷ 3 = 8.'
   },
   {
-    id:'psr-d09', domain:'Cadence',
-    prompt:'On prépare 6 barquettes en 10 minutes. Au même rythme, combien en 30 minutes ?',
-    choices:['12','16','18','24'], answer:'18',
-    explanation:'30 minutes = 3 fois 10 minutes, donc 6 × 3 = 18.'
+    id:'psr-d09', domain:'Lecture de situation',
+    prompt:'Une machine produit 6 barquettes toutes les 10 minutes. Combien en produit-elle en 30 minutes, au même rythme ?',
+    type:'number', suffix:'barquettes', answer:18, tolerance:0.001,
+    explanation:'30 minutes = 3 fois 10 minutes. Donc 6 × 3 = 18 barquettes.'
   },
   {
-    id:'psr-d10', domain:'Ordre de grandeur',
-    prompt:'Sans calcul précis : 10 articles à 4,98 € coûtent environ combien ?',
-    choices:['5 €','25 €','50 €','100 €'], answer:'50 €',
-    explanation:'4,98 € est proche de 5 €, donc 10 × 5 ≈ 50 €.'
+    id:'psr-d10', domain:'Ordres de grandeur',
+    prompt:'Un produit coûte 4,98 €. Pour estimer rapidement le coût de 10 produits, quel ordre de grandeur est le plus raisonnable ?',
+    type:'select', options:['5 €','50 €','500 €'], answer:'50 €',
+    explanation:'4,98 € est proche de 5 €. Pour 10 produits : environ 5 × 10 = 50 €.'
   },
 ];
 
-function psrDiagnosticChoiceKey(value) {
-  return normalized(String(value || '')).replaceAll(' ', '-');
+function normalisePsrMathsText(value) {
+  return String(value || '').toLocaleLowerCase('fr-FR').replace(/\s+/g, '').replace(',', '.').trim();
 }
 
-async function recordPsrDiagnosticAnswer(question, choice, unknown = false) {
-  const correct = !unknown && choice === question.answer;
+function parsePsrMathsNumber(value) {
+  const parsed = Number(String(value || '').replace(',', '.').replace(/\s/g, ''));
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function psrMathsAnswerIsCorrect(question, value) {
+  if (question.type === 'select') return value === question.answer;
+  if (question.type === 'text') {
+    const candidate = normalisePsrMathsText(value);
+    return question.answer.some((answer) => normalisePsrMathsText(answer) === candidate);
+  }
+  const number = parsePsrMathsNumber(value);
+  return Number.isFinite(number) && Math.abs(number - question.answer) <= question.tolerance;
+}
+
+async function recordPsrDiagnosticAnswer(question, value, unknown = false) {
+  const correct = !unknown && psrMathsAnswerIsCorrect(question, value);
   await trackEvent('answer', question.id, {
     correct,
     unknown,
-    choice: unknown ? '' : choice,
+    choice: unknown ? '' : value,
     domain: question.domain,
   });
   await trackEvent('activity_completed', question.id, {
@@ -1120,43 +1136,66 @@ function renderPsrMathsDiagnostic(index = 0) {
   const question = PSR_MATHS_DIAGNOSTIC[index];
   if (!question) return renderPsrMathsFinish();
 
-  const shuffled = [...question.choices].sort(() => Math.random() - 0.5);
+  const inputMarkup = question.type === 'select'
+    ? `<select id="psr-diagnostic-answer" class="input" aria-label="Réponse à la question ${index + 1}">
+        <option value="">Choisir…</option>
+        ${question.options.map((option) => `<option value="${esc(option)}">${esc(option)}</option>`).join('')}
+      </select>`
+    : `<input id="psr-diagnostic-answer" class="input" type="text"
+        inputmode="${question.type === 'number' ? 'decimal' : 'text'}"
+        placeholder="${esc(question.placeholder || 'Ta réponse')}"
+        aria-label="Réponse à la question ${index + 1}" />`;
+
   $('student-session-message').innerHTML = `
     <div class="learner-stage numeracy-stage">
       <p class="eyebrow">Diagnostic de rentrée · ${index + 1}/${PSR_MATHS_DIAGNOSTIC.length}</p>
       <h3>${esc(question.prompt)}</h3>
       <p class="learner-help">Ce diagnostic n’est pas une note. Si tu ne sais pas, dis-le simplement : c’est une information utile pour le professeur.</p>
-      <div id="psr-diagnostic-choices" class="choice-grid"></div>
+      <div class="form-grid compact">
+        <label class="wide">Ta réponse
+          <div class="session-link-row">
+            ${inputMarkup}
+            ${question.suffix ? `<strong>${esc(question.suffix)}</strong>` : ''}
+          </div>
+        </label>
+      </div>
       <div class="practice-actions">
+        <button id="psr-diagnostic-submit" class="btn primary" type="button">Valider ma réponse</button>
         <button id="psr-diagnostic-unknown" class="btn ghost" type="button">Je ne sais pas</button>
         <button id="psr-diagnostic-next" class="btn primary hidden" type="button">${index === PSR_MATHS_DIAGNOSTIC.length - 1 ? 'Terminer' : 'Question suivante'}</button>
       </div>
       <p id="psr-diagnostic-feedback" class="feedback" aria-live="polite"></p>
     </div>`;
 
-  const grid = $('psr-diagnostic-choices');
-  const finishAnswer = async (choice, unknown) => {
-    grid.querySelectorAll('button').forEach((button) => { button.disabled = true; });
+  const input = $('psr-diagnostic-answer');
+  const finishAnswer = async (value, unknown) => {
+    const clean = String(value || '').trim();
+    if (!unknown && !clean) {
+      $('psr-diagnostic-feedback').className = 'feedback bad';
+      $('psr-diagnostic-feedback').textContent = 'Entre une réponse ou choisis « Je ne sais pas ».';
+      return;
+    }
+    input.disabled = true;
+    $('psr-diagnostic-submit').disabled = true;
     $('psr-diagnostic-unknown').disabled = true;
-    await recordPsrDiagnosticAnswer(question, choice, unknown);
+    await recordPsrDiagnosticAnswer(question, clean, unknown);
     $('psr-diagnostic-feedback').className = 'feedback';
     $('psr-diagnostic-feedback').textContent = unknown
-      ? 'Merci. “Je ne sais pas” est enregistré.'
+      ? 'Merci. « Je ne sais pas » est enregistré.'
       : 'Réponse enregistrée.';
     show('psr-diagnostic-next', true);
   };
 
-  shuffled.forEach((choice) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'choice-button';
-    button.dataset.choice = psrDiagnosticChoiceKey(choice);
-    button.textContent = choice;
-    button.addEventListener('click', () => finishAnswer(choice, false));
-    grid.appendChild(button);
-  });
+  $('psr-diagnostic-submit').addEventListener('click', () => finishAnswer(input.value, false));
   $('psr-diagnostic-unknown').addEventListener('click', () => finishAnswer('', true));
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && question.type !== 'select') {
+      event.preventDefault();
+      $('psr-diagnostic-submit').click();
+    }
+  });
   $('psr-diagnostic-next').addEventListener('click', () => renderPsrMathsDiagnostic(index + 1));
+  input.focus();
 }
 
 async function renderPsrMathsFinish() {
