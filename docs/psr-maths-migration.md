@@ -42,8 +42,8 @@ La Séance 1 ne s'ouvre plus directement sur la première question. Portail expo
 La première tranche ne prétend pas remplacer tout le site legacy. Restent notamment :
 
 - enrichissements visuels de la correction guidée, notamment fractions/pourcentages (la correction textuelle V1 est déjà migrée) ;
-- **Durées** et **Recettes & proportionnalité** sont maintenant natifs : contextes PSR, laboratoire manipulable, méthode et quatre situations d'entraînement chacun ;
-- restent à porter intégralement : Pourcentages, Données & statistiques, Équations, Graphiques & fonctions, Prix & commerce, Probabilités ;
+- **Durées**, **Recettes & proportionnalité**, **Pourcentages** et **Données & statistiques** sont maintenant natifs : contextes PSR, laboratoire manipulable, méthode et quatre situations d'entraînement chacun ;
+- restent à porter intégralement : Équations, Graphiques & fonctions, Prix & commerce, Probabilités ;
 - remédiation/ordre de parcours à réévaluer avec les observations terrain.
 
 Le suivi live, les rapports (diagnostic + défi) et le verrou **Corrigés** sont maintenant disponibles dans Portail pour cette Séance 1 native.
@@ -60,3 +60,12 @@ Le module reprend les trois contextes du legacy (cuisson, mise en place, organis
 Le module repart de l'idée concrète « changer les portions, garder la recette », avec un curseur 5–35 portions basé sur 10 portions (riz/légumes/sauce), affichage du coefficient et quatre situations de proportionnalité dont le coefficient décimal 3,2.
 
 Les essais de ces modules restent des **signaux d'entraînement**. Le suivi professeur affiche séparément Diagnostic / Défi / nombre de modules terminés au lieu d'additionner toutes les activités dans un score global.
+
+
+### Pourcentages
+
+Le module reprend les repères « part sur 100 », réduction et stock, avec une grille interactive de 100 cases, un curseur 0–100 %, les équivalences simples (1/4, 1/2, 3/4) et quatre situations : 25 % de 40, remise de 50 %, remise de 10 % et 30/50 → 60 %.
+
+### Données & statistiques
+
+Le module reprend les contextes ventes/stock/choix clients, avec un histogramme manipulable sur une semaine de menus servis. Le vendredi varie de 10 à 50 ; total, maximum, minimum et moyenne sont recalculés. Les quatre situations couvrent lecture/comparaison, moyenne, fréquence en pourcentage et valeur la plus fréquente.

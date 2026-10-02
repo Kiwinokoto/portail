@@ -1145,6 +1145,7 @@ const PSR_MATHS_MODULES = [
   { id:'commerce', label:'Prix & commerce', description:'Lire une facture, calculer une réduction et distinguer coût, prix et marge.' },
   { id:'probabilites', label:'Probabilités', description:'Comprendre le hasard, comparer fréquence et probabilité, puis simuler.' },
 ];
+const PSR_MATHS_NATIVE_MODULE_IDS = ['durees','recettes','pourcentages','donnees'];
 
 const PSR_MATHS_SEQUENCE = [
   { id:'overview', label:'Vue d’ensemble', phase:'Séquence' },
@@ -1225,7 +1226,7 @@ function psrMathsSequenceStatus(stepId) {
   if (PSR_MATHS_MODULES.some((module) => module.id === stepId)) {
     if (psrMathsModuleDone(stepId)) return 'terminé';
     if (!psrMathsChallengeDone()) return 'après défi';
-    return ['durees','recettes'].includes(stepId) ? 'disponible' : 'migration en cours';
+    return PSR_MATHS_NATIVE_MODULE_IDS.includes(stepId) ? 'disponible' : 'migration en cours';
   }
   return '';
 }
@@ -1258,6 +1259,8 @@ function openPsrMathsSequenceStep(stepId) {
   if (stepId === 'bilan') return renderPsrMathsBilan();
   if (stepId === 'durees') return renderPsrMathsDurationModule();
   if (stepId === 'recettes') return renderPsrMathsRecipesModule();
+  if (stepId === 'pourcentages') return renderPsrMathsPercentModule();
+  if (stepId === 'donnees') return renderPsrMathsDataModule();
   return renderPsrMathsModulePreview(stepId);
 }
 
@@ -1312,10 +1315,10 @@ function renderPsrMathsPathwayHome() {
         <div class="psr-module-grid">
           ${PSR_MATHS_MODULES.map((module) => `
             <article class="psr-module-card">
-              <span class="pill">${psrMathsModuleDone(module.id) ? 'terminé' : psrMathsChallengeDone() ? (['durees','recettes'].includes(module.id) ? 'disponible' : 'migration en cours') : 'après le défi'}</span>
+              <span class="pill">${psrMathsModuleDone(module.id) ? 'terminé' : psrMathsChallengeDone() ? (PSR_MATHS_NATIVE_MODULE_IDS.includes(module.id) ? 'disponible' : 'migration en cours') : 'après le défi'}</span>
               <h4>${esc(module.label)}</h4>
               <p>${esc(module.description)}</p>
-              <button class="btn ghost" type="button" data-open-psr="${esc(module.id)}" ${psrMathsSequenceUnlocked(module.id) ? '' : 'disabled'}>${['durees','recettes'].includes(module.id) ? 'Ouvrir le module' : 'Voir le module'}</button>
+              <button class="btn ghost" type="button" data-open-psr="${esc(module.id)}" ${psrMathsSequenceUnlocked(module.id) ? '' : 'disabled'}>${PSR_MATHS_NATIVE_MODULE_IDS.includes(module.id) ? 'Ouvrir le module' : 'Voir le module'}</button>
             </article>`).join('')}
         </div>
       </div>
@@ -1740,6 +1743,237 @@ function renderPsrMathsRecipesModule() {
     $('psr-recipe-q2').value = '5';
     $('psr-recipe-q3').value = '2250';
     $('psr-recipe-q4').value = '3.2';
+    await check();
+  });
+}
+
+function renderPsrMathsPercentModule() {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      ${renderPsrMathsSequenceNav('pourcentages')}
+      <div>
+        <p class="eyebrow">Module · Pourcentages</p>
+        <h3>Un pourcentage, c’est une part sur 100.</h3>
+        <p class="learner-help">En PSR, les pourcentages servent à lire une part, une réduction ou une évolution. On commence par voir la part, puis on calcule.</p>
+      </div>
+      <div class="psr-module-context-grid">
+        <article class="psr-module-context"><span>🥗</span><strong>Répartition</strong><p>Sur 100 menus, 30 sont végétariens : cela représente 30 %.</p></article>
+        <article class="psr-module-context"><span>🏷️</span><strong>Réduction</strong><p>Sur une formule à 10 €, 20 % représentent 2 €. Le nouveau prix est 8 €.</p></article>
+        <article class="psr-module-context"><span>📦</span><strong>Stock</strong><p>25 % de 40 produits, cela représente 10 produits.</p></article>
+      </div>
+      <div class="callout"><strong>À retenir :</strong> 50 % = 50 sur 100 = la moitié. Donc <strong>50 % = 1/2 = 2/4</strong>.</div>
+
+      <section class="psr-learning-lab">
+        <div><span class="pill">Manipule</span><h4>Colorie une part sur 100</h4><p class="muted">Chaque case vaut 1 %. Bouge le curseur et compare pourcentage, part sur 100 et écriture décimale.</p></div>
+        <div class="psr-percent-lab">
+          <div id="psr-percent-grid" class="psr-percent-grid" aria-label="Grille de cent cases représentant un pourcentage"></div>
+          <div>
+            <div class="psr-big-number"><span id="psr-percent-value">50</span><small>%</small></div>
+            <input id="psr-percent-slider" type="range" min="0" max="100" step="5" value="50">
+            <div id="psr-percent-equivalence" class="psr-percent-equivalence">50 % = 50/100 = 1/2 = 2/4</div>
+            <div class="psr-mini-stats">
+              <div class="psr-mini-stat">Sur 100<strong id="psr-percent-outof">50</strong></div>
+              <div class="psr-mini-stat">Décimal<strong id="psr-percent-decimal">0,5</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="psr-method-card">
+        <p class="eyebrow">Une méthode simple</p>
+        <div class="psr-method-steps">
+          <div><span>1</span><p>Repère le nombre total.</p></div>
+          <div><span>2</span><p>Transforme le pourcentage en part sur 100, en fraction simple ou en décimal.</p></div>
+          <div><span>3</span><p>Calcule la part puis vérifie si le résultat paraît logique.</p></div>
+        </div>
+        <div class="callout"><strong>25 % de 40</strong> → 25 % = 1/4 → 40 ÷ 4 = <strong>10</strong>.</div>
+      </section>
+
+      <section class="psr-module-practice">
+        <p class="eyebrow">À toi · 4 situations</p>
+        <div class="psr-challenge-questions">
+          <div class="psr-challenge-question"><label for="psr-percent-q1">1 · 25 % de 40 produits sont utilisés. Combien de produits ?</label><div class="session-link-row"><input id="psr-percent-q1" class="input" inputmode="decimal" type="text"><strong>produits</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-percent-q2">2 · Un menu coûte 18 €. Remise de 50 %. Quel nouveau prix ?</label><div class="session-link-row"><input id="psr-percent-q2" class="input" inputmode="decimal" type="text"><strong>€</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-percent-q3">3 · Une formule coûte 20 €. On retire 10 %. Quel prix reste à payer ?</label><div class="session-link-row"><input id="psr-percent-q3" class="input" inputmode="decimal" type="text"><strong>€</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-percent-q4">4 · 30 commandes sur 50 concernent le menu A. Quel pourcentage ?</label><select id="psr-percent-q4" class="input"><option value="">Choisir…</option><option value="30">30 %</option><option value="50">50 %</option><option value="60">60 %</option><option value="80">80 %</option></select></div>
+        </div>
+        <div id="psr-percent-feedback" class="callout hidden" aria-live="polite"></div>
+        <div class="practice-actions">
+          <button id="psr-check-percent" class="btn primary" type="button">Vérifier</button>
+          ${state.previewMode ? '<button id="psr-percent-answers" class="btn secondary" type="button">Voir les réponses</button>' : ''}
+          <button class="btn secondary" type="button" data-open-psr="donnees">Module suivant · Données</button>
+          <button class="btn ghost" type="button" data-open-psr="overview">Retour au parcours</button>
+        </div>
+      </section>
+    </div>`;
+
+  bindPsrMathsSequenceNav();
+  document.querySelectorAll('[data-open-psr]').forEach((button) => button.addEventListener('click', () => openPsrMathsSequenceStep(button.dataset.openPsr)));
+
+  const grid = $('psr-percent-grid');
+  grid.innerHTML = Array.from({ length:100 }, (_, index) => `<span data-cell="${index}"></span>`).join('');
+  const slider = $('psr-percent-slider');
+  const updateLab = () => {
+    const value = Number(slider.value);
+    $('psr-percent-value').textContent = String(value);
+    $('psr-percent-outof').textContent = String(value);
+    $('psr-percent-decimal').textContent = formatPsrNumber(value / 100);
+    const equivalences = {
+      0:'0 % = 0/100 = rien',
+      25:'25 % = 25/100 = 1/4',
+      50:'50 % = 50/100 = 1/2 = 2/4',
+      75:'75 % = 75/100 = 3/4',
+      100:'100 % = 100/100 = tout',
+    };
+    $('psr-percent-equivalence').textContent = equivalences[value] || `${value} % = ${value}/100`;
+    grid.querySelectorAll('span').forEach((cell, index) => cell.classList.toggle('filled', index < value));
+  };
+  slider.addEventListener('input', updateLab);
+  updateLab();
+
+  const check = async () => {
+    const checks = [
+      { id:'psr-percent-q1', domain:'Calculer une part', correct:Math.abs(parsePsrMathsNumber($('psr-percent-q1').value) - 10) < 0.001 },
+      { id:'psr-percent-q2', domain:'Moitié / réduction', correct:Math.abs(parsePsrMathsNumber($('psr-percent-q2').value) - 9) < 0.001 },
+      { id:'psr-percent-q3', domain:'Réduction', correct:Math.abs(parsePsrMathsNumber($('psr-percent-q3').value) - 18) < 0.001 },
+      { id:'psr-percent-q4', domain:'Part vers pourcentage', correct:$('psr-percent-q4').value === '60' },
+    ];
+    const count = checks.filter((item) => item.correct).length;
+    await recordPsrModuleChecks('pourcentages', checks);
+    show('psr-percent-feedback', true);
+    $('psr-percent-feedback').innerHTML = `<strong>${count}/4 situations réussies.</strong><div class="feedback-lines">
+      <span>${checks[0].correct ? '✓' : '↻'} 25 % de 40 = <b>10</b></span>
+      <span>${checks[1].correct ? '✓' : '↻'} 50 % de 18 € = 9 €, donc nouveau prix <b>9 €</b></span>
+      <span>${checks[2].correct ? '✓' : '↻'} 10 % de 20 € = 2 €, donc prix <b>18 €</b></span>
+      <span>${checks[3].correct ? '✓' : '↻'} 30 ÷ 50 = 0,6 = <b>60 %</b></span>
+    </div>`;
+  };
+  $('psr-check-percent').addEventListener('click', check);
+  $('psr-percent-answers')?.addEventListener('click', async () => {
+    $('psr-percent-q1').value = '10';
+    $('psr-percent-q2').value = '9';
+    $('psr-percent-q3').value = '18';
+    $('psr-percent-q4').value = '60';
+    await check();
+  });
+}
+
+function renderPsrMathsDataModule() {
+  const baseValues = [24,32,28,40,26];
+  const labels = ['Lun','Mar','Mer','Jeu','Ven'];
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      ${renderPsrMathsSequenceNav('donnees')}
+      <div>
+        <p class="eyebrow">Module · Données & statistiques</p>
+        <h3>Lire des données pour décider.</h3>
+        <p class="learner-help">Un tableau ou un graphique aide à comparer des jours, repérer un maximum et résumer plusieurs valeurs.</p>
+      </div>
+      <div class="psr-module-context-grid">
+        <article class="psr-module-context"><span>📊</span><strong>Ventes</strong><p>Comparer le nombre de menus servis chaque jour.</p></article>
+        <article class="psr-module-context"><span>📦</span><strong>Stock</strong><p>Repérer les produits les plus ou les moins utilisés.</p></article>
+        <article class="psr-module-context"><span>🥪</span><strong>Choix clients</strong><p>Voir quel menu revient le plus souvent.</p></article>
+      </div>
+      <div class="callout"><strong>Avant de calculer :</strong> lis le titre, les unités et les valeurs. Pour une moyenne : on additionne, puis on divise par le nombre de valeurs.</div>
+
+      <section class="psr-learning-lab">
+        <div><span class="pill">Manipule</span><h4>Une semaine de menus servis</h4><p class="muted">Fais varier le vendredi. Observe comment le graphique, le total et la moyenne changent.</p></div>
+        <div class="psr-data-lab">
+          <div id="psr-data-chart" class="psr-data-chart" aria-label="Menus servis du lundi au vendredi">
+            ${labels.map((label,index) => `
+              <div class="psr-data-col">
+                <strong id="psr-data-value-${index}">${baseValues[index]}</strong>
+                <div class="psr-data-track"><span id="psr-data-bar-${index}" class="psr-data-bar"></span></div>
+                <small>${label}</small>
+              </div>`).join('')}
+          </div>
+          <div>
+            <label for="psr-data-friday"><strong>Menus servis vendredi</strong></label>
+            <div class="psr-big-number"><span id="psr-data-friday-label">26</span><small>menus</small></div>
+            <input id="psr-data-friday" type="range" min="10" max="50" step="1" value="26">
+            <div class="psr-mini-stats">
+              <div class="psr-mini-stat">Total<strong id="psr-data-total"></strong></div>
+              <div class="psr-mini-stat">Maximum<strong id="psr-data-max"></strong></div>
+              <div class="psr-mini-stat">Minimum<strong id="psr-data-min"></strong></div>
+              <div class="psr-mini-stat">Moyenne<strong id="psr-data-average"></strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="psr-method-card">
+        <p class="eyebrow">Une méthode simple</p>
+        <div class="psr-method-steps">
+          <div><span>1</span><p>Lis ce que représentent les nombres et leur unité.</p></div>
+          <div><span>2</span><p>Compare : plus grand, plus petit, écarts.</p></div>
+          <div><span>3</span><p>Pour une moyenne : additionne puis divise par le nombre de valeurs.</p></div>
+        </div>
+        <div class="callout"><strong>20, 30 et 40 menus</strong> → total 90 → 90 ÷ 3 = <strong>30</strong>.</div>
+      </section>
+
+      <section class="psr-module-practice">
+        <p class="eyebrow">À toi · 4 situations</p>
+        <div class="psr-challenge-questions">
+          <div class="psr-challenge-question"><label for="psr-data-q1">1 · Lundi 20, mardi 35, mercredi 30. Quel jour a le plus de menus ?</label><select id="psr-data-q1" class="input"><option value="">Choisir…</option><option value="lundi">Lundi</option><option value="mardi">Mardi</option><option value="mercredi">Mercredi</option></select></div>
+          <div class="psr-challenge-question"><label for="psr-data-q2">2 · 20, 30 et 40 menus sur trois jours. Quelle moyenne ?</label><div class="session-link-row"><input id="psr-data-q2" class="input" inputmode="decimal" type="text"><strong>menus</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-data-q3">3 · 12 commandes sur 40 sont végétariennes. Quelle fréquence ?</label><div class="session-link-row"><input id="psr-data-q3" class="input" inputmode="decimal" type="text"><strong>%</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-data-q4">4 · Dans 18, 22, 22, 30, quelle valeur apparaît le plus souvent ?</label><select id="psr-data-q4" class="input"><option value="">Choisir…</option><option value="18">18</option><option value="22">22</option><option value="30">30</option><option value="23">23</option></select></div>
+        </div>
+        <div id="psr-data-feedback" class="callout hidden" aria-live="polite"></div>
+        <div class="practice-actions">
+          <button id="psr-check-data" class="btn primary" type="button">Vérifier</button>
+          ${state.previewMode ? '<button id="psr-data-answers" class="btn secondary" type="button">Voir les réponses</button>' : ''}
+          <button class="btn secondary" type="button" data-open-psr="equations">Module suivant · Équations</button>
+          <button class="btn ghost" type="button" data-open-psr="overview">Retour au parcours</button>
+        </div>
+      </section>
+    </div>`;
+
+  bindPsrMathsSequenceNav();
+  document.querySelectorAll('[data-open-psr]').forEach((button) => button.addEventListener('click', () => openPsrMathsSequenceStep(button.dataset.openPsr)));
+
+  const friday = $('psr-data-friday');
+  const updateLab = () => {
+    const values = [...baseValues];
+    values[4] = Number(friday.value);
+    const total = values.reduce((sum,value) => sum + value, 0);
+    const average = total / values.length;
+    values.forEach((value,index) => {
+      $('psr-data-value-' + index).textContent = String(value);
+      $('psr-data-bar-' + index).style.height = `${Math.max(8, value / 50 * 100)}%`;
+    });
+    $('psr-data-friday-label').textContent = String(values[4]);
+    $('psr-data-total').textContent = String(total);
+    $('psr-data-max').textContent = String(Math.max(...values));
+    $('psr-data-min').textContent = String(Math.min(...values));
+    $('psr-data-average').textContent = formatPsrNumber(average);
+  };
+  friday.addEventListener('input', updateLab);
+  updateLab();
+
+  const check = async () => {
+    const checks = [
+      { id:'psr-data-q1', domain:'Lire et comparer', correct:$('psr-data-q1').value === 'mardi' },
+      { id:'psr-data-q2', domain:'Moyenne', correct:Math.abs(parsePsrMathsNumber($('psr-data-q2').value) - 30) < 0.001 },
+      { id:'psr-data-q3', domain:'Fréquence', correct:Math.abs(parsePsrMathsNumber($('psr-data-q3').value) - 30) < 0.001 },
+      { id:'psr-data-q4', domain:'Valeur fréquente', correct:$('psr-data-q4').value === '22' },
+    ];
+    const count = checks.filter((item) => item.correct).length;
+    await recordPsrModuleChecks('donnees', checks);
+    show('psr-data-feedback', true);
+    $('psr-data-feedback').innerHTML = `<strong>${count}/4 situations réussies.</strong><div class="feedback-lines">
+      <span>${checks[0].correct ? '✓' : '↻'} 35 est la plus grande valeur : <b>mardi</b></span>
+      <span>${checks[1].correct ? '✓' : '↻'} (20 + 30 + 40) ÷ 3 = <b>30</b></span>
+      <span>${checks[2].correct ? '✓' : '↻'} 12 ÷ 40 = 0,3 = <b>30 %</b></span>
+      <span>${checks[3].correct ? '✓' : '↻'} <b>22</b> apparaît deux fois</span>
+    </div>`;
+  };
+  $('psr-check-data').addEventListener('click', check);
+  $('psr-data-answers')?.addEventListener('click', async () => {
+    $('psr-data-q1').value = 'mardi';
+    $('psr-data-q2').value = '30';
+    $('psr-data-q3').value = '30';
+    $('psr-data-q4').value = '22';
     await check();
   });
 }
@@ -2889,6 +3123,8 @@ PSR_MATHS_ITEM_LABELS['psr-challenge-revenue'] = 'Défi · chiffre d’affaires'
 PSR_MATHS_ITEM_LABELS['psr-maths-challenge-v1'] = 'Défi PSR terminé';
 PSR_MATHS_ITEM_LABELS['psr-module-durees-v1'] = 'Module Durées terminé';
 PSR_MATHS_ITEM_LABELS['psr-module-recettes-v1'] = 'Module Recettes terminé';
+PSR_MATHS_ITEM_LABELS['psr-module-pourcentages-v1'] = 'Module Pourcentages terminé';
+PSR_MATHS_ITEM_LABELS['psr-module-donnees-v1'] = 'Module Données terminé';
 
 function renderPsrMathsReportDetail(report) {
   state.reportSessionId = report.session.id;
@@ -2910,7 +3146,7 @@ function renderPsrMathsReportDetail(report) {
     ...PSR_MATHS_DIAGNOSTIC.map((item) => item.id),
     'psr-maths-rentree-v1',
     'psr-challenge-factor','psr-challenge-time','psr-challenge-revenue','psr-maths-challenge-v1',
-    'psr-module-durees-v1','psr-module-recettes-v1'
+    ...PSR_MATHS_NATIVE_MODULE_IDS.map((id) => `psr-module-${id}-v1`)
   ];
   const items = (report.items || []).filter((item) => ids.includes(item.item_id));
   $('report-item-summary').innerHTML = items.map((item) => `
@@ -2927,7 +3163,7 @@ function renderPsrMathsReportDetail(report) {
     const challengeCorrect = challengeItems.reduce((sum, id) => sum + learnerItem(learner, id).correct_answers, 0);
     const diagnosticDone = learnerItem(learner, 'psr-maths-rentree-v1').completed;
     const challengeDone = learnerItem(learner, 'psr-maths-challenge-v1').completed;
-    const moduleDone = ['durees','recettes'].filter((id) =>
+    const moduleDone = PSR_MATHS_NATIVE_MODULE_IDS.filter((id) =>
       learnerItem(learner, `psr-module-${id}-v1`).completed
     ).length;
     return `
@@ -2936,7 +3172,7 @@ function renderPsrMathsReportDetail(report) {
         <td>${diagnosticDone ? 'Terminé' : learner.started ? 'En cours' : '—'}</td>
         <td>${learner.unknown_answers || 0}</td>
         <td>${challengeAttempts ? `${challengeCorrect}/${challengeAttempts}` : '—'}</td>
-        <td>${moduleDone ? `${moduleDone}/2` : '—'}</td>
+        <td>${moduleDone ? `${moduleDone}/${PSR_MATHS_NATIVE_MODULE_IDS.length}` : '—'}</td>
         <td>${moduleDone ? 'Modules en cours' : challengeDone ? 'Défi terminé' : diagnosticDone ? 'Diagnostic terminé' : learner.started ? 'En cours' : '—'}</td>
       </tr>`;
   }).join('');
