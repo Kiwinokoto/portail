@@ -17,6 +17,8 @@ Teacher tooling uses one shared five-workspace vocabulary across internal and ex
 Navigation is deliberately: **Formation → Subject → Subject pathway**.
 Do not add a CAP/Bac Pro family layer to the main navigation unless a real UX need appears.
 
+Cross-app teacher transitions are part of the same UX: when Portail opens Maths LGC or another external teacher tool, preserve the requested workspace/session across SSO and do not expose a second login step or redundant “teacher space” navigation when the user is already authenticated.
+
 ## ADA teacher/assessment invariants
 - Teacher preview must never persist learner activity: ADA preview runs without a signed join token, learner localStorage identity or event writes.
 - Literacy probes must preserve their narrow meaning: visual matching is not reading, guided sound→letter is not autonomous decoding, useful-word recognition is word-specific, and the writing canvas records only that a gesture was attempted.

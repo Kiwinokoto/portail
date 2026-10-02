@@ -62,8 +62,9 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [ ] Grow the concept manifest progressively toward roughly 500–2,000 familiar concepts; keep concept IDs language-neutral so later translations do not duplicate image assets.
 - [ ] Add an Open Images adapter for boxable concepts and optional automatic crops after the Wikimedia/Openverse workflow has been field-reviewed.
 - [ ] Decide later, after classroom observation, whether practice history should remain coarse (started/audio only), record simple completion/repetition signals, or drive adaptive repetition. Do not feed raw practice attempts into positioning reports by default.
-- [x] Add a temporary admin-only French audio comparison lab for the 61-word seed: Browser Web Speech vs automatic French Wiktionary/Commons audio vs the Lingua Libre speaker Sartus85. The selector is diagnostic only and does not change learner audio yet; Wikimedia candidates are fetched read-only at test time with file/licence/speaker metadata shown to the admin.
-- [ ] Listen through a representative sample in the admin audio lab, choose the preferred human/main source and acceptable fallbacks, then vendor the selected files locally before making them learner defaults.
+- [x] Compare Browser Web Speech, automatic Wiktionary/Commons audio and Sartus85 on real hardware. Decision 2 October 2026: prefer human Lingua Libre recordings for isolated vocabulary, with Sartus85 as the main voice; browser speech synthesis is only a fallback for unmatched dynamic text/phrases.
+- [x] Remove the temporary admin audio lab after the decision and wire the current vocabulary/oral-word flows to the human-first audio resolver. Keep source/licence provenance under `assets/audio/README.md`.
+- [ ] Replace remaining browser-TTS-only phrases/instructions with curated or generated high-quality audio where the wording must be spoken verbatim; do not silently rely on Web Speech availability.
 
 ## P2 — maths convergence
 
@@ -79,7 +80,7 @@ Do not add a visible CAP/Bac Pro family level for now.
 - [x] Add ADA numeracy foundation V1 separately from CAP-level Maths LGC: concrete quantity, spoken numeral, quantity comparison, concrete addition and written money amount.
 - [x] Validate the cross-device ownership mechanism manually: a session created on phone under the Portail identity was recovered on desktop in Maths LGC (1 October 2026).
 - [x] Add a server-to-server recent-session aggregation contract so Portail can surface teacher-owned Maths sessions without duplicating them. Maths remains source of truth; the handoff reuses one-time PKCE SSO proof.
-- [ ] Recheck the Portail recent-session UX after deployment: a Maths session should appear directly in « Mes séances récentes » and deep-link to its own follow-up.
+- [ ] Recheck the Portail recent-session UX after the Maths deep-link fix: an owned Maths session already appears directly in « Mes séances récentes »; « Ouvrir le suivi » must now land on that exact session with the live-follow-up section focused, without an extra visible authentication step.
 
 ## Field validation still pending
 
