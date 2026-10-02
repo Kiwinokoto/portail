@@ -1,8 +1,8 @@
 # AGENTS.md — portail
 
 ## Purpose
-Temporary LGC pedagogical portal used while Moodle integration is still maturing.
-It provides a lightweight teacher workspace for interactive courses, sessions and learner follow-up.
+Canonical LGC pedagogical workspace for the courses and training modules currently being built and field-tested before any later Moodle integration.
+It provides one teacher/learner entry point for formations, subjects, sequences, sessions, interactive activities and learner follow-up.
 
 ## Source of truth
 - Canonical repository: `Kiwinokoto/portail`.
@@ -17,7 +17,7 @@ Teacher tooling uses one shared five-workspace vocabulary across internal and ex
 Navigation is deliberately: **Formation → Subject → Subject pathway**.
 Do not add a CAP/Bac Pro family layer to the main navigation unless a real UX need appears.
 
-Cross-app teacher transitions are part of the same UX: when Portail opens Maths LGC or another external teacher tool, preserve the requested workspace/session across SSO and do not expose a second login step or redundant “teacher space” navigation when the user is already authenticated.
+Portail is the canonical runtime for new pedagogical work. Do not create a second teacher shell, authentication flow or new-course navigation in subject-specific legacy sites. Existing legacy sites may stay online temporarily for already-running cohorts, but new sessions and migrated course content belong in Portail. External links are compatibility fallbacks, not the target architecture.
 
 ## ADA teacher/assessment invariants
 - Teacher preview must never persist learner activity: ADA preview runs without a signed join token, learner localStorage identity or event writes.
@@ -47,12 +47,12 @@ Initial formations:
 - ADA
 
 Initial subjects:
-- PSR → Mathematics (legacy course currently lives at `maths.lagrandeclasse.fr`)
+- PSR → Mathematics (migrating into Portail; `maths.lagrandeclasse.fr` is legacy-only for existing cohorts)
 - ADA → French / literacy
 - ADA → Mathematics / numeracy (internal V1)
 
 ## Product boundaries
-The portal owns, temporarily:
+The portal owns for the current field-testing phase:
 - teacher authentication and a tiny admin user manager;
 - formation/subject catalogue;
 - teacher sessions, student join links/QR codes;
@@ -63,8 +63,8 @@ The portal does **not** aim to recreate Moodle. Do not add timetables, messaging
 Long term, identities/groups move to Moodle, pathway orchestration to Roads, ordinary course content to Moodle/Factory, while genuinely interactive activities may remain web modules.
 
 ## Security
-- Cross-app teacher SSO uses a short-lived, one-time authorization code bound to a PKCE challenge. Never put the portal teacher token or the Maths legacy teacher token in a URL, browser-storage handoff, or cross-subdomain cookie.
-- Maths LGC is the only allowed SSO target in V1; callback destination is fixed server-side, so there is no open redirect.
+- Legacy cross-app teacher SSO, while it remains enabled for existing Maths cohorts, uses a short-lived one-time authorization code bound to a PKCE challenge. Never put teacher tokens in URLs, browser-storage handoffs or cross-subdomain cookies.
+- Do not extend the legacy SSO architecture to newly migrated subjects: new teacher workflows stay inside Portail.
 - Never store plaintext teacher tokens in SQLite; store SHA-256 only because tokens are high-entropy generated secrets, not passwords.
 - Browser authentication uses opaque server-side sessions and HttpOnly cookies.
 - Student access uses signed session links, not student accounts in V1.
@@ -93,7 +93,7 @@ Before deployment, also smoke-test `/healthz`, teacher login, admin user creatio
 
 ## Field-validation discipline
 - Distinguish automated validation from field validation. Do not mark a browser/device/classroom behavior as validated merely because unit/smoke tests pass.
-- Maths SSO-owned session recovery across distinct devices is manually validated at the ownership/backend level: on 1 October 2026, Kevin created an SSO-owned Maths session on his phone and recovered it on desktop under the same Portail identity. The remaining field check is UX-level: Portail's own recent-session surface must show those external Maths sessions without first entering Maths.
+- Legacy Maths SSO-owned session recovery across distinct devices was manually validated on 1 October 2026. This is compatibility evidence only; new PSR Maths sessions should be created and followed natively in Portail once the migrated pathway is available.
 - Do not deepen literacy or numeracy inference until the current learner flows have been observed on actual target devices.
 
 ## Handoff
