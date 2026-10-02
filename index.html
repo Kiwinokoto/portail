@@ -217,6 +217,30 @@
         </div>
         <div id="new-token-box" class="token-box hidden"></div>
       </div>
+      <div class="panel flat">
+        <p class="eyebrow">Test temporaire · audio</p>
+        <h3>Comparer les voix françaises</h3>
+        <p class="muted">Compare la synthèse du navigateur avec un choix automatique Wiktionary et le locuteur Lingua Libre Sartus85. Ce réglage de test n’affecte pas encore les activités élèves.</p>
+        <div class="form-grid compact">
+          <label class="wide">Mot français
+            <input id="admin-audio-word" class="input" list="admin-audio-words" value="téléphone" autocomplete="off" />
+            <datalist id="admin-audio-words"></datalist>
+          </label>
+          <label>Source
+            <select id="admin-audio-source" class="input">
+              <option value="wiktionary">Wiki automatique</option>
+              <option value="sartus85">Sartus85</option>
+              <option value="browser">Navigateur</option>
+            </select>
+          </label>
+          <div class="wide row">
+            <button id="admin-audio-play" class="btn secondary" type="button">🔊 Écouter</button>
+            <button id="admin-audio-stop" class="btn ghost" type="button">Arrêter</button>
+            <span id="admin-audio-status" class="status" aria-live="polite"></span>
+          </div>
+        </div>
+        <p id="admin-audio-meta" class="muted"></p>
+      </div>
       <div id="users-list" class="user-list"></div>
     </dialog>
   </main>
