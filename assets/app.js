@@ -1195,6 +1195,20 @@ function psrMathsChallengeDone() {
   return state.previewMode || Boolean(readPsrMathsMeta().challengeDone);
 }
 
+function psrMathsModuleDone(moduleId) {
+  if (state.previewMode) return false;
+  const completed = readPsrMathsMeta().completedModules;
+  return Array.isArray(completed) && completed.includes(moduleId);
+}
+
+function markPsrMathsModuleDone(moduleId) {
+  if (state.previewMode) return;
+  const current = readPsrMathsMeta();
+  const completed = new Set(Array.isArray(current.completedModules) ? current.completedModules : []);
+  completed.add(moduleId);
+  writePsrMathsMeta({ completedModules:[...completed] });
+}
+
 function psrMathsSequenceUnlocked(stepId) {
   if (state.previewMode) return true;
   if (['overview','intro','diagnostic'].includes(stepId)) return true;
@@ -1238,6 +1252,8 @@ function openPsrMathsSequenceStep(stepId) {
   }
   if (stepId === 'challenge') return renderPsrMathsChallenge();
   if (stepId === 'bilan') return renderPsrMathsBilan();
+  if (stepId === 'durees') return renderPsrMathsDurationModule();
+  if (stepId === 'recettes') return renderPsrMathsRecipesModule();
   return renderPsrMathsModulePreview(stepId);
 }
 
@@ -1292,10 +1308,10 @@ function renderPsrMathsPathwayHome() {
         <div class="psr-module-grid">
           ${PSR_MATHS_MODULES.map((module) => `
             <article class="psr-module-card">
-              <span class="pill">${psrMathsChallengeDone() ? 'suite du parcours' : 'après le défi'}</span>
+              <span class="pill">${psrMathsModuleDone(module.id) ? 'terminé' : psrMathsChallengeDone() ? (['durees','recettes'].includes(module.id) ? 'disponible' : 'migration en cours') : 'après le défi'}</span>
               <h4>${esc(module.label)}</h4>
               <p>${esc(module.description)}</p>
-              <button class="btn ghost" type="button" data-open-psr="${esc(module.id)}" ${psrMathsSequenceUnlocked(module.id) ? '' : 'disabled'}>Voir le module</button>
+              <button class="btn ghost" type="button" data-open-psr="${esc(module.id)}" ${psrMathsSequenceUnlocked(module.id) ? '' : 'disabled'}>${['durees','recettes'].includes(module.id) ? 'Ouvrir le module' : 'Voir le module'}</button>
             </article>`).join('')}
         </div>
       </div>
@@ -1491,6 +1507,237 @@ function renderPsrMathsBilan() {
     </div>`;
   bindPsrMathsSequenceNav();
   $('psr-bilan-overview').addEventListener('click', renderPsrMathsPathwayHome);
+}
+
+function parsePsrClock(value) {
+  const match = /^(\d{1,2})\s*(?:h|:|\.)\s*(\d{1,2})$/i.exec(String(value || '').trim());
+  if (!match) return NaN;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return NaN;
+  return hours * 60 + minutes;
+}
+
+function formatPsrClock(totalMinutes) {
+  const minutes = ((Number(totalMinutes) % 1440) + 1440) % 1440;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return `${hours} h ${String(rest).padStart(2, '0')}`;
+}
+
+async function recordPsrModuleChecks(moduleId, checks) {
+  if (state.previewMode) return;
+  for (const check of checks) {
+    await trackEvent('answer', check.id, { correct:check.correct, domain:check.domain, module:moduleId });
+    if (check.correct) {
+      await trackEvent('activity_completed', check.id, { domain:check.domain, module:moduleId });
+    }
+  }
+  if (checks.every((check) => check.correct)) {
+    markPsrMathsModuleDone(moduleId);
+    await trackEvent('activity_completed', `psr-module-${moduleId}-v1`, { module:moduleId });
+  }
+}
+
+function renderPsrMathsDurationModule() {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      ${renderPsrMathsSequenceNav('durees')}
+      <div>
+        <p class="eyebrow">Module · Durées</p>
+        <h3>Heures et minutes, sans piège.</h3>
+        <p class="learner-help">En restauration, le temps sert à organiser le travail : commencer une préparation, respecter une cuisson et être prêt avant le service.</p>
+      </div>
+      <div class="psr-module-context-grid">
+        <article class="psr-module-context"><span>🍲</span><strong>Cuisson</strong><p>Une soupe commence à 9 h 35 et cuit 50 min. Quand est-elle prête ?</p></article>
+        <article class="psr-module-context"><span>🧑‍🍳</span><strong>Mise en place</strong><p>Le service est à 11 h 45. Il faut 35 min avant. Quand commencer ?</p></article>
+        <article class="psr-module-context"><span>🧽</span><strong>Organisation</strong><p>Une tâche va de 10 h 15 à 12 h 00. Combien de temps dure-t-elle ?</p></article>
+      </div>
+      <div class="callout"><strong>À retenir :</strong> 1 heure = 60 minutes. Une heure n’a pas 100 minutes.</div>
+
+      <section class="psr-learning-lab">
+        <div><span class="pill">Manipule</span><h4>Fais bouger le temps</h4><p class="muted">Change le départ et la durée : l’heure de fin se recalcule immédiatement.</p></div>
+        <div class="psr-time-controls">
+          <label><span>Départ</span><strong id="psr-time-start-label">9 h 35</strong><input id="psr-time-start" type="range" min="480" max="780" step="5" value="575"></label>
+          <label><span>Durée</span><strong><span id="psr-time-duration-label">50</span> min</strong><input id="psr-time-duration" type="range" min="10" max="120" step="5" value="50"></label>
+        </div>
+        <div class="psr-time-equation"><span id="psr-time-start-value"></span><b>+</b><span id="psr-time-duration-value"></span><b>=</b><strong id="psr-time-end-value"></strong></div>
+      </section>
+
+      <section class="psr-method-card">
+        <p class="eyebrow">Une méthode simple</p>
+        <div class="psr-method-steps">
+          <div><span>1</span><p>Va jusqu’à l’heure ronde.</p></div>
+          <div><span>2</span><p>Regarde combien de minutes tu as utilisées.</p></div>
+          <div><span>3</span><p>Ajoute les minutes qui restent.</p></div>
+        </div>
+        <div class="callout"><strong>9 h 35 + 50 min</strong> → +25 min = 10 h 00 → il reste 25 min → <strong>10 h 25</strong>.</div>
+      </section>
+
+      <section class="psr-module-practice">
+        <p class="eyebrow">À toi · 4 situations</p>
+        <div class="psr-challenge-questions">
+          <div class="psr-challenge-question"><label for="psr-duration-q1">1 · 9 h 35 + 50 min : heure de fin ?</label><input id="psr-duration-q1" class="input" type="text" placeholder="ex. 10 h 25"></div>
+          <div class="psr-challenge-question"><label for="psr-duration-q2">2 · Service à 11 h 45, mise en place 35 min : heure de départ ?</label><input id="psr-duration-q2" class="input" type="text" placeholder="ex. 11 h 10"></div>
+          <div class="psr-challenge-question"><label for="psr-duration-q3">3 · De 10 h 15 à 12 h 00 : combien de minutes ?</label><div class="session-link-row"><input id="psr-duration-q3" class="input" inputmode="numeric" type="text"><strong>min</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-duration-q4">4 · 1 h 30 correspond à combien de minutes ?</label><select id="psr-duration-q4" class="input"><option value="">Choisir…</option><option value="30">30 min</option><option value="60">60 min</option><option value="90">90 min</option><option value="130">130 min</option></select></div>
+        </div>
+        <div id="psr-duration-feedback" class="callout hidden" aria-live="polite"></div>
+        <div class="practice-actions">
+          <button id="psr-check-duration" class="btn primary" type="button">Vérifier</button>
+          ${state.previewMode ? '<button id="psr-duration-answers" class="btn secondary" type="button">Voir les réponses</button>' : ''}
+          <button class="btn secondary" type="button" data-open-psr="recettes">Module suivant · Recettes</button>
+          <button class="btn ghost" type="button" data-open-psr="overview">Retour au parcours</button>
+        </div>
+      </section>
+    </div>`;
+
+  bindPsrMathsSequenceNav();
+  document.querySelectorAll('[data-open-psr]').forEach((button) => button.addEventListener('click', () => openPsrMathsSequenceStep(button.dataset.openPsr)));
+
+  const startRange = $('psr-time-start');
+  const durationRange = $('psr-time-duration');
+  const updateLab = () => {
+    const start = Number(startRange.value);
+    const duration = Number(durationRange.value);
+    $('psr-time-start-label').textContent = formatPsrClock(start);
+    $('psr-time-duration-label').textContent = String(duration);
+    $('psr-time-start-value').textContent = formatPsrClock(start);
+    $('psr-time-duration-value').textContent = `${duration} min`;
+    $('psr-time-end-value').textContent = formatPsrClock(start + duration);
+  };
+  startRange.addEventListener('input', updateLab);
+  durationRange.addEventListener('input', updateLab);
+  updateLab();
+
+  const check = async () => {
+    const checks = [
+      { id:'psr-duration-q1', domain:'Ajouter une durée', correct:parsePsrClock($('psr-duration-q1').value) === 625 },
+      { id:'psr-duration-q2', domain:'Revenir en arrière', correct:parsePsrClock($('psr-duration-q2').value) === 670 },
+      { id:'psr-duration-q3', domain:'Calculer une durée', correct:Math.abs(parsePsrMathsNumber($('psr-duration-q3').value) - 105) < 0.001 },
+      { id:'psr-duration-q4', domain:'Convertir', correct:$('psr-duration-q4').value === '90' },
+    ];
+    const count = checks.filter((item) => item.correct).length;
+    await recordPsrModuleChecks('durees', checks);
+    show('psr-duration-feedback', true);
+    $('psr-duration-feedback').innerHTML = `<strong>${count}/4 situations réussies.</strong><div class="feedback-lines">
+      <span>${checks[0].correct ? '✓' : '↻'} 9 h 35 + 50 min = <b>10 h 25</b></span>
+      <span>${checks[1].correct ? '✓' : '↻'} 11 h 45 − 35 min = <b>11 h 10</b></span>
+      <span>${checks[2].correct ? '✓' : '↻'} 10 h 15 → 12 h 00 = <b>105 min</b></span>
+      <span>${checks[3].correct ? '✓' : '↻'} 1 h 30 = <b>90 min</b></span>
+    </div>`;
+  };
+  $('psr-check-duration').addEventListener('click', check);
+  $('psr-duration-answers')?.addEventListener('click', async () => {
+    $('psr-duration-q1').value = '10 h 25';
+    $('psr-duration-q2').value = '11 h 10';
+    $('psr-duration-q3').value = '105';
+    $('psr-duration-q4').value = '90';
+    await check();
+  });
+}
+
+function renderPsrMathsRecipesModule() {
+  $('student-session-message').innerHTML = `
+    <div class="learner-stage">
+      ${renderPsrMathsSequenceNav('recettes')}
+      <div>
+        <p class="eyebrow">Module · Recettes & proportionnalité</p>
+        <h3>Changer les portions, garder la recette.</h3>
+        <p class="learner-help">Si le nombre de clients change, les quantités changent de la même façon. C’est l’idée de proportionnalité.</p>
+      </div>
+      <div class="psr-module-context-grid">
+        <article class="psr-module-context"><span>🍚</span><strong>Recette</strong><p>5 portions utilisent 400 g de riz. Pour 15 portions, il faut trois fois plus.</p></article>
+        <article class="psr-module-context"><span>🥤</span><strong>Boisson</strong><p>2 L suffisent pour 8 personnes. Pour 20 personnes, on conserve la même proportion.</p></article>
+        <article class="psr-module-context"><span>📦</span><strong>Barquettes</strong><p>6 barquettes → 18 barquettes : toutes les quantités sont multipliées par 3.</p></article>
+      </div>
+      <div class="callout"><strong>À retenir :</strong> nouveau nombre ÷ nombre de départ = coefficient. On multiplie ensuite chaque quantité par ce même nombre.</div>
+
+      <section class="psr-learning-lab">
+        <div><span class="pill">Manipule</span><h4>Fais varier les portions</h4><p class="muted">Base : 10 portions · 800 g de riz · 500 g de légumes · 250 mL de sauce.</p></div>
+        <div class="psr-recipe-lab">
+          <div>
+            <div class="psr-big-number"><span id="psr-recipe-portions-label">24</span><small>portions</small></div>
+            <input id="psr-recipe-portions" type="range" min="5" max="35" step="1" value="24">
+          </div>
+          <div class="psr-mini-stats">
+            <div class="psr-mini-stat">Coefficient<strong id="psr-recipe-factor"></strong></div>
+            <div class="psr-mini-stat">Riz<strong id="psr-recipe-rice"></strong></div>
+            <div class="psr-mini-stat">Légumes<strong id="psr-recipe-veg"></strong></div>
+            <div class="psr-mini-stat">Sauce<strong id="psr-recipe-sauce"></strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="psr-method-card">
+        <p class="eyebrow">Une méthode simple</p>
+        <div class="psr-method-steps">
+          <div><span>1</span><p>Compare le nouveau nombre de portions au nombre de départ.</p></div>
+          <div><span>2</span><p>Trouve par combien on multiplie.</p></div>
+          <div><span>3</span><p>Multiplie chaque quantité par ce même coefficient.</p></div>
+        </div>
+        <div class="callout"><strong>5 → 15 portions</strong> : 15 ÷ 5 = 3, puis 400 g × 3 = <strong>1 200 g</strong>.</div>
+      </section>
+
+      <section class="psr-module-practice">
+        <p class="eyebrow">À toi · 4 situations</p>
+        <div class="psr-challenge-questions">
+          <div class="psr-challenge-question"><label for="psr-recipe-q1">1 · 400 g de riz pour 5 portions. Combien pour 15 portions ?</label><div class="session-link-row"><input id="psr-recipe-q1" class="input" inputmode="decimal" type="text"><strong>g</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-recipe-q2">2 · 2 L de soupe pour 8 personnes. Combien pour 20 personnes ?</label><div class="session-link-row"><input id="psr-recipe-q2" class="input" inputmode="decimal" type="text"><strong>L</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-recipe-q3">3 · 750 g de fruits pour 6 portions. Combien pour 18 portions ?</label><div class="session-link-row"><input id="psr-recipe-q3" class="input" inputmode="decimal" type="text"><strong>g</strong></div></div>
+          <div class="psr-challenge-question"><label for="psr-recipe-q4">4 · On passe de 10 à 32 portions. Quel coefficient ?</label><select id="psr-recipe-q4" class="input"><option value="">Choisir…</option><option value="1.5">× 1,5</option><option value="2.5">× 2,5</option><option value="3.2">× 3,2</option><option value="32">× 32</option></select></div>
+        </div>
+        <div id="psr-recipe-feedback" class="callout hidden" aria-live="polite"></div>
+        <div class="practice-actions">
+          <button id="psr-check-recipe" class="btn primary" type="button">Vérifier</button>
+          ${state.previewMode ? '<button id="psr-recipe-answers" class="btn secondary" type="button">Voir les réponses</button>' : ''}
+          <button class="btn secondary" type="button" data-open-psr="pourcentages">Module suivant · Pourcentages</button>
+          <button class="btn ghost" type="button" data-open-psr="overview">Retour au parcours</button>
+        </div>
+      </section>
+    </div>`;
+
+  bindPsrMathsSequenceNav();
+  document.querySelectorAll('[data-open-psr]').forEach((button) => button.addEventListener('click', () => openPsrMathsSequenceStep(button.dataset.openPsr)));
+
+  const range = $('psr-recipe-portions');
+  const updateLab = () => {
+    const portions = Number(range.value);
+    const factor = portions / 10;
+    $('psr-recipe-portions-label').textContent = String(portions);
+    $('psr-recipe-factor').textContent = `× ${formatPsrNumber(factor)}`;
+    $('psr-recipe-rice').textContent = `${formatPsrNumber(800 * factor)} g`;
+    $('psr-recipe-veg').textContent = `${formatPsrNumber(500 * factor)} g`;
+    $('psr-recipe-sauce').textContent = `${formatPsrNumber(250 * factor)} mL`;
+  };
+  range.addEventListener('input', updateLab);
+  updateLab();
+
+  const check = async () => {
+    const checks = [
+      { id:'psr-recipe-q1', domain:'Proportionnalité', correct:Math.abs(parsePsrMathsNumber($('psr-recipe-q1').value) - 1200) < 0.001 },
+      { id:'psr-recipe-q2', domain:'Proportionnalité', correct:Math.abs(parsePsrMathsNumber($('psr-recipe-q2').value) - 5) < 0.001 },
+      { id:'psr-recipe-q3', domain:'Proportionnalité', correct:Math.abs(parsePsrMathsNumber($('psr-recipe-q3').value) - 2250) < 0.001 },
+      { id:'psr-recipe-q4', domain:'Coefficient', correct:$('psr-recipe-q4').value === '3.2' },
+    ];
+    const count = checks.filter((item) => item.correct).length;
+    await recordPsrModuleChecks('recettes', checks);
+    show('psr-recipe-feedback', true);
+    $('psr-recipe-feedback').innerHTML = `<strong>${count}/4 situations réussies.</strong><div class="feedback-lines">
+      <span>${checks[0].correct ? '✓' : '↻'} 15 ÷ 5 = 3 → 400 × 3 = <b>1 200 g</b></span>
+      <span>${checks[1].correct ? '✓' : '↻'} 20 ÷ 8 = 2,5 → 2 × 2,5 = <b>5 L</b></span>
+      <span>${checks[2].correct ? '✓' : '↻'} 18 ÷ 6 = 3 → 750 × 3 = <b>2 250 g</b></span>
+      <span>${checks[3].correct ? '✓' : '↻'} 32 ÷ 10 = <b>3,2</b></span>
+    </div>`;
+  };
+  $('psr-check-recipe').addEventListener('click', check);
+  $('psr-recipe-answers')?.addEventListener('click', async () => {
+    $('psr-recipe-q1').value = '1200';
+    $('psr-recipe-q2').value = '5';
+    $('psr-recipe-q3').value = '2250';
+    $('psr-recipe-q4').value = '3.2';
+    await check();
+  });
 }
 
 function renderPsrMathsModulePreview(moduleId) {
@@ -2290,10 +2537,20 @@ async function openLiveView(sessionId) {
 }
 
 function subjectCompletionCount(subjectId) {
-  if (subjectId === 'psr-maths') return 15;
   if (subjectId === 'ada-francais') return 8;
   if (subjectId === 'ada-maths') return 6;
   return 1;
+}
+
+function psrMathsLiveProgressLabel(learner) {
+  const diagnosticIds = PSR_MATHS_DIAGNOSTIC.map((question) => question.id);
+  const challengeIds = ['psr-challenge-factor','psr-challenge-time','psr-challenge-revenue'];
+  const diagnostic = diagnosticIds.filter((id) => learnerItem(learner, id).completed).length;
+  const challenge = challengeIds.filter((id) => learnerItem(learner, id).completed).length;
+  const modules = PSR_MATHS_MODULES.filter((module) =>
+    learnerItem(learner, `psr-module-${module.id}-v1`).completed
+  ).length;
+  return `Diagnostic ${diagnostic}/10 · Défi ${challenge}/3${modules ? ` · ${modules} module${modules > 1 ? 's' : ''}` : ''}`;
 }
 
 async function refreshLiveView({ automatic = false } = {}) {
@@ -2322,7 +2579,11 @@ async function refreshLiveView({ automatic = false } = {}) {
             : 'Pas encore commencé'}</small>
         </div>
         <div class="progress-badge ${learner.started ? '' : 'waiting'}">
-          ${learner.started ? `${learner.completed_items}/${completionTarget} étapes · ${learner.correct_answers}/${learner.attempts} réponses justes` : 'En attente'}
+          ${learner.started
+            ? liveSession?.subject_id === 'psr-maths'
+              ? psrMathsLiveProgressLabel(learner)
+              : `${learner.completed_items}/${completionTarget} étapes · ${learner.correct_answers}/${learner.attempts} réponses justes`
+            : 'En attente'}
         </div>
       </article>`).join('');
   } catch (error) {
